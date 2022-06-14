@@ -1,0 +1,189 @@
+input_text:
+  met2_potential_max: 
+    name: solar potential today
+    max: 200
+  uncontrolled_estimate: 
+    name: estimated uncontrolled power usage pr hour, based on last hour usage
+    max: 200
+  met_cache: 
+    name: cached forecast until midnight tomorrow
+    max: 250
+  delivered_grid_today:
+    name: How much is produced and delivered to grid today
+    max: 250
+
+input_number:
+  last_pvlogger_production: 
+    name: PVlogger last hour
+    min: 0
+    max: 100000
+    unit_of_measurement: "Wh"
+    mode: box
+
+rest:
+#   metapiurl: "https://api.met.no/weatherapi/locationforecast/2.0/classic?lat=mylat&lon=mylon"
+  - resource: !secret metapiurl
+    scan_interval: 1800
+    sensor: 
+      - name: met api
+        value_template: '{{ value_json.weatherdata.meta.model|to_json }}'
+        json_attributes_path: $.weatherdata.product
+        json_attributes: 
+          - "time"
+
+template:
+  - sensor:
+    - name: potentiale_now
+      unit_of_measurement: "Wh"
+      state: >
+        {% set potentiale = states.input_text.met2_potential_max.state|from_json %}
+        {{ potentiale[now().hour] }}
+    - name: uncontrolled_estimate
+      state: >
+        {{ states.input_text.uncontrolled_estimate.state|from_json }}
+  - trigger: 
+      - platform: state
+        entity_id: input_number.last_pvlogger_production
+    sensor:
+      - name: produced_last_hour
+        unit_of_measurement: 'Wh'
+        state: >
+          {% set from = trigger.from_state.state|int(default=0) %}
+          {% set to = trigger.to_state.state|int(default=0) %}
+          {{ to - from if to > from else 0 }}
+  - trigger: 
+      - platform: state
+        entity_id: sensor.pv_logger_electric_production_kwh
+    sensor: 
+    - name: produced_this_hour
+      unit_of_measurement: 'Wh'
+      state: >
+        {% set last = states('input_number.last_pvlogger_production')|int(default=0) %}
+        {% set sensor = states.sensor.pv_logger_electric_production_kwh.state|int(default0) %}
+        {% if last == 0 or last > sensor %} 
+          {{ 0 }}
+        {% else %}
+          {{ ((sensor - last) * 60 / now().minute)|int }}
+        {% endif %}
+    - name: met_number2raw
+      unit_of_measurement: 'id'
+      state: '{{ (states.input_text.met_cache.state|from_json)[0] }}'
+
+automation:
+  - id: '1653423797'
+    alias: 'met2solar update forecast'
+    trigger: 
+    - platform: template
+      value_template: >
+        {% set next = as_datetime((states.sensor.met_api.state|from_json)["@nextrun"]) %}
+        {{ now().timestamp() > next.timestamp() }}
+      id: update_state
+    condition: []
+    action: 
+    - choose:
+      - conditions:
+        - condition: trigger
+          id: update_state
+        sequence: 
+        - delay: 
+            seconds: '{{ range(1,290)|random|int }}'
+        - choose:
+          - conditions:
+            - condition: template
+              value_template: >
+                {% set next = as_datetime((states.sensor.met_api.state|from_json)["@nextrun"]) %}
+                {{ now().timestamp() > next.timestamp() }}
+            sequence: 
+            - service: homeassistant.update_entity
+              target:
+                entity_id: sensor.met_api
+              data: {}
+          default: []
+      default: []
+
+  - id: '1650623280'
+    alias: 'met2solar automations'
+    trigger: 
+    - platform: time_pattern
+      minutes: 59
+    - platform: template
+      value_template: '{{ as_local(states.input_text.met_cache.last_updated).hour != now().hour }}'
+    - platform: state
+      entity_id: sensor.met_api
+    condition: []
+    variables:
+      pvlogger: '{{ states.sensor.pv_logger_electric_production_kwh.state|int(default=0) }}'
+      thishour: '{{ pvlogger - states.input_number.last_pvlogger_production.state|int(default=pvlogger) }}'
+      max: '{{ states.input_text.met2_potential_max.state|from_json }}'
+      hour: '{{ now().hour }}'
+      maxhour: '{{ max[hour] }}'
+    action: 
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: '{{ now().minute == 59 }}'
+        sequence: 
+        - service: input_number.set_value
+          data:
+            value: '{{ states.sensor.pv_logger_electric_production_kwh.state|int(default=0) }}'
+          target: 
+            entity_id: input_number.last_pvlogger_production
+        - service: input_text.set_value
+          data:
+            value: >
+              {% set uncontrolled_24 = states.input_text.uncontrolled_estimate.state|from_json %}
+              {% set uncontrolled = states.sensor.average_uncontrolled_power_usage.state|int(default=750) %}
+              {{ uncontrolled_24[:hour] + [ uncontrolled ] + uncontrolled_24[hour+1:] }}
+          target: 
+            entity_id: input_text.uncontrolled_estimate
+        - service: input_text.set_value
+          data:
+            value: >
+              {% set var = namespace (produced=0, missing=[]) %}
+              {% set grid_today = states.input_text.delivered_grid_today.state|from_json %}
+              {% for h in range(grid_today|length) %}
+              {% set var.produced = var.produced + grid_today[h]|float %}
+              {% endfor %}
+              {% for h in range(grid_today|length, now().hour) %}
+              {% set var.missing = var.missing + [0] %}
+              {% endfor %}
+              {{ grid_today + var.missing + [(states.sensor.daglig_produksjon.state|float - var.produced)|round(2)] }}
+          target: 
+            entity_id: input_text.delivered_grid_today
+        - condition: template
+          value_template: '{{ thishour > maxhour }}'
+        - service: input_text.set_value
+          data:
+            value: '{{ max[:hour] + [ thishour ] + max[hour+1:] }}'
+          target: 
+            entity_id: input_text.met2_potential_max
+      default: []
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: '{{ as_local(states.input_text.delivered_grid_today.last_updated).day != now().day }}'
+        sequence: 
+        - service: input_text.set_value
+          data:
+            value: '[]'
+          target: 
+            entity_id: input_text.delivered_grid_today
+      default: []
+    - service: input_text.set_value
+      data:
+        value: >
+          {% set local = namespace(cache=[]) %}
+          {% for time in states.sensor.met_api.attributes.time %}
+            {% set from = as_datetime(time["@from"]) %}
+            {% set to = as_datetime(time["@to"]) %}
+            {% if to.timestamp() - from.timestamp() == 3600 
+                and from.timestamp() + 3600 > now().timestamp()
+                and local.cache|length < 48 - now().hour %}
+              {% set index = now().hour + local.cache|length %}
+              {% set index = index - 24 if index >= 24 else index %}
+              {% set local.cache = local.cache + [ time.location.symbol["@number"]] %}
+            {% endif %}
+          {%- endfor %}
+          {{ (local.cache if local.cache|length > 0 else (states.input_text.met_cache.state|from_json)[1:])|to_json }}
+      target: 
+        entity_id: input_text.met_cache

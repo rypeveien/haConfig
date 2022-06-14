@@ -1,0 +1,69 @@
+- id: '1637565436384'
+  alias: Kompressor av/på og offline
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: climate.kompressor
+    to: 'unavailable'
+    for: 00:05
+    id: unavailible
+  - platform: state
+    entity_id: input_boolean.kompressor
+    id: input
+  - platform: state
+    entity_id: climate.kompressor
+    attribute: hvac_action
+    id: mill
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: input
+      sequence:
+      - choose:
+        - conditions:
+          - condition: state
+            entity_id: input_boolean.kompressor
+            state: 'on'
+          sequence:
+          - service: climate.set_hvac_mode
+            data:
+              hvac_mode: heat
+            target:
+              entity_id: climate.kompressor
+        default:
+        - service: climate.set_hvac_mode
+          data:
+            hvac_mode: 'off'
+          target:
+            entity_id: climate.kompressor
+    - conditions:
+      - condition: trigger
+        id: mill
+      sequence:
+      - choose:
+        - conditions:
+          - condition: state
+            entity_id: climate.kompressor
+            state: 'off'
+          sequence:
+          - service: input_boolean.turn_off
+            data: {}
+            target:
+              entity_id: input_boolean.kompressor
+        default:
+        - service: input_boolean.turn_on
+          data: {}
+          target:
+            entity_id: input_boolean.kompressor
+    - conditions:
+      - condition: trigger
+        id: unavailible
+      sequence:
+      - service: notify.mobile_app_xq_au52
+        data:
+          message: Mistet forbindelse til kompressor
+          title: Melding fra HA
+    default: []
+  mode: single

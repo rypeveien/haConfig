@@ -1,0 +1,90 @@
+- id: '1640099669272'
+  alias: Varmepumpetemperatur etter valgt temperatur
+  description: ''
+  trigger:
+  - platform: time_pattern
+    minutes: "/15"
+    id: timepattern
+  - platform: state
+    entity_id: input_number.stue_temp
+    id: stuetemp
+  - platform: state
+    entity_id: binary_sensor.prices_nok_kwh_lowthird
+    id: lowthird
+  - platform: state
+    entity_id: input_number.kjeller_temp
+    id: kjellertemp
+  - platform: state
+    entity_id: binary_sensor.zwift_online
+    id: zwift
+  condition: []
+  variables:
+    pricediff: >
+      {{ 2 if states('binary_sensor.prices_nok_kwh_lowthird') == 'on' 
+           and states('input_boolean.heatonlowthird') == 'on' else -1 }}
+    stue_wanted: >
+      {{ states('input_number.stue_temp')|int(default=22) + pricediff }}
+    kjeller_wanted: >
+      {{ states('input_number.kjeller_temp')|int(default=18) + pricediff }}
+  action:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ state_attr(''climate.vp_oppe'', ''temperature'') != None }}'
+      - condition: template
+        value_template: '{{ (state_attr(''climate.vp_oppe'', ''temperature'')|int) != stue_wanted }}'
+      sequence:
+      - service: climate.set_temperature
+        data:
+          temperature: '{{ stue_wanted }}'
+          hvac_mode: heat
+        target:
+          entity_id:
+          - climate.vp_oppe
+    default: []
+  - choose:
+    - conditions:
+      - condition: or
+        conditions:
+        - condition: and
+          conditions: 
+          - condition: template
+            value_template: '{{ (state_attr(''climate.vp_nede'', ''temperature'')|int) != kjeller_wanted }}'
+          - condition: template
+            value_template: '{{ states.climate.vp_nede.state == ''heat'' }}'
+        - condition: and
+          conditions: 
+          - condition: trigger
+            id: zwift
+          - condition: state
+            entity_id: binary_sensor.zwift_online
+            state: 'off'
+      sequence:
+      - service: climate.set_temperature
+        data:
+          temperature: '{{ kjeller_wanted }}'
+          hvac_mode: heat
+        target:
+          entity_id:
+          - climate.vp_nede
+    - conditions:
+      - condition: trigger
+        id: zwift
+      - condition: state
+        entity_id: binary_sensor.zwift_online
+        state: 'on'
+      sequence:
+      - service: climate.set_temperature
+        data:
+          temperature: 17
+          hvac_mode: cool
+        target:
+          entity_id: climate.vp_nede
+    default: []
+  - service: zwave_js.refresh_value
+    data:
+      entity_id: sensor.vp_oppe_air_temperature
+  - service: zwave_js.refresh_value
+    data:
+      entity_id: sensor.vp_nede_air_temperature
+  mode: single

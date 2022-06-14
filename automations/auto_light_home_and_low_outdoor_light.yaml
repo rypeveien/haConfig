@@ -1,0 +1,34 @@
+- id: '1643672254570'
+  alias: Lys på når vi kommer hjem, og det er lite lys ute
+  description: ''
+  trigger:
+  - platform: template
+    value_template: '{{ states(''sensor.howmanyhome'')|int(default=0) > 0}}'
+  - platform: numeric_state
+    entity_id: sensor.pvlogger_power
+    below: '50'
+    for:
+      hours: 0
+      minutes: 2
+      seconds: 0
+  condition:
+  - condition: and
+    conditions:
+    - condition: template
+      value_template: '{{ states(''sensor.howmanyhome'')|int(default=0) > 0}}'
+    - condition: numeric_state
+      entity_id: sensor.pvlogger_power
+      below: '200'
+    - condition: template
+      value_template: '{{ states(''binary_sensor.shellygang_input'') == ''on''}}'
+  action:
+  - service: light.turn_on
+    data:
+      brightness_pct: 61
+    target:
+      entity_id: light.livingroom_lights
+#  - service: light.turn_on
+#    data:
+#      brightness_pct: 90
+#    target:
+#      entity_id: light.kitchen_lights

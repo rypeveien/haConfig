@@ -1,0 +1,18 @@
+- id: '1634133264155'
+  alias: Slå av lys når ingen er hjemme
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.anyone_home
+    to: 'off'
+    for: 00:10
+    from: 'on'
+  condition: []
+  action:
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.livingroom_lights
+      - light.kitchen_lights
+  mode: single
+

@@ -1,0 +1,75 @@
+- id: '1644178200139'
+  alias: VV etter produksjon
+  description: ''
+  trigger:
+  - platform: template
+    value_template: '{{ states(''sensor.power_production_rypeveien_11'')|float > 1500 }}'
+  - platform: template
+    value_template: '{{ states(''sensor.power_production_rypeveien_11'')|float < 1000  }}'
+  - platform: template
+    value_template: '{{ states(''sensor.power_production_rypeveien_11'')|float > 2500 }}'
+  - platform: template
+    value_template: '{{ states(''sensor.power_production_rypeveien_11'')|float < 2000  }}'
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: device
+        type: is_off
+        device_id: ced3fc17b42719e3af505c552f41c16a
+        entity_id: switch.vv_tank
+        domain: switch
+      - condition: template
+        value_template: '{{ states(''sensor.power_production_rypeveien_11'')|float > 2500 }}'
+      sequence:
+      - type: turn_on
+        device_id: ced3fc17b42719e3af505c552f41c16a
+        entity_id: switch.vv_tank
+        domain: switch
+    - conditions:
+      - condition: device
+        type: is_on
+        device_id: ced3fc17b42719e3af505c552f41c16a
+        entity_id: switch.vv_tank
+        domain: switch
+      - condition: template
+        value_template: '{{ states(''sensor.power_production_rypeveien_11'')|float < 2000  }}'
+      - condition: template
+        value_template: '{{ states(''binary_sensor.vvtank_on'') == ''off''}}'
+      sequence:
+      - type: turn_off
+        device_id: ced3fc17b42719e3af505c552f41c16a
+        entity_id: switch.vv_tank
+        domain: switch
+    default: []
+  - choose:
+    - conditions:
+      - condition: device
+        type: is_off
+        device_id: 5fbd9c8d803ea8a24ed7238efb6e874d
+        entity_id: switch.vv_kjeller
+        domain: switch
+      - condition: template
+        value_template: '{{ states(''sensor.power_production_rypeveien_11'')|float > 1500 }}'
+      sequence:
+      - type: turn_on
+        device_id: 5fbd9c8d803ea8a24ed7238efb6e874d
+        entity_id: switch.vv_kjeller
+        domain: switch
+    - conditions:
+      - condition: device
+        type: is_on
+        device_id: 5fbd9c8d803ea8a24ed7238efb6e874d
+        entity_id: switch.vv_kjeller
+        domain: switch
+      - condition: template
+        value_template: '{{ states(''sensor.power_production_rypeveien_11'')|float < 1000  }}'
+      - condition: template
+        value_template: '{{ states(''binary_sensor.vvkjeller_on'') == ''off''}}'
+      sequence:
+      - type: turn_off
+        device_id: 5fbd9c8d803ea8a24ed7238efb6e874d
+        entity_id: switch.vv_kjeller
+        domain: switch
+    default: []
+  mode: single

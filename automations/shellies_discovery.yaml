@@ -1,0 +1,16 @@
+- id: '1643648704254'
+  alias: Shellies Discovery
+  trigger:
+  - platform: mqtt
+    topic: shellies/announce
+  action:
+  - service: python_script.shellies_discovery
+    data:
+      id: '{{ trigger.payload_json.id }}'
+      mac: '{{ trigger.payload_json.mac }}'
+      fw_ver: '{{ trigger.payload_json.fw_ver }}'
+      model: '{{ trigger.payload_json.model }}'
+      mode: '{{ trigger.payload_json.mode | default }}'
+      host: '{{ trigger.payload_json.ip }}'
+  mode: queued
+  max: 999

@@ -1,0 +1,101 @@
+input_text:
+  solar_forecast_today: 
+    name: solar forecast today
+    max: 200
+  solar_forecast_tomorrow: 
+    name: Solar forecast tomorrow
+    max: 200
+
+rest: 
+#  - resource: http://api.forecast.solar/:apikey/estimate/lat/lon/dec/azi/kwp
+# url ligger lagret i secrets.yaml siden den inneholder min apikey
+# kan også brukes uten apikey, men bare en gang i timen, med 
+#  - resource: http://api.forecast.solar/estimate/lat/lon/dec/azi/kwp
+  - resource: !secret solarForecast
+    scan_interval: 1800
+    sensor:
+      - name: solar_forecast_rest
+        value_template: '{{ value_json.result.watt_hours_day }}'
+        json_attributes_path: $.result
+        json_attributes: 
+          - "watts"
+          - "watt_hours"
+
+template: 
+  sensor: 
+    name: solar_forecast_thishour 
+    unit_of_measurement: 'W'
+    state: >
+      {{ (states('input_text.solar_forecast_today')|from_json)[now().hour] }}
+
+
+automation:
+  - id: '1649636622'
+    alias: 'Update solar forecast '
+    description: ''
+    trigger:
+    - platform: state
+      entity_id: sensor.solar_forecast_rest
+      id: solar_forecast_rest
+    - platform: template
+      value_template: >
+        {{ now().day != as_local(states.input_text.solar_forecast_today.last_updated).day }}
+    condition: []
+    variables:
+      solar_forecast_json: >
+        {% set estimate = namespace (first='', last=0, day=0, today=[], tomorrow=[]) %}
+        {% set hours = state_attr('sensor.solar_forecast_rest', 'watt_hours') %}
+        {% for hour in hours -%}
+          {% set ptime = strptime(hour, '%Y-%m-%d %H:%M:%S') -%}
+          {% if estimate.day > 0 or estimate.last > 0 or ptime.day >= now().day %}
+            {% if hours[hour] == 0 %}
+              {% if estimate.last > 0 %}
+                {% set estimate.day = estimate.day + 1 %}
+              {% elif estimate.day == 0 %}
+                {% set estimate.first = hour %}
+              {% endif %}
+              {% set estimate.last=0 %}
+            {% endif %}
+            {% if estimate.day == 0 -%}
+              {% for h in range(estimate.today|length,ptime.hour) -%}
+                {% set estimate.today = estimate.today + [0] -%}
+              {% endfor -%}
+              {% if ptime.hour == estimate.today|length %}
+                {% set diff = hours[hour] - estimate.last %}
+                {% set estimate.last = hours[hour] %}
+                {% set estimate.today = estimate.today +[diff] %}
+              {%- endif %}
+            {% elif estimate.day == 1 %}
+              {% for h in range(estimate.tomorrow|length,ptime.hour) -%}
+                {% set estimate.tomorrow = estimate.tomorrow + [0] -%}
+              {% endfor -%}
+              {% if ptime.hour == estimate.tomorrow|length %}
+                {% set diff = hours[hour] - estimate.last %}
+                {% set estimate.last = hours[hour] %}
+                {% set estimate.tomorrow = estimate.tomorrow +[diff] %}
+              {%- endif %}
+            {%- endif %}
+          {%- endif %}
+        {% endfor %}
+        {% for h in range(estimate.today|length,24) %}
+          {% set estimate.today = estimate.today + [0] -%}
+        {% endfor %}
+        {% for h in range(estimate.tomorrow|length,24) %}
+          {% set estimate.tomorrow = estimate.tomorrow + [0] -%}
+        {% endfor %}
+        {% set return = {"today": estimate.today, "tomorrow": estimate.tomorrow } %}
+        {{ return }}
+
+    action:
+    - service: input_text.set_value
+      data:
+        value: '{{ solar_forecast_json.today }}'
+      target: 
+        entity_id: input_text.solar_forecast_today
+    - service: input_text.set_value
+      data:
+        value: '{{ solar_forecast_json.tomorrow }}'
+      target: 
+        entity_id: input_text.solar_forecast_tomorrow
+    mode: single
+

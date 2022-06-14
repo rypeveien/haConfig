@@ -1,0 +1,436 @@
+input_text:
+  tibber_today: 
+    name: Tibber price today
+    max: 200
+  tibber_tomorrow: 
+    name: Tibber price tomorrow
+    max: 200
+
+input_number:
+  tibber_day_average_month_sum:
+    name: Tibber day average month sum
+    max: 99
+    min: 0
+    step: 0.001
+    unit_of_measurement: "NOK"
+
+rest: 
+  - resource: "https://api.tibber.com/v1-beta/gql"
+    scan_interval: 86400
+    method: POST
+    payload: '{"query": "{ viewer { homes { currentSubscription { priceInfo { current { energy } today { energy startsAt } tomorrow { energy startsAt }} } } } }"}'
+    headers: 
+      Authorization: !secret tibberAuthorization
+      Content-Type: application/json 
+    sensor:
+      - name: tibber_rest
+        value_template: 'OK'
+        json_attributes_path: $.data.viewer.homes.0.currentSubscription.priceInfo
+        json_attributes: 
+          - "today"
+          - "tomorrow"
+
+template:
+  sensor:
+    - unique_id: energy_by_subsides_and_production
+      state: >
+        {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
+        {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
+        {% set energy_price =  states.sensor.energy_all_nok_kwh.attributes.prices %}
+        {% set price_to_grid = states.sensor.to_grid_today_nok_kwh.state|from_json  + 
+                               states.sensor.to_grid_tomorrow_nok_kwh.state|from_json %}
+        {% set subsides = states.sensor.energy_subsides.state|float %}
+        {% set i = now().hour %}
+        {{ price_to_grid[i] if (pv_guess[0] - uncontrolled[i]) > 0 else
+          (energy_price[i] - subsides)|round(4) }} 
+      attributes:
+        friendly_name: "Energycost @ rypeveien"
+        prices: >
+          {% set delivered = states.input_text.delivered_grid_today.state|from_json %}
+          {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
+          {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
+          {% set uncontrolled = uncontrolled + uncontrolled %}
+          {% set energy_price =  states.sensor.energy_all_nok_kwh.attributes.prices %}
+          {% set price_to_grid = states.sensor.to_grid_today_nok_kwh.state|from_json  + 
+                                 states.sensor.to_grid_tomorrow_nok_kwh.state|from_json %}
+          {% set subsides = states.sensor.energy_subsides.state|float %}
+          {% set var = namespace ( price = [] ) %}
+          {% for i in range(energy_price|length) %}
+            {% set var.price = var.price + [
+                price_to_grid[i] if (i < delivered|length and delivered[i]|float > 0) or 
+                 ( i >= delivered|length and (pv_guess[i - delivered|length] - uncontrolled[i]) > 0) else
+                (energy_price[i] - subsides)|round(4) ] %} 
+          {% endfor %}
+          {{ var.price|to_json }}
+        solar: >
+          {% set delivered = states.input_text.delivered_grid_today.state|from_json %}
+          {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
+          {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
+          {% set uncontrolled = uncontrolled + uncontrolled %}
+          {% set price_to_grid = states.sensor.to_grid_today_nok_kwh.state|from_json + 
+                                 states.sensor.to_grid_tomorrow_nok_kwh.state|from_json %}
+          {% set var = namespace ( price = [] ) %}
+          {% for i in range(price_to_grid|length) %}
+            {% set var.price = var.price + [
+                price_to_grid[i] if (i < delivered|length and delivered[i]|float > 0) or 
+                                    (i >= delivered|length and (pv_guess[i - delivered|length] - uncontrolled[i]) > 0) else
+                0  ] %} 
+          {% endfor %}
+          {{ var.price|to_json }}
+        subsides: >
+          {% set delivered = states.input_text.delivered_grid_today.state|from_json %}
+          {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
+          {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
+          {% set uncontrolled = uncontrolled + uncontrolled %}
+          {% set energy_price =  states.sensor.energy_all_nok_kwh.attributes.prices %}
+          {% set subsides = states.sensor.energy_subsides.state|float %}
+          {% set var = namespace ( price = [] ) %}
+          {% for i in range(energy_price|length) %}
+            {% set var.price = var.price + [
+                0 if (i < delivered|length and delivered[i]|float > 0) or (i >= delivered|length and (pv_guess[i - delivered|length] - uncontrolled[i]) > 0) else
+                (energy_price[i] - subsides)|round(4) ] %} 
+          {% endfor %}
+          {{ var.price|to_json }}
+    - unique_id: grid_charge_rates
+      state: >
+        {{ { "flat": 0.3739, 
+             "night": 0.4251,
+             "day": 0.5251 }|to_json }}
+      attributes:
+        friendly_name: "Grid charge rates"
+    - unique_id: grid_charge
+      state: >
+        {% set charge = states.sensor.template_grid_charge_rates.state|from_json %}
+        {{ charge.flat if now().year == 2022 and now().month < 7 else
+            charge.day if now().hour >= 6 and now().hour < 22 else
+            charge.night }}
+      attributes:
+        friendly_name: "Grid charge by hours"
+        prices: >
+          {% set charge = states.sensor.template_grid_charge_rates.state|from_json %}
+          {% set var = namespace ( charge = [] ) %}
+          {% for h in range(48) %}
+            {% set check = now() + timedelta (h - now().hour) %}
+            {% set var.charge = var.charge + [ charge.flat if check.year == 2022 and check.month < 7 else
+                                               charge.day if check.hour >= 6 and check.hour < 22 else
+                                               charge.night ] %}
+          {% endfor %}
+          {{ var.charge|to_json }}
+    - name: nettleie_nok_kwh
+      unit_of_measurement: 'NOK/kWh'
+      state: 0.3739
+    - name: energy_raw_nok_kwh
+      unit_of_measurement: 'NOK/kWh'
+      state: '{{ (states(''input_text.tibber_today'')|from_json)[now().hour] }}'
+    - name: energy_nok_kwh
+      unit_of_measurement: 'NOK/kWh'
+      state: '{{ ((states(''input_text.tibber_today'')|from_json)[now().hour] * 1.25 + 0.01 + states(''sensor.nettleie_nok_kwh'')|float)|round(4) }}'
+    - name: energy_today_nok_kwh
+      state: >
+        {% set prices = namespace(list=[]) %}
+        {% set priceInfo = states('input_text.tibber_today')|from_json %}
+        {% for i in range(priceInfo|length) %}
+          {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + 0.01 + states('sensor.nettleie_nok_kwh')|float)|round(3)] %}
+        {% endfor %}
+        {{ prices.list|to_json }}
+    - name: to_grid_today_nok_kwh
+      state: >
+        {% set prices = namespace(list=[]) %}
+        {% set priceInfo = states('input_text.tibber_today')|from_json %}
+        {% for i in range(priceInfo|length) %}
+          {% set prices.list = prices.list + [(priceInfo[i] + 0.04)|round(3)] %}
+        {% endfor %}
+        {{ prices.list|to_json }}
+    - name: energy_raw_today_average_nok_kwh
+      unit_of_measurement: "NOK/kWh"
+      state: >
+        {% set prices = namespace(sum=0) %}
+        {% set priceInfo = states('input_text.tibber_today')|from_json %}
+        {% for i in range(priceInfo|length) %}
+          {% set prices.sum = prices.sum + priceInfo[i] %}
+        {% endfor %}
+        {{ (prices.sum / priceInfo|length)|round(5) }}
+    - name: energy_today_average_nok_kwh
+      unit_of_measurement: "NOK/kWh"
+      state: >
+        {% set prices = namespace(sum=0) %}
+        {% set priceInfo = states('input_text.tibber_today')|from_json %}
+        {% for i in range(priceInfo|length) %}
+          {% set prices.sum = prices.sum + (priceInfo[i] * 1.25 + 0.01 + states('sensor.nettleie_nok_kwh')|float)|round(3) %}
+        {% endfor %}
+        {{ (prices.sum / priceInfo|length)|round(3) }}
+    - name: energy_tomorrow_nok_kwh
+      state: >
+        {% set prices = namespace(list=[]) %}
+        {% set priceInfo = states('input_text.tibber_tomorrow')|from_json %}
+        {% for i in range(priceInfo|length) %}
+          {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + 0.01 + states('sensor.nettleie_nok_kwh')|float)|round(3)] %}
+        {% endfor %}
+        {{ prices.list|to_json }}
+    - name: to_grid_tomorrow_nok_kwh
+      state: >
+        {% set prices = namespace(list=[]) %}
+        {% set priceInfo = states('input_text.tibber_tomorrow')|from_json %}
+        {% for i in range(priceInfo|length) %}
+          {% set prices.list = prices.list + [(priceInfo[i] + 0.04)|round(3)] %}
+        {% endfor %}
+        {{ prices.list|to_json }}
+    - name: energy_tomorrow_average_nok_kwh
+      unit_of_measurement: "NOK/kWh"
+      state: >
+        {% set prices = namespace(sum=0) %}
+        {% set priceInfo = states('input_text.tibber_tomorrow')|from_json %}
+        {% for i in range(priceInfo|length) %}
+          {% set prices.sum = prices.sum + (priceInfo[i] * 1.25 + 0.01 + states('sensor.nettleie_nok_kwh')|float)|round(3) %}
+        {% endfor %}
+        {{ (prices.sum / priceInfo|length)|round(3) }}
+    - name: energy_all_nok_kwh
+      state: '{{ (states.sensor.energy_today_nok_kwh.state|from_json)[now().hour] }}'
+      attributes:
+        prices: >
+          {{ (states.sensor.energy_today_nok_kwh.state|from_json + 
+              states.sensor.energy_tomorrow_nok_kwh.state|from_json)|to_json }}
+    - name: usage_by_subsides
+      state: >
+        {% set hour = now().hour %}
+        {% set vvtank_hours =  states.input_number.vvtank_hours.state|float|round %}
+        {% set vvkjeller_hours =  states.input_number.vvkjeller_hours.state|float|round %}
+        {% set easee_hours =  states.sensor.wanted_easee_hours.state|float|round %}
+        {% set vvtank_done = as_datetime(states.input_datetime.vvtank_last_on.state).hour %}
+        {% if as_datetime(states.input_datetime.vvtank_last_on.state).day != now().day %}
+          {% if vvtank_done <= 6 %} {% set vvtank_done = 6 %}
+          {% elif vvtank_done <= 16 %}  {% set vvtank_done = 16 %}
+          {% endif %}
+        {% elif hour == vvtank_done %}
+          {% set vvtank_done = vvtank_done - 1 if vvtank_done > 0 else 23 %}
+        {% endif %}
+        {% set vvkjeller_done = as_datetime(states.input_datetime.vvkjeller_last_on.state).hour %}
+        {% if as_datetime(states.input_datetime.vvkjeller_last_on.state).day != now().day %}
+          {% if vvkjeller_done <= 6 %} {% set vvkjeller_done = 6 %}
+          {% elif vvkjeller_done <= 16 %} {% set vvkjeller_done = 16 %}
+          {% endif %}
+        {% elif hour == vvkjeller_done %}
+          {% set vvkjeller_done = vvkjeller_done - 1 if vvkjeller_done > 0 else 23 %}
+        {% endif %}
+        {% set easee_done = states.input_datetime.car_ready_charged.attributes.hour %}
+        {% set solarprices = (states.input_text.tibber_today.state|from_json)[hour:] +
+                              states.input_text.tibber_tomorrow.state|from_json %}
+        {% set energyprice = (states.sensor.energy_today_nok_kwh.state|from_json)[hour:] +
+                              states.sensor.energy_tomorrow_nok_kwh.state|from_json %}
+        {% set subsides = states.input_number.tibber_day_average_month_sum.state|float / now().day - 0.7 %}
+        {% set production = states.sensor.pv_guess_by_factor.state|from_json %}
+        {% set uncontrolled = (states.input_text.uncontrolled_estimate.state|from_json)[hour:] +
+                               states.input_text.uncontrolled_estimate.state|from_json %}
+        {% set vvtank_count = (vvtank_done - hour if hour <= vvtank_done else vvtank_done + 24 - hour) + 1 %}
+        {% set vvkjeller_count = (vvkjeller_done - hour if hour <= vvkjeller_done else vvkjeller_done + 24 - hour) + 1 %}
+        {% set easee_count = easee_done - hour if hour < easee_done else easee_done + 24 - hour %}
+        {% set prices = namespace (netto = [], vvtank = [], vvkjeller=[], easee=[]) %}
+        {% for h in range(energyprice|length) %}
+        {% set prices.netto = prices.netto + [(solarprices[h] if production[h] > uncontrolled[h] else energyprice[h] - subsides)|round(4)] %}
+        {% endfor %}
+        {% set prices_count = prices.netto|length %}
+        {% set vvtank_count = prices_count if vvtank_count > prices_count else vvtank_count %}
+        {% set vvkjeller_count = prices_count if vvkjeller_count > prices_count else vvkjeller_count %}
+        {% set easee_count = prices_count if easee_count > prices_count else easee_count %}
+        {% set limit = (prices.netto[:vvtank_count]|sort)[vvtank_hours] 
+           if vvtank_hours < vvtank_count else prices.netto[:vvtank_count]|max + 0.01 %}
+        {% for h in range(vvtank_count) %}
+        {% if prices.netto[h] < limit %}
+        {% set next = h + hour %}
+        {% set prices.vvtank = prices.vvtank + [ next if next < 24 else next - 24] %}
+        {% endif %}
+        {% endfor %}
+        {% set limit = (prices.netto[:vvkjeller_count]|sort)[vvkjeller_hours] 
+           if vvkjeller_hours < vvkjeller_count else prices.netto[:vvkjeller_count]|max + 0.01 %}
+        {% for h in range(vvkjeller_count) %}
+        {% if vvkjeller_count <= vvkjeller_hours or prices.netto[h] < limit  %}
+        {% set next = h + hour %}
+        {% set prices.vvkjeller = prices.vvkjeller + [ next if next < 24 else next - 24] %}
+        {% endif %}
+        {% endfor %}
+        {% set limit = (prices.netto[:easee_count]|sort)[easee_hours] 
+           if easee_hours < easee_count else prices.netto[:easee_count]|max + 0.01 %}
+        {% for h in range(easee_count) %}
+        {% if prices.netto[h] < limit %}
+        {% set next = h + hour %}
+        {% set prices.easee = prices.easee + [ next if next < 24 else next - 24] %}
+        {% endif %}
+        {% endfor %}
+        {{ { 'vvtank': prices.vvtank, 'vvkjeller': prices.vvkjeller, 'easee': prices.easee }|to_json }}
+
+automation:
+  - id: '1647958426770'
+    alias: 'Update tibber price '
+    description: ''
+    trigger:
+    - platform: state
+      entity_id: sensor.tibber_rest
+      id: tibber_rest
+    - platform: template
+      value_template: >
+        {% set today = states('input_text.tibber_today') %}
+        {{ today == '[]' or today  == 'unknown' or 
+           now().day != as_local(states.input_text.tibber_today.last_updated).day }}
+    - platform: template
+      value_template: >
+        {% set five = now().minute/5 %}
+        {{ five == (five)|int and now().hour > 12 
+           and (states('input_text.tibber_tomorrow') == '[]' or states('input_text.tibber_tomorrow') == 'unknown') }}
+    condition: []
+    variables:
+      update_delay: '{{ range(1,290)|random|int }}'
+    action:
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: >
+            {% set tomorrow = states('input_text.tibber_tomorrow') %}
+            {% set today = states('input_text.tibber_today') %}
+            {{ tomorrow == '[]' or tomorrow  == 'unknown' or
+               today == '[]' or today  == 'unknown' }}
+        sequence: 
+        - delay: 
+            seconds: '{{ update_delay }}'
+        - choose:
+          - conditions:
+            - condition: template
+              value_template: '{{ now().timestamp() - states.sensor.tibber_rest.last_updated.timestamp() > update_delay  }}'
+            sequence: 
+            - service: homeassistant.update_entity
+              target:
+                entity_id: sensor.tibber_rest
+              data: {}
+          default: []
+      - conditions:
+        - condition: template
+          value_template: >
+            {% set tomorrow = states('input_text.tibber_tomorrow') %}
+            {% set today = states('input_text.tibber_today') %}
+            {{ tomorrow == '[]' or tomorrow  == 'unknown' or
+               today == '[]' or today  == 'unknown' }}
+        - condition: template
+          value_template: "{{ state_attr('sensor.tibber_rest', 'today')|length > 0 }}"
+        sequence: 
+        - service: input_text.set_value
+          data:
+            value: >
+              {% set prices = namespace(list=[]) %}
+              {% set priceInfo = state_attr('sensor.tibber_rest', 'today') %}
+              {% for i in range(priceInfo|length) %}
+                {% set hour =  strptime(priceInfo[i].startsAt, '%Y-%m-%dT%H:%M:%S.%f%z').hour %}
+                {% if hour > prices.list|length %}
+                  {% set prices.list = prices.list + [prices.list[i-1]] %}
+                {% endif %}
+                {% set prices.list = prices.list + [priceInfo[i].energy] %}
+              {% endfor %}
+              {{ prices.list|to_json }}
+          target: 
+            entity_id: input_text.tibber_today
+      default: []
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: '{{ as_local(states.input_text.tibber_today.last_updated).day != now().day }}'
+        - condition: template
+          value_template: >
+            {% set tomorrow = states('input_text.tibber_tomorrow') %}
+            {{ tomorrow != '[]' and tomorrow  != 'unknown' }}
+        sequence: 
+        - service: input_text.set_value
+          data:
+            value: '{{ states.input_text.tibber_tomorrow.state }}'
+          target: 
+            entity_id: input_text.tibber_today
+        - service: input_text.set_value
+          data:
+            value: '[]'
+          target: 
+            entity_id: input_text.tibber_tomorrow
+      - conditions:
+        - condition: template
+          value_template: >
+            {% set tomorrow = states('input_text.tibber_tomorrow') %}
+            {{ tomorrow == '[]' or tomorrow  == 'unknown' }}
+        - condition: template
+          value_template: '{{ now().timestamp() - states.sensor.tibber_rest.last_updated.timestamp() < 300 }}'
+        - condition: template
+          value_template: "{{ state_attr('sensor.tibber_rest', 'tomorrow')|length > 0 }}"
+        sequence: 
+        - service: input_text.set_value
+          data:
+            value: >
+              {% set prices = namespace(list=[]) %}
+              {% set priceInfo = state_attr('sensor.tibber_rest', 'tomorrow') %}
+              {% for i in range(priceInfo|length) %}
+                {% set hour =  strptime(priceInfo[i].startsAt, '%Y-%m-%dT%H:%M:%S.%f%z').hour %}
+                {% if hour > prices.list|length %}
+                  {% set prices.list = prices.list + [prices.list[i-1]] %}
+                {% endif %}
+                {% set prices.list = prices.list + [priceInfo[i].energy] %}
+              {% endfor %}
+              {{ prices.list|to_json }}
+          target: 
+            entity_id: input_text.tibber_tomorrow
+        - condition: template
+          value_template: >
+            {% set today = states('input_text.tibber_today') %}
+            {{ today == '[]' or tomorrow  == 'unknown' }}
+        - service: input_text.set_value
+          data:
+            value: >
+              {% set prices = namespace(list=[]) %}
+              {% set priceInfo = state_attr('sensor.tibber_rest', 'today') %}
+              {% for i in range(priceInfo|length) %}
+                {% set hour =  strptime(priceInfo[i].startsAt, '%Y-%m-%dT%H:%M:%S.%f%z').hour %}
+                {% if hour > prices.list|length %}
+                  {% set prices.list = prices.list + [prices.list[i-1]] %}
+                {% endif %}
+                {% set prices.list = prices.list + [priceInfo[i].energy] %}
+              {% endfor %}
+              {{ prices.list|to_json }}
+          target: 
+            entity_id: input_text.tibber_today
+      default: []
+    mode: single
+
+  - id: '1650144839'
+    alias: Calculate monthly raw average price
+    description: ''
+    trigger: 
+    - platform: state
+      entity_id: input_text.tibber_today
+    condition: []
+    variables:
+      new_average: >
+        {% set input = states.input_text.tibber_today.state|from_json %}
+        {% set raw = namespace (average=0) %}
+        {% for price in input %}
+        {% set raw.average = raw.average + price %}
+        {% endfor %}
+        {% set sum = states.input_number.energy_raw_month_average.state|float * (now().day - 1) if now().day > 1 else 0 %}
+        {% set raw.average = raw.average/input|length + sum %}
+        {{ (raw.average / now().day)|round(5) }}
+      new_sum: >
+        {% set last = states.input_number.tibber_day_average_month_sum.state|float if now().day > 1 else 0 %}
+        {% set input = states.input_text.tibber_today.state|from_json %}
+        {% set raw = namespace (average=0) %}
+        {% for price in input %}
+        {% set raw.average = raw.average + price %}
+        {% endfor %}
+        {% set raw.average = raw.average/input|length + last %}
+        {{ raw.average }}
+    action:
+    - condition: template
+      value_template: >
+        {{ now().day != as_local(states.input_number.energy_raw_month_average.last_updated).day }}
+    - service: input_number.set_value
+      data:
+        value: '{{ new_average }}'
+      target: 
+        entity_id: input_number.energy_raw_month_average
+    - service: input_number.set_value
+      data:
+        value: '{{ new_sum }}'
+      target: 
+        entity_id: input_number.tibber_day_average_month_sum
+

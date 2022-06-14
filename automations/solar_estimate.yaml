@@ -1,0 +1,39 @@
+- id: '1647595632058'
+  alias: Update estimate for tomorrow solar usage
+  description: ''
+  trigger:
+  - platform: time_pattern
+    minutes: '59'
+  condition: []
+  action:
+  - service: input_text.set_value
+    data:
+      value: >
+        {% set tomorrow = states('sensor.power_production_next_24hours')|int(default=0)
+                        - states('sensor.average_uncontrolled_power_usage')|int(default=0) %} 
+        {% set tomorrow = tomorrow if tomorrow > 0 else 0 %} 
+        {% if now().hour == 0 %}
+          {{ [ tomorrow ]|to_json }}
+        {% else %}
+          {{ (states('input_text.tomorrow_estimate')|from_json  + [ tomorrow ])|to_json }}
+        {% endif %}
+    target:
+      entity_id: input_text.tomorrow_estimate
+  - choose:
+    - conditions:
+      - condition: time
+        after: '23:00'
+      sequence:
+      - service: input_text.set_value
+        data:
+          value: '{{ states(''input_text.tomorrow_estimate'') }}'
+        target:
+          entity_id: input_text.today_estimate
+      - service: input_text.set_value
+        data:
+          value: '[]'
+        target:
+          entity_id: input_text.tomorrow_estimate
+    default: []
+  mode: single
+

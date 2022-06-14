@@ -1,0 +1,183 @@
+- id: '1644843799898'
+  alias: Adax varmestyring
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: input_boolean.adax_faoff
+    id: hjemmekontorvalg
+  - platform: state
+    entity_id: 
+    - climate.adax_faoff
+    - climate.adax_guest
+    - climate.adax_syrom
+    attribute: current_temperature
+    id: currenttemp
+  - platform: state
+    entity_id:
+    - input_number.adax_faoff
+    - input_number.adax_guest
+    - input_number.adax_syrom
+    id: targettemp
+  - platform: time
+    at: 07:00
+    id: morgen
+  - platform: time
+    at: '16:00'
+    id: ettermiddag
+  - platform: template
+    value_template: '{{ now().timestamp() - as_timestamp(states.person.finn_arne_johansen.last_changed) > 1800 }}'
+    id: finnarneaway
+  - platform: template
+    value_template: '{{ now().timestamp() - as_timestamp(states.climate.adax_faoff.last_updated) > 3600 }}'
+    id: lost_connection
+  condition: []
+  variables: 
+    string: '{{ trigger.entity_id }}'
+    device: '{{ string.split(".")[1] }}'
+    input: '{{ "input_number." + device }}'
+    sensor: '{{ "climate." + device }}'
+  action:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ now().timestamp() - as_timestamp(states.person.finn_arne_johansen.last_changed) > 1800 }}'
+      - condition: state
+        entity_id: person.finn_arne_johansen
+        state: 'not_home'
+      - condition: state
+        entity_id: input_boolean.adax_faoff
+        state: 'on'
+      - condition: time
+        after: 07:00
+        before: '16:00'
+        weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+      sequence:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.adax_faoff
+    default: []
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: 
+        - morgen
+        - ettermiddag
+        - finnarneaway
+      - condition: state
+        entity_id: input_boolean.adax_faoff
+        state: 'on'
+      - condition: time
+        after: 07:00
+        before: '16:00'
+        weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+      - condition: not
+        conditions:
+        - condition: state
+          entity_id: person.finn_arne_johansen
+          state: 'home'
+      sequence:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.adax_faoff
+    - conditions:
+      - condition: trigger
+        id: lost_connection
+      sequence:
+      - service: notify.mobile_app_xq_au52
+        data:
+          message: Mistet forbindelsen til adax FA kontor
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.adax_faoff
+        state: 'on'
+      - condition: time
+        after: 05:00
+        before: '16:00'
+        weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+      - condition: numeric_state
+        entity_id: input_number.adax_faoff
+        below: '19'
+      sequence:
+      - service: input_number.set_value
+        data:
+          value: 19
+        target:
+          entity_id: input_number.adax_faoff
+    - conditions:
+      - condition: numeric_state
+        entity_id: input_number.adax_faoff
+        above: '18.9'
+      - condition: or
+        conditions:
+        - condition: state
+          entity_id: input_boolean.adax_faoff
+          state: 'off'
+        - condition: not
+          conditions:
+          - condition: time
+            after: 05:00
+            before: '16:00'
+            weekday:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+      sequence:
+      - service: input_number.set_value
+        data:
+          value: 14
+        target:
+          entity_id: input_number.adax_faoff
+    default: []
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+        - currenttemp
+        - targettemp
+        - hjemmekontorvalg
+      - condition: template
+        value_template: '{{ state_attr(sensor,''current_temperature'') >= states(input)|float }}'
+      - condition: template
+        value_template: '{{ state_attr(sensor,''temperature'') > states(input)|float }}'
+      sequence:
+      - service: climate.set_temperature
+        data:
+          temperature: '{{ states(input) | int - 1 }}'
+        target:
+          entity_id: '{{ sensor }}'
+    - conditions:
+      - condition: trigger
+        id:
+        - currenttemp
+        - targettemp
+        - hjemmekontorvalg
+      - condition: template
+        value_template: '{{ state_attr(sensor,''current_temperature'')
+          <= states(input)|float }}'
+      - condition: template
+        value_template: '{{ states(input)|float > state_attr(sensor,''temperature'') }}'
+      sequence:
+      - service: climate.set_temperature
+        data:
+          temperature: '{{ states(input)| int + 4 }}'
+        target:
+          entity_id: '{{ sensor }}'
+    default: []
+  mode: single

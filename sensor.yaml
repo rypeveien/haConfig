@@ -1,0 +1,117 @@
+- platform: filter
+  name: "torketrommel filterered energy consumption"
+  entity_id: sensor.torketrommel_energy
+  filters:
+  - filter: outlier
+    window_size: 4
+    radius: 100
+- platform: filter
+  name: "power unmonitored filtered"
+  entity_id: sensor.power_unmonitored
+  filters:
+  - filter: lowpass
+    precision: 0
+- platform: statistics
+  name: "lowest humidity at bathrom last 15 minutes "
+  entity_id: sensor.lumi_bad_humidity
+  state_characteristic: value_min
+  max_age:
+    minutes: 15
+- platform: statistics
+  name: "lowest humidity at bathrom downstairs last 15 minutes "
+  entity_id: sensor.lumi_bad_nede_humidity
+  state_characteristic: value_min
+  max_age:
+    minutes: 15
+- platform: statistics
+  name: "average hour solar production"
+  entity_id: sensor.pvlogger_power
+  state_characteristic: mean
+  max_age:
+    minutes: 60
+- platform: statistics
+  name: "average uncontrolled power usage"
+  entity_id: sensor.power_uncontrolled
+  state_characteristic: mean
+  max_age:
+    minutes: 60
+- platform: statistics
+  name: "Max persons at home last 12 hour"
+  entity_id: sensor.howmanyhome
+  state_characteristic: value_max
+  max_age:
+    hours: 12
+- platform: integration
+  source: sensor.kjolerom_power
+  name: kjolerom_energy
+  unit_prefix: k
+  round: 3
+  method: left
+- platform: integration
+  source: sensor.easee_power
+  name: easee_energy
+  unit_prefix: k
+  round: 3
+  method: left
+- platform: integration
+  source: sensor.fa_adax_power
+  name: fa_adax_energy
+  unit_prefix: k
+  round: 3
+  method: left
+- platform: integration
+  source: sensor.adax_guest_power
+  name: adax_guest_energy
+  unit_prefix: k
+  round: 3
+  method: left
+- platform: integration
+  source: sensor.adax_syrom_power
+  name: adax_syrom_energy
+  unit_prefix: k
+  round: 3
+  method: left
+- platform: rest
+  scan_interval: 300
+#  evnotify_ext: "https://app.evnotify.de/extended?akey=myakey&token=mytoken"
+  resource: !secret evnotify_ext
+  name: "evNotify ext"
+  value_template: '{{ value_json.dc_battery_power }}'
+  unit_of_measurement: "kW"
+  json_attributes:
+    - "charging"
+    - "aux_battery_voltage"
+    - "last_extended"
+    - "cumulative_energy_charged"
+- platform: rest
+  scan_interval: 300
+#  evnotify_soc: "https://app.evnotify.de/soc?akey=myakey&token=mytoken"
+  resource: !secret evnotify_soc
+  name: "evNotify soc"
+  value_template: '{{ value_json.soc_display }}'
+  unit_of_measurement: "%"
+  json_attributes:
+    - "soc_bms"
+    - "last_soc"
+- platform: rest
+  scan_interval: 300
+#  evnotify_loc: "https://app.evnotify.de/location?akey=mykey&token=mytoken"
+  resource: !secret evnotify_loc
+  name: "evNotify loc"
+  value_template: '{{ distance(value_json.latitude, value_json.longitude)|round(3) }} '
+  unit_of_measurement: "km"
+  json_attributes:
+    - "latitude"
+    - "longitude"
+    - "gps_speed"
+    - "last_location"
+- platform: zwift
+  username: !secret my_zwift_username
+  password: !secret my_zwift_password
+- platform: rest
+  name: PostenDeliveryDays
+  resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/1?postCode=4878
+  headers:
+      x-requested-with: XMLHttpRequest
+  scan_interval: 57600
+  value_template: "{{ value_json.nextDeliveryDays|to_json }}"

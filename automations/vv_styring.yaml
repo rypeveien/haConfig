@@ -1,0 +1,163 @@
+- id: '1644323270631'
+  alias: VV etter pris og temp, eller produksjon
+  description: ''
+  trigger:
+  - platform: template
+    value_template: >
+      {{ states('sensor.lumi_bad_humidity')|int(default=50) > 
+         states('sensor.lowest_humidity_at_bathrom_last_15_minutes')|int(default=50) + 15 }}
+    id: humidity_high
+  - platform: template
+    value_template: >
+      {{ states('sensor.lumi_bad_nede_humidity')|int(default=50) > 
+         states('sensor.lowest_humidity_at_bathrom_downstairs_last_15_minutes')|int(default=50) + 15 }}
+    id: humidity_downstairs_high
+  - platform: template
+    value_template: '{{ states(''sensor.amshan_power_export'')|float(default=0) < 1000  }}'
+  - platform: template
+    value_template: >
+      {% set power = states('sensor.amshan_power_export')|float(default=0) %}
+      {{ power >= 1500  and power < 2000 }}
+  - platform: template
+    value_template: >
+      {% set power = states('sensor.amshan_power_export')|float(default=0) %}
+      {{ power >= 2000  and power < 2500 }}
+  - platform: template
+    value_template: '{{ states(''sensor.amshan_power_export'')|float(default=0) >= 2500 }}'
+  - platform: template
+    value_template: '{{ states(''sensor.hours_to_vvtank_on'')|int(default=23) == 0 }}'
+  - platform: template
+    value_template: '{{ states(''sensor.hours_to_kjeller_on'')|int(default=23) == 0 }}'
+  - platform: template
+    value_template: '{{ states(''sensor.hours_to_vvtank_on'')|int(default=23) > 0 }}'
+  - platform: template
+    value_template: '{{ states(''sensor.hours_to_kjeller_on'')|int(default=23) > 0 }}'
+  - platform: state
+    entity_id: binary_sensor.vvtank_on
+    from: 'on'
+    to: 'off'
+    id: vvtank_off
+  - platform: state
+    entity_id: binary_sensor.vvkjeller_on
+    from: 'on'
+    to: 'off'
+    id: vvkjeller_off
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: humidity_downstairs_high
+      sequence:
+      - service: counter.increment
+        target:
+          entity_id: counter.dusjer_nede
+    - conditions:
+      - condition: trigger
+        id: humidity_high
+      sequence:
+      - service: counter.increment
+        target:
+          entity_id: counter.dusjer_oppe
+    - conditions:
+      - condition: trigger
+        id: vvtank_off
+      sequence:
+      - service: input_datetime.set_datetime
+        data:
+          timestamp: '{{ now().timestamp() }}'
+        target:
+          entity_id: input_datetime.vvtank_last_on
+      - service: counter.reset
+        target:
+          entity_id: counter.dusjer_oppe
+    - conditions:
+      - condition: trigger
+        id: vvkjeller_off
+      sequence:
+      - service: input_datetime.set_datetime
+        data:
+          timestamp: '{{ now().timestamp() }}'
+        target:
+          entity_id: input_datetime.vvkjeller_last_on
+      - service: counter.reset
+        target:
+          entity_id: counter.dusjer_nede
+    default: []
+  - choose:
+    - conditions:
+      - condition: device
+        type: is_off
+        device_id: ced3fc17b42719e3af505c552f41c16a
+        entity_id: switch.vv_tank
+        domain: switch
+      - condition: or
+        conditions:
+          - condition: template
+            value_template: >
+              {{ states('sensor.hours_to_vvtank_on')  == '0' and 
+                 states('sensor.wanted_vvtank_hours')|int > states('sensor.sensor.solar_power_vvtank')|from_json|length }}
+          - condition: template
+            value_template: '{{ states(''sensor.amshan_power_export'')|float(default=0) > 2500 }}'
+      sequence:
+      - type: turn_on
+        device_id: ced3fc17b42719e3af505c552f41c16a
+        entity_id: switch.vv_tank
+        domain: switch
+    - conditions:
+      - condition: device
+        type: is_on
+        device_id: ced3fc17b42719e3af505c552f41c16a
+        entity_id: switch.vv_tank
+        domain: switch
+      - condition: template
+        value_template: '{{ states(''binary_sensor.vvtank_on'') == ''off''}}'
+      - condition: template
+        value_template: '{{ states(''sensor.amshan_power_export'')|float(default=0) < 2000  }}'
+      - condition: template
+        value_template: '{{ states(''sensor.hours_to_vvtank_on'')|int(default=23) > 0 }}'
+      sequence:
+      - type: turn_off
+        device_id: ced3fc17b42719e3af505c552f41c16a
+        entity_id: switch.vv_tank
+        domain: switch
+    default: []
+  - choose:
+    - conditions:
+      - condition: device
+        type: is_off
+        device_id: 5fbd9c8d803ea8a24ed7238efb6e874d
+        entity_id: switch.vv_kjeller
+        domain: switch
+      - condition: or
+        conditions:
+          - condition: template
+            value_template: >
+              {{ states('sensor.hours_to_kjeller_on') == '0' and 
+                 states('sensor.wanted_vvkjeller_hours')|int > states('sensor.sensor.solar_power_vvkjeller')|from_json|length }}
+          - condition: template
+            value_template: '{{ states(''sensor.amshan_power_export'')|float(default=0) > 1500 }}'
+      sequence:
+      - type: turn_on
+        device_id: 5fbd9c8d803ea8a24ed7238efb6e874d
+        entity_id: switch.vv_kjeller
+        domain: switch
+    - conditions:
+      - condition: device
+        type: is_on
+        device_id: 5fbd9c8d803ea8a24ed7238efb6e874d
+        entity_id: switch.vv_kjeller
+        domain: switch
+      - condition: template
+        value_template: '{{ states(''binary_sensor.vvkjeller_on'') == ''off''}}'
+      - condition: template
+        value_template: '{{ states(''sensor.amshan_power_export'')|float(default=0) < 1000  }}'
+      - condition: template
+        value_template: '{{ states(''sensor.hours_to_kjeller_on'')|int(default=23) > 0 }}'
+      sequence:
+      - type: turn_off
+        device_id: 5fbd9c8d803ea8a24ed7238efb6e874d
+        entity_id: switch.vv_kjeller
+        domain: switch
+    default: []
+  mode: single

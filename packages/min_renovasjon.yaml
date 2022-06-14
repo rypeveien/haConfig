@@ -1,0 +1,35 @@
+min_renovasjon:
+  street_name: "Rypeveien 11"
+  house_no: "11"
+  street_code: "1680"
+  county_id: "4202"
+  date_format: "%Y-%m-%d"
+
+sensor:
+  - platform: min_renovasjon
+    fraction_id: 
+    - 1
+    - 2
+    - 3
+    - 4
+    - 7
+    - 15
+
+template:
+  - binary_sensor:
+    - unique_id: restavfall_today
+      state: '{{ as_datetime(states.sensor.restavfall.state).timestamp() - now().timestamp() < 86400 }}'
+      attributes:
+        friendly_name: "Restavfall hentes det neste døgnet"
+    - unique_id: papiravfall_today
+      state: '{{ as_datetime(states.sensor.papir.state).timestamp() - now().timestamp() < 86400 }}'
+      attributes:
+        friendly_name: "Papirsøppel hentes det neste døgnet"
+    - unique_id: glass_metallemballasje_today
+      state: '{{ as_datetime(states.sensor.glass_metallemballasje.state).timestamp() - now().timestamp() < 86400 }}'
+      attributes:
+        friendly_name: "Glass og metallembalasje hentes det neste døgnet"
+    - unique_id: plastavfall_today
+      state: '{{ as_datetime(states.sensor.plast.state).timestamp() - now().timestamp() < 86400 }}'
+      attributes:
+        friendly_name: "Plastsøppel hentes det neste døgnet"

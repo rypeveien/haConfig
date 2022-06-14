@@ -1,0 +1,15 @@
+- id: '1649406704364'
+  alias: Low battery level detection & notification for all battery sensors
+  description: ''
+  use_blueprint:
+    path: sbyx/low-battery-level-detection-notification-for-all-battery-sensors.yaml
+    input:
+      exclude:
+        entity_id:
+        - sensor.faa3phone_battery_level
+        - sensor.titophone_battery_level
+      actions:
+      - service: notify.persistent_notification
+        data:
+          message: Lite battery på {{ sensors }}
+

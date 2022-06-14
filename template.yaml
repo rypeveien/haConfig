@@ -1,0 +1,265 @@
+sensor:
+  - unique_id: power_in_or_out
+    unit_of_measurement: 'W'
+    state: '{{ states.sensor.amshan_power_import.state|int -  states.sensor.amshan_power_export.state|int }}'
+    attributes:
+      friendly_name: 'Kraft forbrukt fra eller levert til nettet'
+  - name: energy_subsides
+    unit_of_measurement: 'NOK/kWh'
+    state: >
+      {% set raw = states('input_number.energy_raw_month_average')|float %}
+      {{ (raw - 0.7)|round(4) if raw > 0.7 else 0 }}
+  - name: windspeed_ms
+    state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_wind_strength'')|float / 3.6)|round(1) }}'
+    unit_of_measurement: 'm/s'
+  - name: windgust_ms
+    state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_gust_strength'')|float / 3.6)|round(1) }}'
+    unit_of_measurement: 'm/s'
+  - name: solar_power
+    state: >
+      {% set hour = now().hour %}
+      {% set vvkjeller_hours = states('input_number.vvkjeller_hours')|round() %}
+      {% set vvkjeller_last = state_attr('input_datetime.vvkjeller_last_on', 'hour')|int %}
+      {% set vvkjeller_last = vvkjeller_last + 24 if vvkjeller_last < now().hour else vvkjeller_last %}
+      {% set vvtank_hours = states('input_number.vvtank_hours')|round() %}
+      {% set vvtank_last = state_attr('input_datetime.vvtank_last_on', 'hour')|int %}
+      {% set vvtank_last = vvtank_last + 24 if vvtank_last < now().hour else vvtank_last %}
+      {% set easee_hours = states('sensor.wanted_easee_hours')|int %}
+      {% set charged_by = state_attr('input_datetime.car_ready_charged', 'hour')|int %}
+      {% set charged_by = charged_by + 24 if charged_by < now().hour else charged_by %}
+      {% set next24 = namespace(vvkjeller=[], vvtank=[], easee=[]) %}
+      {% set estimate = (states('input_text.today_estimate')|from_json)[now().hour:] %}
+      {% set estimate = estimate + states('input_text.tomorrow_estimate')|from_json %}
+      {% set estimate = estimate[:24] %}
+      {% for i in range (estimate|length) %}
+        {% set iHour = hour+i %}
+        {% set dHour = iHour if iHour < 24 else iHour-24 %}
+        {% if estimate[i]|int > 3000 and iHour < charged_by and next24.easee|length < easee_hours %}
+          {% set next24.easee = next24.easee + [dHour] %}
+        {% elif estimate[i]|int > 2000 and iHour < vvtank_last and next24.vvtank|length < vvtank_hours %}
+          {% set next24.vvtank = next24.vvtank + [dHour] %}
+        {% elif estimate[i]|int > 1000 and iHour < vvkjeller_last and next24.vvkjeller|length < vvkjeller_hours %}
+          {% set next24.vvkjeller = next24.vvkjeller + [dHour] %}
+        {% endif %}
+      {% endfor %}
+      {% set solar_json = {
+        "easee": next24.easee,
+        "vvtank": next24.vvtank,
+        "vvkjeller": next24.vvkjeller
+      } %}
+      {{ solar_json|to_json }}
+  - name: solar_power_vvtank
+    state: >
+      {% set solar_power = states('sensor.solar_power')|from_json %}
+      {{ solar_power.vvtank }}
+  - name: solar_power_vvkjeller
+    state: >
+      {% set solar_power = states('sensor.solar_power')|from_json %}
+      {{ solar_power.vvkjeller }}
+  - name: fa_tracker_faa3
+    state: >
+      {{ 'home' if states('device_tracker.faa3phone') == 'home' and states('sensor.faa3phone_wifi_connection').split("_")[0] == 'BzzWare' else
+         'off' if states('device_tracker.faa3phone') != 'home' and states('sensor.faa3phone_wifi_connection').split("_")[0] == 'BzzWare' else
+         'not_home' }}
+  - name: fa_tracker_tito
+    state: >
+      {{ 'home' if states('device_tracker.titophone') == 'home' and states('sensor.titophone_wifi_connection').split("_")[0] == 'BzzWare' else 
+         'off' if states('device_tracker.titophone') != 'home' and states('sensor.titophone_wifi_connection').split("_")[0] == 'BzzWare' else
+        'not_home' }}
+  - name: fa_tracker
+    state: >
+      {{ 'not_home' if states('sensor.fa_tracker_tito') == 'not_home'
+          or states('sensor.fa_tracker_faa3') == 'not_home' else 'home' }}
+  - name: easee_power
+    unit_of_measurement: W
+    device_class: power
+    state: '{{ states(''sensor.easee_home_63089_power'')|float(default=0)*1000 }}'
+  - name: power_usage
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {{ states('sensor.amshan_power_import')|int(default=0)
+         + states('sensor.pvlogger_power')|int(default=0)
+         - states('sensor.amshan_power_export')|int(default=0) }}
+  - name: power_controlled
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {{ states('sensor.vv_tank_electric_consumption_w')|int(default=0)
+         + states('sensor.vv_kjeller_power')|int(default=0)
+         + states('sensor.shellyvask_power')|int(default=0)
+         + states('sensor.torketrommel_power')|int(default=0)
+         + states('sensor.easee_power')|int(default=0) }}
+  - name: power_uncontrolled
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {% set uncontrolled =  states('sensor.power_usage')|int(default=0)
+       - states('sensor.power_controlled')|int(default=0) %}
+      {{ uncontrolled if uncontrolled > 0 else 0 }}
+  - name: power_monitored
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {{ states('sensor.vpoppe_power')|int(default=0)
+       + states('sensor.vpnede_power')|int(default=0)
+       + states('sensor.kjoleskap_electric_consumption_w')|int(default=0)
+       + states('sensor.inngangstikk_power')|int(default=0)
+       + states('sensor.server_power')|int(default=0)
+       + states('sensor.baderomsgulv_electric_consumption_w')|int(default=0)
+       + states('sensor.shellyfrys_power_2')|int(default=0)
+       + states('sensor.shellykjol_switch_0_power')|int(default=0)
+       + states('sensor.adax_guest_power')|int(default=0)
+       + states('sensor.adax_syrom_power')|int(default=0)
+       + states('sensor.fa_adax_power')|int(default=0) }}
+  - name: power_unmonitored
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {% set unmonitored =  states('sensor.power_uncontrolled')|int(default=0)
+       - states('sensor.power_monitored')|int(default=0) %}
+      {{ unmonitored if unmonitored > 0 else 0 }}
+  - name: wanted_easee_hours
+    unit_of_measurement: 'Hours'
+    state: >
+      {% set SoC = states('input_number.ladestatus') | float(default=50) %}
+      {{ ((1-SoC/100)*28/states('input_number.ladefart')|float(default=2) + 0.5)|round(0) }}
+  - name: charge_hours
+    state: >
+      {% set by_subsides = states.sensor.usage_by_subsides.state|from_json %}
+      {{ by_subsides.easee }}
+  - name: fa_adax_temp
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.adax_faoff','current_temperature') }}"
+  - name: syrom_adax_temp
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.adax_syrom','current_temperature') }}"
+  - name: gjesterom_adax_temp
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.adax_guest','current_temperature') }}"
+  - name: fa_adax_power
+    unit_of_measurement: "W"
+    device_class: power
+    state: >
+      {% set s = 'adax_faoff' %}
+      {% set d = state_attr ('climate.' + s, 'temperature') - state_attr ('climate.' + s, 'current_temperature') %}
+      {% if d > 3.5 %}
+        600
+      {% elif d > 0.5 %}
+        300
+      {% else %}
+        0
+      {% endif %}
+  - name: adax_guest_power
+    unit_of_measurement: "W"
+    device_class: power
+    state: >
+      {% set s = 'adax_guest' %}
+      {% set d = state_attr ('climate.' + s, 'temperature') - state_attr ('climate.' + s, 'current_temperature') %}
+      {% if d > 3.5 %} 600 {% elif d > 0.5 %} 300 {% else %} 0 {% endif %}
+  - name: adax_syrom_power
+    unit_of_measurement: "W"
+    device_class: power
+    state: >
+      {% set s = 'adax_syrom' %}
+      {% set d = state_attr ('climate.' + s, 'temperature') - state_attr ('climate.' + s, 'current_temperature') %}
+      {% if d > 3.5 %} 600 {% elif d > 0.5 %} 300 {% else %} 0 {% endif %}
+  - name: cheap_x_kwh_hours
+    state: >
+      {% set today = states('sensor.energy_today_nok_kwh')|from_json %}
+      {% set tomorrow = states('sensor.energy_tomorrow_nok_kwh')|from_json %}
+      {% set prices = today[now().hour:24] %}
+      {% if tomorrow|length > 0 %}
+      {% set prices = prices + tomorrow %}
+      {% endif %}
+      {% set prices = prices[0:24] %}
+      {% set all = namespace(done = False) %}
+      {% set hours = namespace(to = '') %}
+      {% set max = prices | length %}
+      {% if max > 12 %}
+        {% set max = 12 %}
+      {% endif %}
+      {% for j in range(max) %}
+        {% set all.done = False if j < max else True %}
+        {% set sums = namespace(sums = []) %}
+        {% for i in range(prices|length - j) %}
+          {% set sums.sums = sums.sums + [prices[i:i+j+1]|sum] %}
+        {% endfor %}
+        {% set sums.sums = sums.sums[:max] %}
+        {% set lowsum = (sums.sums| sort)[0] %}
+        {% for i in range (sums.sums|count) %}
+          {% if (sums.sums[i] <= lowsum ) %}
+            {% if hours.to == '' %}
+              {% set hours.to = i|string %}
+            {% else %}
+              {% set hours.to = hours.to + ', ' + i|string %}
+            {% endif %}
+          {% endif %}    
+        {% endfor %}
+      {% endfor %}
+      {{ hours.to }}
+  - name: howmanyhome
+    unit_of_measurement: 'stk'
+    state: "{{ states.person | selectattr('state','eq','home') | list | count }}"
+
+binary_sensor:
+  - name: winter_tires_check
+    state: '{{ states.input_boolean.winter_tyres.state == states.binary_sensor.snowtire.state }}'
+  - name: laptoplader_on
+    state: '{{ states(''sensor.laptoplader_electric_consumption_w'')|float(default=0) > 5 }}'
+  - name: vvtank_on
+    state: '{{ states(''sensor.vv_tank_electric_consumption_w'')|float(default=0) > 0 }}'
+  - name: vvkjeller_on
+    state: '{{ states(''sensor.vv_kjeller_power'')|float(default=0) > 0 }}'
+  - name: vaskemaskin_on
+    state: '{{ states(''sensor.shellyvask_power'')|float(default=0) > 2 }}'
+    delay_off: 
+      minutes: 2
+  - name: kjolerom_on
+    state: "{{ states('sensor.shellykjol_switch_0_power')|float(default=0) > 20 }}"
+  - name: torketrommel_on
+    state: "{{ states('sensor.torketrommel_power')|float(default=0) > 20 }}"
+    delay_on: 
+      minutes: 2
+    delay_off: 
+      minutes: 2
+  - name: zwift_online
+    state: "{{ states('sensor.zwift_online_1180851') == 'True' }}"
+  - name: anyone_home
+    state: "{{ states.person | selectattr('state','eq','home') | list | count > 0 }}"
+  - name: motion_inngang_on
+    state: '{{ states(''binary_sensor.cam01_inngang'') == ''on'' }}'
+    delay_off: 
+      minutes: 5
+  - name: dor_inngang_on
+    state: '{{ states(''binary_sensor.inngangsdor_door_window'') == ''on'' }}'
+    delay_off: 
+      minutes: 5
+  - name: wants_to_charge
+    state: >
+      {% set charge_hours = states('sensor.charge_hours')|from_json %}
+      {{ (charge_hours|length > 0 and charge_hours[0]|int(default=24) == now().hour) or 
+         (charge_hours|length > 1 and charge_hours[1]|int(default=24) == now().hour) }}
+  - name: easee_on
+    state: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
+    delay_off: 
+      minutes: 2
+  - name: prices_nok_kwh_lowthird
+    state: >
+      {% set prices = states('sensor.energy_today_nok_kwh')|from_json %}
+      {% set prices = prices[now().hour:] %}
+      {% set tomorrow =  states('sensor.energy_tomorrow_nok_kwh')|from_json %}
+      {% if tomorrow|length > 0 %}
+        {% set prices = prices + tomorrow %}
+      {% endif %}
+      {% set count=(prices|length/3)|int %}
+      {{ prices[0] < (prices|sort)[count] }}
+#  - name: "Tibber unavailible"
+#    delay_on:
+#     minutes: 2
+#    state: >
+#      {% set tsNow = as_timestamp(now()) %}
+#      {% set tsIn = as_timestamp(states.sensor.power_rypeveien_11.last_changed) %}
+#      {% set tsOut = as_timestamp(states.sensor.power_production_rypeveien_11.last_changed) %} 
+#      {% set tsLast = tsIn if tsIn > tsOut else tsOut %}
+#      {{ tsNow - tsLast > 10 }}

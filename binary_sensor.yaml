@@ -1,0 +1,9 @@
+- platform: rest
+  name: CAM01 - inngang
+  resource: "http://cam01/cgi-bin/api.cgi?cmd=GetMdState&rs=&user=admin&password=Grarjo09Cam"
+  method: GET
+  value_template: '{{ value_json[0].value.state }}'
+  scan_interval: 2
+  device_class: motion
+- platform: snowtire
+  weather: weather.rypeveien

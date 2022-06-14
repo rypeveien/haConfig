@@ -1,0 +1,54 @@
+- id: '1637677888721'
+  alias: Lad mobil før du går hjem
+  description: ''
+  trigger:
+  - platform: time
+    at: '15:00'
+  condition: []
+  action:
+  - choose: 
+    - conditions:
+      - condition: state
+        entity_id: sensor.faa3phone_wifi_connection
+        state: Moavasupernet
+      - type: is_battery_level
+        condition: device
+        device_id: b4b3d0f0c42e949ed0dc3b2a571f173c
+        entity_id: sensor.faa3phone_battery_level
+        domain: sensor
+        below: 60
+      - condition: state
+        entity_id: binary_sensor.faa3phone_is_charging
+        state: 'off'
+      sequence:
+      - service: notify.mobile_app_sm_a320fl
+        data:
+          message: Husk å lade telefonen før du går hjem
+          data: 
+            ttl: 0
+            priority: high
+    default: []
+  - choose: 
+    - conditions:
+      - condition: state
+        entity_id: sensor.titophone_wifi_connection
+        state: Moavasupernet
+      - type: is_battery_level
+        condition: device
+        device_id: 66678c21d7ac63cf99afe5be7d6eee8e
+        entity_id: sensor.titophone_battery_level
+        domain: sensor
+        below: 60
+      - condition: state
+        entity_id: binary_sensor.titophone_is_charging
+        state: 'off'
+      sequence:
+      - service: notify.mobile_app_xq_au52
+        data:
+          message: Husk å lade telefonen før du går hjem
+          data:
+            ttl: 0
+            priority: high
+    default: []
+  mode: single
+

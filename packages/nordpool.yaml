@@ -1,0 +1,65 @@
+rest:
+  - resource: "https://www.nordpoolgroup.com/api/marketdata/page/23?currency=,NOK,NOK,EUR"
+    scan_interval: 129600
+    sensor: 
+      - name: nordpool api
+        value_template: '{{ value_json.data.DateUpdated }}'
+        json_attributes_path: $.data
+        json_attributes: 
+          - "Rows"
+
+
+template:
+  - sensor:
+    - name: nordpool_prices
+      state: >
+        {% set l = namespace(prices=[]) %}
+        {% for row in states.sensor.nordpool_api.attributes.Rows %}
+        {% if (as_datetime(row.EndTime).timestamp() - as_datetime(row.StartTime).timestamp() == 3600) %}
+        {% set l.prices = l.prices + [(row.Columns[1].Value|replace(" ", "")|replace(",", ".")|float/1000)|round(4)] %}
+        {% endif %}
+        {%- endfor %}
+        {{ l.prices|to_json }}
+
+automation:  
+  - id: '1654892652238'
+    alias: 'nordpool price update'
+    trigger: 
+    - platform: template
+      value_template: >
+        {{ as_datetime(states.sensor.nordpool_api.state).day != now().day and
+          (now().minute/30)|round == 18 and now().hour >= 13 }}
+    condition: []
+    action: 
+    - choose:
+      - conditions: 
+        - condition: template
+          value_template: '{{ states.input_text.tibber_tomorrow.state == ''[]'' }}'
+        sequence:
+        - delay: 
+            seconds: '{{ range(1,1740)|random|int }}'
+      default:
+      - delay: 
+          seconds: '{{ range(1,(23 - now().hour)*3600)|random|int }}'
+    - service: homeassistant.update_entity
+      target:
+        entity_id: sensor.nordpool_api
+    - delay: 
+        seconds: '10'
+    - condition: template
+      value_template: '{{ states.input_text.tibber_tomorrow.state == ''[]'' }}'
+    - condition: template
+      value_template: '{{ as_datetime(states.sensor.nordpool_api.state).day == now().day }}'
+    - service: input_text.set_value
+      data:
+        value: >
+          {% set l = namespace(prices=[]) %}
+          {% for row in states.sensor.nordpool_api.attributes.Rows %}
+          {% if (as_datetime(row.EndTime).timestamp() - as_datetime(row.StartTime).timestamp() == 3600) %}
+          {% set l.prices = l.prices + [(row.Columns[1].Value|replace(" ", "")|replace(",", ".")|float/1000)|round(4)] %}
+          {% endif %}
+          {%- endfor %}
+          {{ l.prices|to_json }}
+      target: 
+        entity_id: input_text.tibber_tomorrow
+

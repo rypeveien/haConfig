@@ -1,0 +1,13 @@
+- id: '1645554874317'
+  alias: Be om oversikt over DHCP-klienter ved oppstart
+  description: ''
+  trigger:
+  - platform: homeassistant
+    event: start
+  condition: []
+  action:
+  - service: mqtt.publish
+    data:
+      topic: phonedetect/command
+      payload: announce
+  mode: single

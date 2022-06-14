@@ -1,0 +1,65 @@
+
+# Configure a default setup of Home Assistant (frontend, api, etc)
+default_config:
+
+homeassistant:
+  customize:
+    zone.home:
+      radius: 28
+#  packages: !include_dir_merge_named packages
+  packages: !include_dir_named packages
+http:
+  use_x_forwarded_for: true
+  trusted_proxies: 
+    - 192.168.31.1
+  ip_ban_enabled: true
+  login_attempts_threshold: 5
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+group: !include groups.yaml
+automation manual: !include_dir_merge_list automations/
+automation ui: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+template: !include template.yaml
+sensor: !include sensor.yaml
+binary_sensor: !include binary_sensor.yaml
+rest: !include rest.yaml
+
+python_script:
+
+tibber_custom:
+
+
+recorder:
+  purge_keep_days: 7
+#  mysqldburl: mysql://dbuser:dbpass@dbhost/dbname?charset=utf8mb4
+  db_url: !secret mysqldburl
+  include:
+    domains:
+      - person
+      - sensor
+      - binary_sensor
+      - input_number
+      - input_datetime
+      - input_select
+      - input_text
+      - weather
+      - device_tracker
+      - vacuum
+      - climate
+      - switch
+      - counter
+      - lock
+
+logger:
+  default: info
+  logs:
+    charset_normalizer: warning
+    custom_components.tibber_custom: debug
+    custom_components.tibber_custom.camera: debug
+    custom_components.camera: debug
+

@@ -1,0 +1,44 @@
+- id: '1644396035325'
+  alias: Hue kjøkken av
+  description: ''
+  trigger:
+  - device_id: 759356ac2e0ff3d09e5c7187fa87dbf1
+    domain: hue
+    platform: device
+    type: long_release
+    subtype: 4
+    unique_id: 9807ceb0-fd3f-46a1-9045-ddb5c9ae0d7d
+    id: trigger_off
+  - device_id: 759356ac2e0ff3d09e5c7187fa87dbf1
+    domain: hue
+    platform: device
+    type: long_release
+    subtype: 1
+    unique_id: 8b1330c8-002e-4fdf-a69b-bdc22a203e23
+    id: trigger_on
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: trigger_off
+      sequence:
+      - service: light.turn_off
+        data: {}
+        target:
+          entity_id:
+          - light.pendel_hjorne
+          - light.pendel_vindu
+    - conditions:
+      - condition: trigger
+        id: trigger_on
+      sequence:
+      - service: light.turn_on
+        data:
+          brightness_pct: 90
+        target:
+          entity_id:
+          - light.pendel_hjorne
+          - light.pendel_vindu
+    default: []
+  mode: single

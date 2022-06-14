@@ -1,0 +1,34 @@
+- id: '1647958426770'
+  alias: 'Update tibber price '
+  description: ''
+  trigger:
+  - platform: time_pattern
+    minutes: '0'
+  - platform: time_pattern
+    hours: '13'
+    minutes: /15
+  condition:
+  - condition: template
+    value_template: '{{ now().timestamp() - states.sensor.tibber_price.last_updated.timestamp()
+      < 3540  }}'
+  - condition: or
+    conditions:
+    - condition: template
+      value_template: '{{ now().minute == 0 }}'
+    - condition: and
+      conditions:
+      - condition: state
+        entity_id: sensor.rypeveien_tomorrow_nok_kwh
+        state: '[]'
+      - condition: time
+        after: '13:00'
+      - condition: template
+        value_template: '{% set minute = now().minute %}{{ minute/15 ==(minute/15)|int  }}'
+  action:
+  - delay: 00:00:{{ range(10,59)|random|int }}
+  - service: homeassistant.update_entity
+    target:
+      entity_id: sensor.tibber_price
+    data: {}
+  mode: single
+

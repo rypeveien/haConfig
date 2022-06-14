@@ -1,0 +1,78 @@
+- id: '1648294802488'
+  alias: Slå av varme ved inngangsdør når døren er oppe
+  description: ''
+  trigger:
+  - type: turned_on
+    platform: device
+    device_id: ad3160c2bf2ac77b821e2f52e3d26ab9
+    entity_id: binary_sensor.inngangsdor_door_window
+    domain: binary_sensor
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+  - type: turned_off
+    platform: device
+    device_id: ad3160c2bf2ac77b821e2f52e3d26ab9
+    entity_id: binary_sensor.inngangsdor_door_window
+    domain: binary_sensor
+    for:
+      hours: 0
+      minutes: 20
+      seconds: 0
+  condition: 
+    - condition: or
+      conditions: 
+        - condition: and
+          conditions: 
+            - condition: state
+              entity_id: binary_sensor.inngangsdor_door_window
+              state: 'on'
+            - condition: device
+              type: is_on
+              device_id: d3a181b9d77763be22078fafae7016ce
+              entity_id: switch.inngangstikk
+              domain: switch
+        - condition: and
+          conditions: 
+            - condition: state
+              entity_id: binary_sensor.inngangsdor_door_window
+              state: 'off'
+            - condition: device
+              type: is_off
+              device_id: d3a181b9d77763be22078fafae7016ce
+              entity_id: switch.inngangstikk
+              domain: switch
+  action:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.inngangsdor_door_window
+        state: 'on'
+      - condition: device
+        type: is_on
+        device_id: d3a181b9d77763be22078fafae7016ce
+        entity_id: switch.inngangstikk
+        domain: switch
+      sequence:
+      - type: turn_off
+        device_id: d3a181b9d77763be22078fafae7016ce
+        entity_id: switch.inngangstikk
+        domain: switch
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.inngangsdor_door_window
+        state: 'off'
+      - condition: device
+        type: is_off
+        device_id: d3a181b9d77763be22078fafae7016ce
+        entity_id: switch.inngangstikk
+        domain: switch
+      sequence:
+      - type: turn_on
+        device_id: d3a181b9d77763be22078fafae7016ce
+        entity_id: switch.inngangstikk
+        domain: switch
+    default: []
+  mode: single
+

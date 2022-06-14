@@ -1,0 +1,65 @@
+- id: '1644253080535'
+  alias: Garasjelys av / på
+  description: ''
+  trigger:
+  - platform: time
+    at: 01:10:00
+  - platform: time
+    at: 04:30:00
+  - platform: template
+    value_template: '{{ states(''binary_sensor.motion_inngang_on'') }}'
+  - platform: sun
+    event: sunrise
+    offset: 00:05:00
+  - platform: sun
+    event: sunset
+    offset: -00:05:00
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ states(''timer.lys_av_pa_nattestid'') == ''active'' }}'
+      sequence:
+      - type: toggle
+        device_id: 89c8e491871bffad8151dcab1f8809e4
+        entity_id: switch.garasjelys
+        domain: switch
+      - service: timer.finish
+        data: {}
+        target:
+          entity_id: timer.lys_av_pa_nattestid
+    - conditions:
+      - condition: sun
+        before: sunset
+        after: sunset
+        after_offset: -00:06:00
+      sequence:
+      - type: turn_on
+        device_id: 89c8e491871bffad8151dcab1f8809e4
+        entity_id: switch.garasjelys
+        domain: switch
+    - conditions:
+      - condition: sun
+        before: sunrise
+        before_offset: +00:06:00
+        after: sunrise
+      sequence:
+      - type: turn_off
+        device_id: 89c8e491871bffad8151dcab1f8809e4
+        entity_id: switch.garasjelys
+        domain: switch
+    - conditions:
+      - condition: state
+        entity_id: timer.lys_av_pa_nattestid
+        state: idle
+      - condition: time
+        after: '01:00'
+        before: '05:00'
+      sequence:
+      - service: timer.start
+        data: {}
+        target:
+          entity_id: timer.lys_av_pa_nattestid
+    default: []
+  mode: single

@@ -1,0 +1,16 @@
+#Exclude everything
+*
+.*
+
+#include some files
+!.gitignore
+!*.yaml
+
+# include some folders
+!packages
+!automations
+
+#Ignore some files
+ip_bans.yaml
+secrets.yaml
+known_devices.yaml

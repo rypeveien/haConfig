@@ -1,0 +1,125 @@
+- id: '1645896719736'
+  alias: Dørlåsen
+  description: ''
+  trigger:
+  - platform: time_pattern
+    hours: '21'
+    minutes: '30'
+    id: lock_time
+  - platform: state
+    entity_id: binary_sensor.inngangsdor_door_window
+    to: 'off'
+    for:
+      hours: 0
+      minutes: 10
+      seconds: 0
+    id: doorclosed
+  - platform: state
+    entity_id: binary_sensor.anyone_home
+    id: Everyone left
+    to: 'off'
+    for:
+      hours: 0
+      minutes: 10
+      seconds: 0
+  - platform: state
+    entity_id: sensor.easee_home_63089_status
+    id: easee_connected
+    from: disconnected
+  - platform: state
+    entity_id: sensor.howmanyhome
+    id: Arriving_home
+  - platform: device
+    device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+    domain: lock
+    entity_id: lock.dana_oppe
+    type: unlocked
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+    id: has_unlocked
+  condition: 
+  - condition: template
+    value_template: >
+      {{ states('lock.dana_oppe') == 'unlocked' or 
+         now() - states.lock.dana_oppe.last_changed > timedelta(minutes=10) }}
+  action:
+  - choose:
+    - conditions:
+      - condition: device
+        device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: is_unlocked
+      - condition: or
+        conditions:
+        - condition: trigger
+          id: lock_time
+        - condition: trigger
+          id: Everyone left
+      sequence:
+      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: lock
+    - conditions:
+      - condition: trigger
+        id: easee_connected
+      - condition: device
+        device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: is_locked
+      sequence:
+      - service: homeassistant.update_entity
+        target:
+          entity_id: sensor.evnotify_loc
+        data: {}
+      - condition: template
+        value_template: '{{ states(''sensor.evnotify_loc'')|float < 0.02 }}'
+      - condition: template
+        value_template: '{{ (now().timestamp()|int - state_attr(''sensor.evnotify_loc'',''last_location'')) < 60 }}'
+      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: unlock
+    - conditions:
+      - condition: trigger
+        id: Arriving_home
+      - condition: device
+        device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: is_locked
+      - condition: template
+        value_template: '{{ trigger.to_state.state > trigger.from_state.state }}'
+      sequence:
+      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: unlock
+    - conditions:
+      - condition: trigger
+        id: has_unlocked
+      - condition: template
+        value_template: '{{ states.lock.dana_oppe.last_changed > states.binary_sensor.inngangsdor_door_window.last_changed }}'
+      - condition: template
+        value_template: '{{ states.binary_sensor.inngangsdor_door_window.state == ''off'' }}'
+      sequence:
+      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: lock
+    - conditions:
+      - condition: trigger
+        id: doorclosed
+      - condition: time
+        after: '21:30:00'
+      sequence:
+      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: lock
+    default: []
+  mode: single
