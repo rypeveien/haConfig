@@ -46,4 +46,6 @@ I try to save some money turning water heater and Car charger on and off, based 
 - How many showers has been taken since last full cycle. 
 
 
-
+Other stuff that is automated using HA 
+- Controlling temperature, turning of heating in the basement when I'm cycling indoor using zwift
+- Turning lights on and of based on who is home when, and some timeschedule
