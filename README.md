@@ -2,17 +2,17 @@
 My home assistant stuff
 
 My installation runs on a Workstation with Debian Linux and software raid 
-CPU: Intel Core i3-9100
-Memory: 8 GB 
-Disks: 2x WDC WD20EZRZ-00Z5HB0 (2x2TB Sata)
+- CPU: Intel Core i3-9100
+- Memory: 8 GB 
+- Disks: 2x WDC WD20EZRZ-00Z5HB0 (2x2TB Sata)
 
 Average power usage for the workstation is 35Watt
 
 Dongles: 
-	Aeotec Z-Stick Gen5 - zWave
-	ConbeeII - Zigbee
-	Bluetooth dongle
-	RFXtrx433-controller
+- Aeotec Z-Stick Gen5 - zWave
+- ConbeeII - Zigbee
+- Bluetooth dongle
+- RFXtrx433-controller
 
 Home assistant, zigbee2mqtt and zwavejs2mqtt are run as docker-containers, using docker-compose
 
