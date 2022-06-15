@@ -99,6 +99,7 @@ template:
       attributes:
         friendly_name: "Grid charge rates"
     - unique_id: grid_charge
+      unit_of_measurement: 'NOK/kWh'
       state: >
         {% set charge = states.sensor.template_grid_charge_rates.state|from_json %}
         {{ charge.flat if now().year == 2022 and now().month < 7 else
