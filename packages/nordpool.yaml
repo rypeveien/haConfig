@@ -28,7 +28,8 @@ automation:
     - platform: template
       value_template: >
         {{ as_datetime(states.sensor.nordpool_api.state).day != now().day and
-          (now().minute/30)|round == 18 and now().hour >= 13 }}
+          (now().minute/30)|round == 18 and now().hour >= 13 and 
+          states.automation.nordpool_pric_update.attributes.current == 0 }}
     condition: []
     action: 
     - choose:
