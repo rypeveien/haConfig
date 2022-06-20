@@ -1,0 +1,55 @@
+input_text: 
+  max_3hour_month_usage:
+    name: Max energy usage 3 hours this month
+    max: 40
+
+input_number:
+  last_energy_reading:
+    name: Energy reading last hour
+    max: 200000
+    min: 0
+    unit_of_measurement: "kWh"
+    
+template:
+  sensor:
+  - name: last_energy_reading
+    unit_of_measurement: 'kWh'
+    state: >
+      {% set last_energy_reading = states('input_number.last_energy_reading') %}
+      {{ last_energy_reading }}
+  - name: energy_this_hour_estimate
+    unit_of_measurement: 'kWh'
+    state: >
+      {% set this_hour = states('sensor.energy_this_hour_estimate') %}
+      {% set last_energy_reading = states('input_number.last_energy_reading') %}
+      {% set tdiff = now().timestamp() - states.input_number.last_energy_reading.last_updated.timestamp() %}
+      {{ ((states.sensor.energiforbruk.state|float - last_energy_reading|float) * 3600 / tdiff)|round(2) if tdiff > 60 else this_hour }}
+
+automation:
+  - id: '1655705659488'
+    alias: 'Update max usage this month'
+    description: ''
+    trigger:
+    - platform: time_pattern
+      minutes: '59'
+      seconds: '59'
+    condition: []
+    variables: 
+      saved: '{{ states(''input_number.last_energy_reading'')|float(default=0) }}'
+      asofnow: '{{ states(''sensor.energiforbruk'')|float(default=0) }}'
+      max3: >
+        {% set max3 = states('input_text.max_3hour_month_usage') %}
+        {{ ('[]' if (max3 == 'unknown' or states.input_text.max_3hour_month_usage.last_updated.month != now().month) else max3)|from_json }}
+    action:
+    - service: input_number.set_value
+      data: 
+        value: '{{ asofnow }}'
+      target: 
+        entity_id: input_number.last_energy_reading
+    - service: input_text.set_value
+      data: 
+        value: >
+          {{ (((max3 + [ asofnow - saved])|sort(1))[:3])|to_json}}
+      target: 
+        entity_id: input_text.max_3hour_month_usage
+
