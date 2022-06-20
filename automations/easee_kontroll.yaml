@@ -131,6 +131,8 @@
       - condition: state
         entity_id: binary_sensor.wants_to_charge
         state: 'on'
+      - condition: template
+        value_template: '{{ is_state (''sensor.easee_home_63089_status'', ''awaiting_start'') }}'
       sequence:
       - condition: state
         entity_id: binary_sensor.easee_on
