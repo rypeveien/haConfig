@@ -24,6 +24,17 @@ template:
       {% set last_energy_reading = states('input_number.last_energy_reading') %}
       {% set tdiff = now().timestamp() - states.input_number.last_energy_reading.last_updated.timestamp() %}
       {{ ((states.sensor.energiforbruk.state|float - last_energy_reading|float) * 3600 / tdiff)|round(2) if tdiff > 60 else this_hour }}
+  - name: max_3hour_month_usage_average
+    unit_of_measurement: 'kWh'
+    state: >
+      {% set max3 = states('input_text.max_3hour_month_usage')|from_json %}
+      {% set this = states.sensor.energy_this_hour_estimate.state|float %}
+      {% set max3 = ((max3 + [this])|sort(1))[:3] %}
+      {% set v = namespace (sum=0) %}
+      {% for i in range (max3|length) %}
+      {%   set v.sum = v.sum + max3[i] %}
+      {% endfor %}
+      {{ v.sum / max3|length }}
 
 automation:
   - id: '1655705659488'
