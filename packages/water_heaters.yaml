@@ -131,7 +131,7 @@ automation:
         sequence:
         - service: input_number.set_value
           data:
-            value: "{{ states.input_number.vvkjeller_hours.state|float + 0.7 }}"
+            value: '{{ (states.input_number.vvkjeller_hours.state|float + 0.7)|round(2)  }}'
           target:
             entity_id: input_number.vvkjeller_hours
       - conditions:
@@ -140,7 +140,7 @@ automation:
         sequence:
         - service: input_number.set_value
           data:
-            value: "{{ states.input_number.vvtank_hours.state|float + 0.7 }}"
+            value: '{{ (states.input_number.vvtank_hours.state|float + 0.7)|round(2) }}'
           target:
             entity_id: input_number.vvtank_hours
       - conditions:
