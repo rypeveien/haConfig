@@ -105,9 +105,9 @@
     - "longitude"
     - "gps_speed"
     - "last_location"
-- platform: zwift
-  username: !secret my_zwift_username
-  password: !secret my_zwift_password
+#- platform: zwift
+#  username: !secret my_zwift_username
+#  password: !secret my_zwift_password
 - platform: rest
   name: PostenDeliveryDays
   resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/1?postCode=4878
