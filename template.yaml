@@ -254,12 +254,3 @@ binary_sensor:
       {% endif %}
       {% set count=(prices|length/3)|int %}
       {{ prices[0] < (prices|sort)[count] }}
-#  - name: "Tibber unavailible"
-#    delay_on:
-#     minutes: 2
-#    state: >
-#      {% set tsNow = as_timestamp(now()) %}
-#      {% set tsIn = as_timestamp(states.sensor.power_rypeveien_11.last_changed) %}
-#      {% set tsOut = as_timestamp(states.sensor.power_production_rypeveien_11.last_changed) %} 
-#      {% set tsLast = tsIn if tsIn > tsOut else tsOut %}
-#      {{ tsNow - tsLast > 10 }}
