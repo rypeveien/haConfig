@@ -10,47 +10,6 @@ sensor:
   - name: windgust_ms
     state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_gust_strength'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
-  - name: solar_power
-    state: >
-      {% set hour = now().hour %}
-      {% set vvkjeller_hours = states('input_number.vvkjeller_hours')|round() %}
-      {% set vvkjeller_last = state_attr('input_datetime.vvkjeller_last_on', 'hour')|int %}
-      {% set vvkjeller_last = vvkjeller_last + 24 if vvkjeller_last < now().hour else vvkjeller_last %}
-      {% set vvtank_hours = states('input_number.vvtank_hours')|round() %}
-      {% set vvtank_last = state_attr('input_datetime.vvtank_last_on', 'hour')|int %}
-      {% set vvtank_last = vvtank_last + 24 if vvtank_last < now().hour else vvtank_last %}
-      {% set easee_hours = states('sensor.wanted_easee_hours')|int %}
-      {% set charged_by = state_attr('input_datetime.car_ready_charged', 'hour')|int %}
-      {% set charged_by = charged_by + 24 if charged_by < now().hour else charged_by %}
-      {% set next24 = namespace(vvkjeller=[], vvtank=[], easee=[]) %}
-      {% set estimate = (states('input_text.today_estimate')|from_json)[now().hour:] %}
-      {% set estimate = estimate + states('input_text.tomorrow_estimate')|from_json %}
-      {% set estimate = estimate[:24] %}
-      {% for i in range (estimate|length) %}
-        {% set iHour = hour+i %}
-        {% set dHour = iHour if iHour < 24 else iHour-24 %}
-        {% if estimate[i]|int > 3000 and iHour < charged_by and next24.easee|length < easee_hours %}
-          {% set next24.easee = next24.easee + [dHour] %}
-        {% elif estimate[i]|int > 2000 and iHour < vvtank_last and next24.vvtank|length < vvtank_hours %}
-          {% set next24.vvtank = next24.vvtank + [dHour] %}
-        {% elif estimate[i]|int > 1000 and iHour < vvkjeller_last and next24.vvkjeller|length < vvkjeller_hours %}
-          {% set next24.vvkjeller = next24.vvkjeller + [dHour] %}
-        {% endif %}
-      {% endfor %}
-      {% set solar_json = {
-        "easee": next24.easee,
-        "vvtank": next24.vvtank,
-        "vvkjeller": next24.vvkjeller
-      } %}
-      {{ solar_json|to_json }}
-  - name: solar_power_vvtank
-    state: >
-      {% set solar_power = states('sensor.solar_power')|from_json %}
-      {{ solar_power.vvtank }}
-  - name: solar_power_vvkjeller
-    state: >
-      {% set solar_power = states('sensor.solar_power')|from_json %}
-      {{ solar_power.vvkjeller }}
   - name: fa_tracker_faa3
     state: >
       {{ 'home' if states('device_tracker.faa3phone') == 'home' and states('sensor.faa3phone_wifi_connection').split("_")[0] == 'BzzWare' else
