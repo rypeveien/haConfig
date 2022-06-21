@@ -241,6 +241,11 @@
           brightness: 4
         target:
           entity_id: light.lys_i_gangen
+      - service: light.turn_on
+        data:
+          brightness: 40
+        target:
+          entity_id: light.paere_toalett
     - conditions:
       - condition: template
         value_template: '{{ states.sensor.howmanyhome.state|int == 0 }}'
@@ -249,10 +254,20 @@
         target:
           entity_id: light.lys_i_gangen
         data: {}
+      - service: light.turn_on
+        data:
+          brightness: 40
+        target:
+          entity_id: light.paere_toalett
     default:
     - service: light.turn_on
       data:
         brightness: 204
       target:
         entity_id: light.lys_i_gangen
+    - service: light.turn_on
+      data:
+        brightness: 200
+      target:
+        entity_id: light.paere_toalett
   mode: single
