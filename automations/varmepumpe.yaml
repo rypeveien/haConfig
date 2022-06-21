@@ -17,7 +17,9 @@
   - platform: state
     entity_id: binary_sensor.zwift_online
     id: zwift
-  condition: []
+  condition: 
+  - condition: template
+    value_template: '{{ states.automation.vv_etter_pris_og_temp_eller_produksjon.attributes.current == 0}}'
   variables:
     pricediff: >
       {{ 2 if states('binary_sensor.prices_nok_kwh_lowthird') == 'on' 
