@@ -14,7 +14,9 @@
     entity_id: climate.kompressor
     attribute: hvac_action
     id: mill
-  condition: []
+  condition: 
+  - condition: template
+    value_template: '{{ states.automation.gi_beskjed_nar_kompressor_gar_offline.attributes.current == 0 }}'
   action:
   - choose:
     - conditions:

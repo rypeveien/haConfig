@@ -41,6 +41,8 @@
     id: has_unlocked
   condition: 
   - condition: template
+    value_template: '{{ states.automation.dorlasen.attributes.current == 0 }}'
+  - condition: template
     value_template: >
       {{ states('lock.dana_oppe') == 'unlocked' or 
          now() - states.lock.dana_oppe.last_changed > timedelta(minutes=10) }}

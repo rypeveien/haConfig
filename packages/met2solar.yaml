@@ -78,7 +78,9 @@ automation:
         {% set next = as_datetime((states.sensor.met_api.state|from_json)["@nextrun"]) %}
         {{ now().timestamp() > next.timestamp() }}
       id: update_state
-    condition: []
+    condition: 
+    - condition: template
+      value_template: '{{ states.automation.met2solar_update_forecast.attributes.current == 0 }}'
     action: 
     - choose:
       - conditions:

@@ -86,7 +86,9 @@ automation:
       from: 'on'
       to: 'off'
       id: vvkjeller_off
-    condition: []
+    condition: 
+    - condition: template
+      value_template: '{{ states.automation.vv_etter_pris_og_temp_eller_produksjon.attributes.current == 0}}'
     action:
     - choose:
       - conditions:

@@ -30,7 +30,9 @@
   - platform: template
     value_template: '{{ now().timestamp() - as_timestamp(states.climate.adax_faoff.last_updated) > 3600 }}'
     id: lost_connection
-  condition: []
+  condition: 
+  - condition: template
+    value_template: '{{ states.automation.kontortemp.attributes.current == 0 }}'
   variables: 
     string: '{{ trigger.entity_id }}'
     device: '{{ string.split(".")[1] }}'

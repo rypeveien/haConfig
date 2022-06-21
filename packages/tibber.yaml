@@ -277,7 +277,9 @@ automation:
         {% set five = now().minute/5 %}
         {{ five == (five)|int and now().hour > 12 
            and (states('input_text.tibber_tomorrow') == '[]' or states('input_text.tibber_tomorrow') == 'unknown') }}
-    condition: []
+    condition:
+    - condition: template
+      value_template: '{{ states.automation.update_tibber_price.attributes.current == 0 }}'
     variables:
       update_delay: '{{ range(1,290)|random|int }}'
     action:
