@@ -10,20 +10,6 @@ sensor:
   - name: windgust_ms
     state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_gust_strength'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
-  - name: fa_tracker_faa3
-    state: >
-      {{ 'home' if states('device_tracker.faa3phone') == 'home' and states('sensor.faa3phone_wifi_connection').split("_")[0] == 'BzzWare' else
-         'off' if states('device_tracker.faa3phone') != 'home' and states('sensor.faa3phone_wifi_connection').split("_")[0] == 'BzzWare' else
-         'not_home' }}
-  - name: fa_tracker_tito
-    state: >
-      {{ 'home' if states('device_tracker.titophone') == 'home' and states('sensor.titophone_wifi_connection').split("_")[0] == 'BzzWare' else 
-         'off' if states('device_tracker.titophone') != 'home' and states('sensor.titophone_wifi_connection').split("_")[0] == 'BzzWare' else
-        'not_home' }}
-  - name: fa_tracker
-    state: >
-      {{ 'not_home' if states('sensor.fa_tracker_tito') == 'not_home'
-          or states('sensor.fa_tracker_faa3') == 'not_home' else 'home' }}
   - name: easee_power
     unit_of_measurement: W
     device_class: power
