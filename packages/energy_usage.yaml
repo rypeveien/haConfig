@@ -12,6 +12,56 @@ input_number:
     
 template:
   sensor:
+  - name: power_controlled
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {{ states('sensor.vv_tank_electric_consumption_w')|int(default=0)
+         + states('sensor.vv_kjeller_power')|int(default=0)
+         + states('sensor.shellyvask_power')|int(default=0)
+         + states('sensor.torketrommel_power')|int(default=0)
+         + states('sensor.easee_power')|int(default=0) }}
+  - name: power_uncontrolled
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {% set uncontrolled =  states('sensor.power_usage')|int(default=0)
+       - states('sensor.power_controlled')|int(default=0) %}
+      {{ uncontrolled if uncontrolled > 0 else 0 }}
+  - name: power_monitored
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {{ states('sensor.vpoppe_power')|int(default=0)
+       + states('sensor.vpnede_power')|int(default=0)
+       + states('sensor.kjoleskap_electric_consumption_w')|int(default=0)
+       + states('sensor.inngangstikk_power')|int(default=0)
+       + states('sensor.server_power')|int(default=0)
+       + states('sensor.baderomsgulv_electric_consumption_w')|int(default=0)
+       + states('sensor.shellyfrys_power_2')|int(default=0)
+       + states('sensor.shellykjol_switch_0_power')|int(default=0)
+       + states('sensor.adax_guest_power')|int(default=0)
+       + states('sensor.adax_syrom_power')|int(default=0)
+       + states('sensor.fa_adax_power')|int(default=0) }}
+  - name: power_unmonitored
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {% set unmonitored =  states('sensor.power_uncontrolled')|int(default=0)
+       - states('sensor.power_monitored')|int(default=0) %}
+      {{ unmonitored if unmonitored > 0 else 0 }}
+  - name: power_usage
+    unit_of_measurement: W
+    device_class: power
+    state: >
+      {{ states('sensor.amshan_power_import')|int(default=0)
+         + states('sensor.pvlogger_power')|int(default=0)
+         - states('sensor.amshan_power_export')|int(default=0) }}
+  - unique_id: power_in_or_out
+    unit_of_measurement: 'W'
+    state: '{{ states.sensor.amshan_power_import.state|int -  states.sensor.amshan_power_export.state|int }}'
+    attributes:
+      friendly_name: 'Kraft forbrukt fra eller levert til nettet'
   - name: last_energy_reading
     unit_of_measurement: 'kWh'
     state: >
