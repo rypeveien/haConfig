@@ -40,11 +40,11 @@ template:
       state: '{{ states.input_datetime.vvkjeller_last_on.state[:16] }}'
     - name: vvtank_hours
       state: >
-        {% set by_subsides = states.sensor.usage_by_subsides.state|from_json %}
+        {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
         {{ by_subsides.vvtank }}
     - name: vvkjeller_hours
       state: >
-        {% set by_subsides = states.sensor.usage_by_subsides.state|from_json %}
+        {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
         {{ by_subsides.vvkjeller }}
     
 automation:
