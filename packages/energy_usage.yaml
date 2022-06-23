@@ -180,7 +180,6 @@ automation:
       target: 
         entity_id: input_text.max_3hour_month_usage
 
-automation:
   - id: '1655936457693'
     alias: 'Kill power users to get under 5k this hour'
     description: ''
