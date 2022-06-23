@@ -11,15 +11,15 @@ template:
       {{ ((1-SoC/100)*28/states('input_number.ladefart')|float(default=2) + 0.5)|round(0) }}
   - name: charge_hours
     state: >
-      {% set by_subsides = states.sensor.usage_by_subsides.state|from_json %}
-      {{ by_subsides.easee }}
+      {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
+      {{ by_subsides.easee |to_json}}
 
   binary_sensor:
   - name: wants_to_charge
     state: >
       {% set charge_hours = states('sensor.charge_hours')|from_json %}
-      {{ (charge_hours|length > 0 and charge_hours[0]|int(default=24) == now().hour) or 
-         (charge_hours|length > 1 and charge_hours[1]|int(default=24) == now().hour) }}
+      {{ (charge_hours|length > 0 and charge_hours[0].hour|int(default=24) == now().hour) or 
+         (charge_hours|length > 1 and charge_hours[1].hour|int(default=24) == now().hour) }}
   - name: easee_on
     state: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
     delay_off: 
@@ -203,7 +203,7 @@ automation:
               entity_id: input_select.why_charge
       - conditions:
         - condition: template
-          value_template: '{{ (states(''sensor.charge_hours'')|from_json)[0]|int(default=24) == now().hour }}'
+          value_template: '{{ (states(''sensor.charge_hours'')|from_json)[0].hour|int(default=24) == now().hour }}'
         - condition: template
           value_template: '{{ states(''sensor.easee_home_63089_status'') == ''awaiting_start'' }}'
         sequence:
@@ -217,7 +217,7 @@ automation:
             entity_id: input_select.why_charge
       - conditions:
         - condition: template
-          value_template: '{{ (states(''sensor.charge_hours'')|from_json)[0]|int(default=24) != now().hour }}'
+          value_template: '{{ (states(''sensor.charge_hours'')|from_json)[0].hour|int(default=24) != now().hour }}'
         - condition: template
           value_template: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
         sequence:
