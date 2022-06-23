@@ -93,6 +93,64 @@ template:
       {%   set v.sum = v.sum + max3[i] %}
       {% endfor %}
       {{ (v.sum / max3|length)|round(3) }}
+  - name: power_usage_by_subsides_and_maxpower
+    state: >
+      {% set ev_battery_pack = 28000 %}
+      {% set ev_max_charge = 3600 %}
+      {% set ev_charge_steps = ev_max_charge / 4 %}
+      {% set ev_charge_efficiency = 31/36 %}
+      {% set tank_power = 2700 %}
+      {% set kjeller_power = 1700 %}
+      {% set energy_limit = 5000 %}
+      {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
+      {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
+      {% set pvguess = states.sensor.pv_guess_by_factor.state|from_json %}
+      {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices[now().hour:] %}
+      {% set uctrld = uctrld[now().hour:] + uctrld %}
+      {% if pvguess|length > prices|length %}
+      {% set pvguess = pvguess[:prices|length] %}
+      {% endif %}
+      {% for i in range (pvguess|length) %}
+      {% set v.base = v.base + [ {'hour': i + now().hour, 'energy': uctrld[i] - pvguess[i], 'price': prices[i] }] %}
+      {% endfor %}
+      {% set v.base = v.base | sort(attribute='price') %}
+      {% set hours = states.input_number.vvtank_hours.state|round(0) %}
+      {% set done = as_datetime(states.input_datetime.vvtank_last_on.state).hour %}
+      {% set done = done + 24 - now().hour if done < now().hour else done - now().hour %}
+      {% set done = pvguess|length if done > pvguess|length else done %}
+      {% for i in range (done) %}
+      {% if v.tank|length < hours and (v.base[i].energy + tank_power) < energy_limit %}
+      {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + tank_power, 'price': v.base[i].price}] + v.base[i+1:] %}
+      {% set v.tank = v.tank + [v.base[i].hour] %}
+      {% endif %}
+      {% endfor %}
+      {% set hours = states.input_number.vvkjeller_hours.state|round(0) %}
+      {% set done = as_datetime(states.input_datetime.vvkjeller_last_on.state).hour %}
+      {% set done = done + 24 - now().hour if done < now().hour else done - now().hour %}
+      {% set done = pvguess|length if done > pvguess|length else done %}
+      {% for i in range (done) %}
+      {% if v.kjeller|length < hours and (v.base[i].energy + kjeller_power) < energy_limit %}
+      {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + kjeller_power, 'price': v.base[i].price}] + v.base[i+1:] %}
+      {% set v.kjeller = v.kjeller + [v.base[i].hour] %}
+      {% endif %}
+      {% endfor %}
+      {% set v.needed_charge = ev_battery_pack * (1 - states.input_number.ladestatus.state|float/100) %}
+      {% set done = states.input_datetime.car_ready_charged.attributes.hour %}
+      {% set done = done + 24 - now().hour if done < now().hour else done - now().hour %}
+      {% set done = pvguess|length if done > pvguess|length else done %}
+      {% for i in range (done) %}
+      {% if v.needed_charge > 0 and (v.base[i].energy + ev_charge_steps ) < energy_limit %}
+      {% set availible = ((energy_limit - v.base[i].energy) / ev_charge_steps)|int * ev_charge_steps %}
+      {% set availible = ev_max_charge if availible > ev_max_charge else availible %}
+      {% set v.needed_charge = v.needed_charge - (availible * ev_charge_efficiency)|int %}
+      {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + availible, 'price': v.base[i].price}] + v.base[i+1:] %}
+      {% set v.easee = v.easee + [{'hour': v.base[i].hour, 'power': availible}] %}
+      {% endif %}
+      {% endfor %}
+
+      {{ {'vvtank': v.tank|sort,
+          'vvkjeller': v.kjeller|sort, 
+          'easee': v.easee|sort(attribute='hour') }|to_json }}
 
 automation:
   - id: '1655705659488'
@@ -121,4 +179,48 @@ automation:
           {{ (((max3 + [ (asofnow - saved)|round(3)])|sort(1))[:3])|to_json}}
       target: 
         entity_id: input_text.max_3hour_month_usage
+
+automation:
+  - id: '1655936457693'
+    alias: 'Kill power users to get under 5k this hour'
+    description: ''
+    mode: single
+    trigger:
+    - platform: template
+      value_template: >-
+        {{ states.sensor.energy_this_hour_estimate.state|int > 5000 and
+        now().minute > 0 and now().minute % 15 == 0 }}
+    condition: []
+    action:
+    - choose:
+      - conditions:
+        - condition: state
+          entity_id: binary_sensor.easee_on
+          state: 'true'
+        sequence:
+        - service: easee.pause
+          data: {}
+      - conditions:
+        - condition: device
+          type: is_on
+          device_id: 763c89891d0a0a6a02ad92f3e1cedc45
+          entity_id: switch.vv_kjeller
+          domain: switch
+        sequence:
+        - type: turn_off
+          device_id: 763c89891d0a0a6a02ad92f3e1cedc45
+          entity_id: switch.vv_kjeller
+          domain: switch
+      - conditions:
+        - condition: device
+          type: is_on
+          device_id: ced3fc17b42719e3af505c552f41c16a
+          entity_id: switch.vv_tank
+          domain: switch
+        sequence:
+        - type: turn_off
+          device_id: ced3fc17b42719e3af505c552f41c16a
+          entity_id: switch.vv_tank
+          domain: switch
+      default: []
 
