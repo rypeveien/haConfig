@@ -199,7 +199,8 @@ automation:
           state: 'true'
         sequence:
         - service: easee.pause
-          data: {}
+          data:
+            charger_id: EH630897
       - conditions:
         - condition: device
           type: is_on
