@@ -1,3 +1,30 @@
+input_number:
+  ev_battery_pack:
+    unit_of_measurement: 'W'
+    min: 13000
+    max: 99000
+    step: 500
+    mode: box
+    initial: 28000
+  ev_max_charge:
+    min: 3600
+    max: 22000
+    step: 225
+    mode: box
+    initial: 3600
+  ev_charge_steps:
+    min: 225
+    max: 1800
+    mode: box
+    initial: 900
+  ev_charge_efficiency:
+    unit_of_measurement: '%'
+    max: 100
+    min: 50
+    step: 0.1
+    mode: box
+    initial: 87.5
+  
 template:
   sensor:
   - name: easee_power
