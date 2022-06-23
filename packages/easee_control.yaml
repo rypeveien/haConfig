@@ -42,6 +42,12 @@ template:
     state: >
       {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
       {{ by_subsides.easee |to_json}}
+  - name: charge_current
+    unit_of_measurement: A
+    state: >
+      {% set hours =  states.sensor.charge_hours.state|from_json %}
+      {{ 0 if hours|length == 0 or hours[0].hour != now().hour 
+         else (hours[0].power / 225)|int  }}
 
   binary_sensor:
   - name: wants_to_charge
@@ -53,6 +59,7 @@ template:
     state: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
     delay_off: 
       minutes: 2
+
 automation:
   - id: '1616512764082'
     alias: Easee kontroll
