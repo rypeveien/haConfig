@@ -267,3 +267,22 @@ automation:
             entity_id: input_select.why_charge
       default: []
     mode: single
+
+  - id: '1656018672107'
+    alias: Easee charge current
+    description: ''
+    trigger:
+    - platform: state
+      entity_id:  sensor.charge_current
+    condition:
+    - condition: numeric_state
+      entity_id: sensor.charge_current
+      above: '0'
+    action:
+    - service: easee.set_charger_dynamic_limit
+      data:
+        charger_id: EH630897
+        current: '{{ states.sensor.charge_current.state }}'
+      
+      
+    
