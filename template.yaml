@@ -10,19 +10,6 @@ sensor:
   - name: windgust_ms
     state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_gust_strength'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
-  - name: easee_power
-    unit_of_measurement: W
-    device_class: power
-    state: '{{ states(''sensor.easee_home_63089_power'')|float(default=0)*1000 }}'
-  - name: wanted_easee_hours
-    unit_of_measurement: 'Hours'
-    state: >
-      {% set SoC = states('input_number.ladestatus') | float(default=50) %}
-      {{ ((1-SoC/100)*28/states('input_number.ladefart')|float(default=2) + 0.5)|round(0) }}
-  - name: charge_hours
-    state: >
-      {% set by_subsides = states.sensor.usage_by_subsides.state|from_json %}
-      {{ by_subsides.easee }}
   - name: fa_adax_temp
     unit_of_measurement: "°C"
     state: "{{ state_attr('climate.adax_faoff','current_temperature') }}"
@@ -130,15 +117,6 @@ binary_sensor:
     state: '{{ states(''binary_sensor.inngangsdor_door_window'') == ''on'' }}'
     delay_off: 
       minutes: 5
-  - name: wants_to_charge
-    state: >
-      {% set charge_hours = states('sensor.charge_hours')|from_json %}
-      {{ (charge_hours|length > 0 and charge_hours[0]|int(default=24) == now().hour) or 
-         (charge_hours|length > 1 and charge_hours[1]|int(default=24) == now().hour) }}
-  - name: easee_on
-    state: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
-    delay_off: 
-      minutes: 2
   - name: prices_nok_kwh_lowthird
     state: >
       {% set prices = states('sensor.energy_today_nok_kwh')|from_json %}
