@@ -1,18 +1,20 @@
 input_number:
   ev_battery_pack:
-    unit_of_measurement: 'W'
+    unit_of_measurement: 'Wh'
     min: 13000
     max: 99000
     step: 500
     mode: box
     initial: 28000
   ev_max_charge:
+    unit_of_measurement: 'W'
     min: 3600
     max: 22000
     step: 225
     mode: box
     initial: 3600
   ev_charge_steps:
+    unit_of_measurement: 'W'
     min: 225
     max: 1800
     mode: box
