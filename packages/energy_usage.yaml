@@ -95,10 +95,10 @@ template:
       {{ (v.sum / max3|length)|round(3) }}
   - name: power_usage_by_subsides_and_maxpower
     state: >
-      {% set ev_battery_pack = 28000 %}
-      {% set ev_max_charge = 3600 %}
-      {% set ev_charge_steps = ev_max_charge / 4 %}
-      {% set ev_charge_efficiency = 31/36 %}
+      {% set ev_battery_pack = states.input_number.ev_battery_pack.state|int %}
+      {% set ev_max_charge = states.input_number.ev_max_charge.state|int %}
+      {% set ev_charge_steps = states.input_number.ev_charge_steps.state|int %}
+      {% set ev_charge_efficiency = states.input_number.ev_charge_efficiency.state|float %}
       {% set tank_power = 2700 %}
       {% set kjeller_power = 1700 %}
       {% set energy_limit = 5000 %}
