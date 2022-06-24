@@ -187,7 +187,7 @@ automation:
     trigger:
     - platform: template
       value_template: >-
-        {{ states.sensor.energy_this_hour_estimate.state|int > 5000 and
+        {{ (states.sensor.energy_this_hour_estimate.state|float * 1000) > 5000 and
         now().minute > 0 and now().minute % 15 == 0 }}
     condition: []
     action:
