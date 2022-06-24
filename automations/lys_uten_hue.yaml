@@ -226,6 +226,10 @@
     entity_id: binary_sensor.shellygang_input
   - platform: state
     entity_id: sensor.howmanyhome
+  - platform: template
+    value_template: "{{ states.binary_sensor.inngangsdor_door_window.state == 'on' }}"
+  - platform: template
+    value_template: "{{ now().timestamp() - states.binary_sensor.inngangsdor_door_window.last_updated.timestamp() > 600}}"
   condition: 
   - condition: template
     value_template: '{{ states.automation.styr_lys_i_gangen.attributes.current == 0 }}'
@@ -249,6 +253,8 @@
     - conditions:
       - condition: template
         value_template: '{{ states.sensor.howmanyhome.state|int == 0 }}'
+      - condition: template
+        value_template: "{{ states.binary_sensor.inngangsdor_door_window.state == 'off' }}"
       sequence:
       - service: light.turn_off
         target:
