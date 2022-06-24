@@ -45,9 +45,28 @@ template:
   - name: charge_current
     unit_of_measurement: A
     state: >
-      {% set hours =  states.sensor.charge_hours.state|from_json %}
-      {{ 0 if hours|length == 0 or hours[0].hour != now().hour 
-         else (hours[0].power / 225)|int  }}
+      {% set current = 0 %}
+      {% set usage = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
+      {% if usage.easee|length > 0 and usage.easee[0] == now().hour %}
+      {% set ev_max_charge = states.input_number.ev_max_charge.state|int %}
+      {% set ev_charge_steps = states.input_number.ev_charge_steps.state|int %}
+      {% set tank_power = 2700 %}
+      {% set kjeller_power = 1700 %}
+      {% set energy_limit = 5000 %}
+      {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
+      {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
+      {% set pvguess = states.sensor.pv_guess_by_factor.state|from_json %}
+      {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices[now().hour:] %}
+      {% set availible = energy_limit - uctrld[now().hour] + pvguess[0] %}
+      {% if usage.vvtank|length > 0 and usage.vvtank[0] == now().hour %}
+      {% set availible = availible - tank_power %}
+      {% endif %}
+      {% if usage.vvkjeller|length > 0 and usage.vvkjeller[0] == now().hour %}
+      {% set availible = availible - kjeller_power %}
+      {% endif %}
+      {% set current = (ev_max_charge if availible > ev_max_charge else 0 if availible < ev_charge_steps else (availible / ev_charge_steps)|int * ev_charge_steps)|int / 225 %}
+      {% endif %}
+      {{ current }}
 
   binary_sensor:
   - name: wants_to_charge
