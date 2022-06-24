@@ -33,6 +33,7 @@ rest:
 template:
   sensor:
     - unique_id: energy_by_subsides_and_production
+      unit_of_measurement: 'NOK/kWh'
       state: >
         {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
         {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
