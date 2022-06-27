@@ -24,7 +24,7 @@ template:
         {% set now = (now().timestamp() - states.binary_sensor.vvtank_on.last_updated.timestamp())/3600 %}
         {% set hours = (hours - now)|round(1) if hours > now else 0.1 %}
         {% endif %}
-        {{ hours }}      
+        {{ hours|round(2) }}
     - name: hours24_vvkjeller
       unit_of_measurement: "Hours"
       state: >
@@ -33,7 +33,7 @@ template:
         {% set now = (now().timestamp() - states.binary_sensor.vvkjeller_on.last_updated.timestamp())/3600 %}
         {% set hours = (hours - now)|round(1) if hours > now else 0.1 %}
         {% endif %}
-        {{ hours }}      
+        {{ hours|round(2) }}
     - name: vvtank_last_on
       state: '{{ states.input_datetime.vvtank_last_on.state[:16] }}'
     - name: vvkjeller_last_on
