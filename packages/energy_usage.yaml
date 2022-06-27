@@ -100,52 +100,50 @@ template:
       {% set ev_min_charge = states.input_number.ev_min_charge.state|int %}
       {% set ev_charge_steps = states.input_number.ev_charge_steps.state|int %}
       {% set ev_charge_efficiency = states.input_number.ev_charge_efficiency.state|float %}
+      {% set hour = now().hour %}
       {% set tank_power = 2700 %}
       {% set kjeller_power = 1700 %}
       {% set energy_limit = 5000 %}
       {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
       {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
       {% set pvguess = states.sensor.pv_guess_by_factor.state|from_json %}
-      {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices[now().hour:] %}
-      {% set uctrld = uctrld[now().hour:] + uctrld %}
+      {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices %}
+      {% set uctrld = uctrld + uctrld %}
       {% if pvguess|length > prices|length %}
       {% set pvguess = pvguess[:prices|length] %}
       {% endif %}
-      {% for i in range (pvguess|length) %}
-      {% set v.base = v.base + [ {'hour': i + now().hour, 'energy': uctrld[i] - pvguess[i], 'price': prices[i] }] %}
+      {% for i in range (hour,pvguess|length) %}
+      {% set v.base = v.base + [ {'hour': i, 'energy': uctrld[i] - pvguess[i], 'price': prices[i] }] %}
       {% endfor %}
       {% set v.base = v.base | sort(attribute='price') %}
       {% set hours = states.input_number.vvtank_hours.state|round(0) %}
       {% set done = as_datetime(states.input_datetime.vvtank_last_on.state).hour %}
-      {% set done = done + 24 if done < now().hour else done  %}
+      {% set done = done + 24 if done < hour else done  %}
       {% set done = 6 if done <= 6 else 16 if done <= 16 else done if done < 24 else 30 if done <= 30 else 40 %}
-      {% set done = done - now().hour %}
       {% set done = pvguess|length if done > pvguess|length else done %}
-      {% for i in range (pvguess|length) %}
-      {% if v.base[i].hour < done + now().hour and v.tank|length < hours and (v.base[i].energy + tank_power) < energy_limit %}
+      {% for i in range (v.base|length) %}
+      {% if v.base[i].hour < done and v.tank|length < hours and (v.base[i].energy + tank_power) < energy_limit %}
       {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + tank_power, 'price': v.base[i].price}] + v.base[i+1:] %}
       {% set v.tank = v.tank + [v.base[i].hour] %}
       {% endif %}
       {% endfor %}
       {% set hours = states.input_number.vvkjeller_hours.state|round(0) %}
       {% set done = as_datetime(states.input_datetime.vvkjeller_last_on.state).hour %}
-      {% set done = done + 24 if done < now().hour else done  %}
+      {% set done = done + 24 if done < hour else done  %}
       {% set done = 6 if done <= 6 else 16 if done <= 16 else done if done < 24 else 30 if done <= 30 else 40 %}
-      {% set done = done - now().hour %}
       {% set done = pvguess|length if done > pvguess|length else done %}
-      {% for i in range (pvguess|length) %}
-      {% if v.base[i].hour < done + now().hour and v.kjeller|length < hours and (v.base[i].energy + kjeller_power) < energy_limit %}
+      {% for i in range (v.base|length) %}
+      {% if v.base[i].hour < done and v.kjeller|length < hours and (v.base[i].energy + kjeller_power) < energy_limit %}
       {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + kjeller_power, 'price': v.base[i].price}] + v.base[i+1:] %}
       {% set v.kjeller = v.kjeller + [v.base[i].hour] %}
       {% endif %}
       {% endfor %}
       {% set v.needed_charge = ev_battery_pack * (1 - states.input_number.ladestatus.state|float/100) %}
       {% set done = states.input_datetime.car_ready_charged.attributes.hour %}
-      {% set done = done + 24 if done < now().hour else done %}
-      {% set done = done - now().hour %}
+      {% set done = done + 24 if done < hour else done %}
       {% set done = pvguess|length if done > pvguess|length else done %}
-      {% for i in range (pvguess|length) %}
-      {% if v.base[i].hour < done + now().hour and v.needed_charge > 0 and (v.base[i].energy + ev_min_charge ) < energy_limit -%}
+      {% for i in range (v.base|length) %}
+      {% if v.base[i].hour < done and v.needed_charge > 0 and (v.base[i].energy + ev_min_charge ) < energy_limit -%}
       {% set availible = ((energy_limit - v.base[i].energy) / ev_charge_steps)|int * ev_charge_steps -%}
       {% set availible = ev_max_charge if availible > ev_max_charge else availible %}
       {% set v.needed_charge = v.needed_charge - (availible * ev_charge_efficiency/100)|int %}
