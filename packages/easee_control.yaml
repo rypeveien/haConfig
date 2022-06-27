@@ -5,27 +5,28 @@ input_number:
     max: 99000
     step: 500
     mode: box
-    initial: 28000
   ev_max_charge:
     unit_of_measurement: 'W'
     min: 3600
     max: 22000
     step: 225
     mode: box
-    initial: 3600
   ev_charge_steps:
     unit_of_measurement: 'W'
     min: 225
     max: 1800
     mode: box
-    initial: 900
+  ev_min_charge:
+    unit_of_measurement: 'W'
+    min: 225
+    max: 1800
+    mode: box
   ev_charge_efficiency:
     unit_of_measurement: '%'
     max: 100
     min: 50
     step: 0.1
     mode: box
-    initial: 87.5
   
 template:
   sensor:
@@ -49,6 +50,7 @@ template:
       {% set usage = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
       {% if usage.easee|length > 0 and usage.easee[0] == now().hour %}
       {% set ev_max_charge = states.input_number.ev_max_charge.state|int %}
+      {% set ev_min_charge = states.input_number.ev_min_charge.state|int %}
       {% set ev_charge_steps = states.input_number.ev_charge_steps.state|int %}
       {% set tank_power = 2700 %}
       {% set kjeller_power = 1700 %}
@@ -64,7 +66,7 @@ template:
       {% if usage.vvkjeller|length > 0 and usage.vvkjeller[0] == now().hour %}
       {% set availible = availible - kjeller_power %}
       {% endif %}
-      {% set current = (ev_max_charge if availible > ev_max_charge else 0 if availible < ev_charge_steps else (availible / ev_charge_steps)|int * ev_charge_steps)|int / 225 %}
+      {% set current = (ev_max_charge if availible > ev_max_charge else 0 if availible < ev_min_charge else (availible / ev_charge_steps)|int * ev_charge_steps)|int / 225 %}
       {% endif %}
       {{ current }}
 

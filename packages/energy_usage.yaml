@@ -97,6 +97,7 @@ template:
     state: >
       {% set ev_battery_pack = states.input_number.ev_battery_pack.state|int %}
       {% set ev_max_charge = states.input_number.ev_max_charge.state|int %}
+      {% set ev_min_charge = states.input_number.ev_min_charge.state|int %}
       {% set ev_charge_steps = states.input_number.ev_charge_steps.state|int %}
       {% set ev_charge_efficiency = states.input_number.ev_charge_efficiency.state|float %}
       {% set tank_power = 2700 %}
@@ -141,7 +142,7 @@ template:
       {% set done = done + 24 if done < now().hour else done %}
       {% set done = pvguess|length if done > pvguess|length else done %}
       {% for i in range (pvguess|length) %}
-      {% if v.base[i].hour < done and v.needed_charge > 0 and (v.base[i].energy + ev_charge_steps ) < energy_limit -%}
+      {% if v.base[i].hour < done and v.needed_charge > 0 and (v.base[i].energy + ev_min_charge ) < energy_limit -%}
       {% set availible = ((energy_limit - v.base[i].energy) / ev_charge_steps)|int * ev_charge_steps -%}
       {% set availible = ev_max_charge if availible > ev_max_charge else availible %}
       {% set v.needed_charge = v.needed_charge - (availible * ev_charge_efficiency/100)|int %}
