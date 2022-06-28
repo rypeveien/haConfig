@@ -49,13 +49,11 @@ template:
     
 automation:
   - id: '1644323270631'
-    alias: VV etter pris og temp, eller produksjon
+    alias: VV Tank etter pris og temp, eller produksjon
     description: ''
     trigger:
     - platform: state
       entity_id: sensor.vvtank_hours
-    - platform: state
-      entity_id: sensor.vvkjeller_hours
     - platform: template
       value_template: >
         {{ states('sensor.lowest_humidity_at_bathrom_last_15_minutes') != 'unknown'
@@ -64,28 +62,13 @@ automation:
       id: humidity_high
     - platform: template
       value_template: >
-        {{ states('sensor.lowest_humidity_at_bathrom_downstairs_last_15_minutes') != 'unknown'
-           and states('sensor.lumi_bad_nede_humidity')|int(default=50) > 
-           states('sensor.lowest_humidity_at_bathrom_downstairs_last_15_minutes')|int(default=50) + 15 }}
-      id: humidity_downstairs_high
-    - platform: template
-      value_template: >
         {% set hours = states.sensor.vvtank_hours.state|from_json %}
-        {{ hours | length > 0 and hours[0]|int == now().hour }}
-    - platform: template
-      value_template: >
-        {% set hours = states.sensor.vvkjeller_hours.state|from_json %}
         {{ hours | length > 0 and hours[0]|int == now().hour }}
     - platform: state
       entity_id: binary_sensor.vvtank_on
       from: 'on'
       to: 'off'
       id: vvtank_off
-    - platform: state
-      entity_id: binary_sensor.vvkjeller_on
-      from: 'on'
-      to: 'off'
-      id: vvkjeller_off
     condition: 
     - condition: template
       value_template: '{{ states.automation.vv_etter_pris_og_temp_eller_produksjon.attributes.current == 0}}'
@@ -109,33 +92,6 @@ automation:
           target:
             entity_id: input_number.vvtank_hours
     - choose:
-      - conditions:
-        - condition: template
-          value_template: >
-            {{ states.binary_sensor.vvkjeller_on.state == 'on' 
-              and states.sensor.hours24_vvkjeller.state|float > 1
-              and as_local(states.binary_sensor.vvkjeller_on.last_updated).hour != now().hour }}
-        sequence:
-        - service: input_number.set_value
-          data: 
-            value: >
-              {% set on = states.binary_sensor.vvkjeller_on.last_updated.timestamp() %}
-              {% set hour = states.input_number.vvkjeller_hours.last_updated.timestamp() %}
-              {% set last =  on if on > hour else hour %}
-              {{ (states.input_number.vvkjeller_hours.state|float - 
-                (now().timestamp() - last)/3600)|round(1) }}
-          target:
-            entity_id: input_number.vvkjeller_hours
-    - choose:
-      - conditions:
-        - condition: trigger
-          id: humidity_downstairs_high
-        sequence:
-        - service: input_number.set_value
-          data:
-            value: '{{ (states.input_number.vvkjeller_hours.state|float + 0.7)|round(2)  }}'
-          target:
-            entity_id: input_number.vvkjeller_hours
       - conditions:
         - condition: trigger
           id: humidity_high
@@ -174,35 +130,6 @@ automation:
                 {{ states.input_number.vvtank_hours.state|float - (trigger.to_state.last_updated.timestamp() - last)/3600 }}
             target:
               entity_id: input_number.vvtank_hours
-      - conditions:
-        - condition: trigger
-          id: vvkjeller_off
-        sequence:
-        - choose:
-          - conditions:
-            - condition: template
-              value_template: "{{ states.switch.vv_kjeller.state == 'on' }}"
-            sequence:
-            - service: input_number.set_value
-              data:
-                value: 1.1
-              target:
-                entity_id: input_number.vvkjeller_hours
-            - service: input_datetime.set_datetime
-              data:
-                timestamp: '{{ now().timestamp() }}'
-              target:
-                entity_id: input_datetime.vvkjeller_last_on
-          default:
-          - service: input_number.set_value
-            data:
-              value: >
-                {% set trigger_from = trigger.from_state.last_updated.timestamp() %}
-                {% set hour = states.input_number.vvkjeller_hours.last_updated.timestamp() %}
-                {% set last = trigger_from if trigger_from > hour else hour %}
-                {{ states.input_number.vvkjeller_hours.state|float - (trigger.to_state.last_updated.timestamp() - last)/3600 }}
-            target:
-              entity_id: input_number.vvkjeller_hours
       default: []
     - choose:
       - conditions:
@@ -235,6 +162,91 @@ automation:
           device_id: ced3fc17b42719e3af505c552f41c16a
           entity_id: switch.vv_tank
           domain: switch
+      default: []
+    mode: single
+
+  - id: '1656448710019'
+    alias: VV Kjeller etter pris og temp, eller produksjon
+    description: ''
+    trigger:
+    - platform: state
+      entity_id: sensor.vvkjeller_hours
+    - platform: template
+      value_template: >
+        {{ states('sensor.lowest_humidity_at_bathrom_downstairs_last_15_minutes') != 'unknown'
+           and states('sensor.lumi_bad_nede_humidity')|int(default=50) > 
+           states('sensor.lowest_humidity_at_bathrom_downstairs_last_15_minutes')|int(default=50) + 15 }}
+      id: humidity_downstairs_high
+    - platform: template
+      value_template: >
+        {% set hours = states.sensor.vvkjeller_hours.state|from_json %}
+        {{ hours | length > 0 and hours[0]|int == now().hour }}
+    - platform: state
+      entity_id: binary_sensor.vvkjeller_on
+      from: 'on'
+      to: 'off'
+      id: vvkjeller_off
+    condition: 
+    - condition: template
+      value_template: '{{ states.automation.vv_kjeller_etter_pris_og_temp_eller_produksjon.attributes.current == 0}}'
+    action:
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: >
+            {{ states.binary_sensor.vvkjeller_on.state == 'on' 
+              and states.sensor.hours24_vvkjeller.state|float > 1
+              and as_local(states.binary_sensor.vvkjeller_on.last_updated).hour != now().hour }}
+        sequence:
+        - service: input_number.set_value
+          data: 
+            value: >
+              {% set on = states.binary_sensor.vvkjeller_on.last_updated.timestamp() %}
+              {% set hour = states.input_number.vvkjeller_hours.last_updated.timestamp() %}
+              {% set last =  on if on > hour else hour %}
+              {{ (states.input_number.vvkjeller_hours.state|float - 
+                (now().timestamp() - last)/3600)|round(1) }}
+          target:
+            entity_id: input_number.vvkjeller_hours
+    - choose:
+      - conditions:
+        - condition: trigger
+          id: humidity_downstairs_high
+        sequence:
+        - service: input_number.set_value
+          data:
+            value: '{{ (states.input_number.vvkjeller_hours.state|float + 0.7)|round(2)  }}'
+          target:
+            entity_id: input_number.vvkjeller_hours
+      - conditions:
+        - condition: trigger
+          id: vvkjeller_off
+        sequence:
+        - choose:
+          - conditions:
+            - condition: template
+              value_template: "{{ states.switch.vv_kjeller.state == 'on' }}"
+            sequence:
+            - service: input_number.set_value
+              data:
+                value: 1.1
+              target:
+                entity_id: input_number.vvkjeller_hours
+            - service: input_datetime.set_datetime
+              data:
+                timestamp: '{{ now().timestamp() }}'
+              target:
+                entity_id: input_datetime.vvkjeller_last_on
+          default:
+          - service: input_number.set_value
+            data:
+              value: >
+                {% set trigger_from = trigger.from_state.last_updated.timestamp() %}
+                {% set hour = states.input_number.vvkjeller_hours.last_updated.timestamp() %}
+                {% set last = trigger_from if trigger_from > hour else hour %}
+                {{ states.input_number.vvkjeller_hours.state|float - (trigger.to_state.last_updated.timestamp() - last)/3600 }}
+            target:
+              entity_id: input_number.vvkjeller_hours
       default: []
     - choose:
       - conditions:
