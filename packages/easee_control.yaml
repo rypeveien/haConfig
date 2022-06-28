@@ -42,7 +42,7 @@ template:
   - name: charge_hours
     state: >
       {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
-      {{ by_subsides.easee |to_json}}
+      {{ by_subsides.easee|sort }}
   - name: charge_current
     unit_of_measurement: A
     state: >

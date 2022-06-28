@@ -41,11 +41,11 @@ template:
     - name: vvtank_hours
       state: >
         {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
-        {{ by_subsides.vvtank }}
+        {{ by_subsides.vvtank|sort }}
     - name: vvkjeller_hours
       state: >
         {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
-        {{ by_subsides.vvkjeller }}
+        {{ by_subsides.vvkjeller|sort }}
     
 automation:
   - id: '1644323270631'
