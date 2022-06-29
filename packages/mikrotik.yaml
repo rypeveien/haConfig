@@ -1,0 +1,17 @@
+template:
+  sensor:
+  - name: mikrotik
+    state: >
+      {% set mikrotik = {'latitude': 5808.3375, 'longitude': 00804.9615, 'speed': 0.72228 } %}
+      {{ { 'latitude': (mikrotik.latitude/100)|int + (mikrotik.latitude % 100)/60 , 
+           'longitude': (mikrotik.longitude/100)|int + (mikrotik.longitude % 100) / 60,
+           'speed': mikrotik.speed } |to_json }}
+  - unique_id: mikrotik_speed_and_loc
+    state: "{{ (states('sensor.mikrotik')|from_json).speed }}"
+    unit_of_measurement: 'km/h'
+    attributes: 
+      friendly_name: Fart og lokasjon fra Mikrotik
+      latitude: >
+        {{ (states('sensor.mikrotik')|from_json).latitude|round(6) }}
+      longitude: >
+        {{ (states('sensor.mikrotik')|from_json).longitude|round(6) }}
