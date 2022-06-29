@@ -252,7 +252,7 @@
           entity_id: light.paere_toalett
     - conditions:
       - condition: template
-        value_template: '{{ states.sensor.howmanyhome.state|int == 0 }}'
+        value_template: '{{ states.sensor.howmanyhome.state|int(default=0) == 0 }}'
       - condition: template
         value_template: "{{ states.binary_sensor.inngangsdor_door_window.state == 'off' }}"
       sequence:
