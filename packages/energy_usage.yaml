@@ -117,38 +117,42 @@ template:
       {% set v.base = v.base + [ {'hour': i, 'energy': uctrld[i] - pvguess[i], 'price': prices[i] }] %}
       {% endfor %}
       {% set v.base = v.base | sort(attribute='price') %}
-      {% set hours = states.input_number.vvtank_hours.state|round(0) %}
+      {% set hours = states.input_number.vvtank_hours.state|float %}
       {% set done = as_datetime(states.input_datetime.vvtank_last_on.state).hour %}
-      {% set done = done + 24 if done < hour else done  %}
-      {% set done = 6 if done <= 6 
-               else 16 if done <= 16 
-               else done if done < 24 
-               else 30 if done <= 30 
+      {% if hour < done %}
+        {% set end = done %}
+        {% set done = done - 24 %}
+      {% else %}
+        {% set end = done + 24 %}
+      {% endif %}
+      {% set end = 6 if end <= 6 
+               else 16 if end <= 16 
+               else end if end < 24 
+               else 30 if end <= 30 
                else 40 %}
-      {% set done = pvguess|length if done > pvguess|length else done %}
+      {% set end = pvguess|length if done > pvguess|length else end %}
       {% for i in range (v.base|length) %}
-      {% if v.base[i].hour < done 
-            and v.tank|length < hours 
-            and (v.base[i].energy + tank_power) < energy_limit 
-            and not (v.base[i].hour == hour
-                and states.binary_sensor.vvtank_on.state == 'off'
-                and now().replace(minute=0, second=0) < states.switch.vv_tank.last_updated.replace(minute=59, second=59)) %}
-      {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + tank_power, 'price': v.base[i].price}] + v.base[i+1:] %}
+      {% if v.base[i].hour < end 
+            and (v.base[i].hour > done + 2 or hours != 2.2)
+            and v.tank|length < hours|round(0)
+            and (v.base[i].energy + tank_power) < energy_limit %}
       {% set v.tank = v.tank + [v.base[i].hour] %}
       {% endif %}
       {% endfor %}
-      {% set hours = states.input_number.vvkjeller_hours.state|round(0) %}
+      {% set hours = states.input_number.vvkjeller_hours.state|float %}
       {% set done = as_datetime(states.input_datetime.vvkjeller_last_on.state).hour %}
-      {% set done = done + 24 if done < hour else done  %}
-      {% set done = 6 if done <= 6 else 16 if done <= 16 else done if done < 24 else 30 if done <= 30 else 40 %}
+      {% if hour < done %}
+        {% set end = done %}
+        {% set done = done - 24 %}
+      {% else %}
+        {% set end = done + 24 %}
+      {% endif %}
       {% set done = pvguess|length if done > pvguess|length else done %}
       {% for i in range (v.base|length) %}
-      {% if v.base[i].hour < done 
-            and v.kjeller|length < hours 
-            and (v.base[i].energy + kjeller_power) < energy_limit
-            and not (v.base[i].hour == hour 
-                     and states.binary_sensor.vvkjeller_on.state == 'off'
-                     and now().replace(minute=0, second=0) < states.switch.vv_kjeller.last_updated.replace(minute=59, second=59)) %}
+      {% if v.base[i].hour < end 
+            and (v.base[i].hour > done + 4 or hours != 1.1)
+            and v.kjeller|length < hours|round(0) 
+            and (v.base[i].energy + kjeller_power) < energy_limit %}
       {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + kjeller_power, 'price': v.base[i].price}] + v.base[i+1:] %}
       {% set v.kjeller = v.kjeller + [v.base[i].hour] %}
       {% endif %}
