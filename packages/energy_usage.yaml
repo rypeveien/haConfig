@@ -129,10 +129,11 @@ template:
                else 16 if end <= 16 
                else end if end < 24 
                else 30 if end <= 30 
-               else 40 %}
-      {% set end = pvguess|length if done > pvguess|length else end %}
+               else 40 if end <= 40
+               else end %}
+      {% set end = pvguess|length if end > pvguess|length else end %}
       {% for i in range (v.base|length) %}
-      {% if v.base[i].hour < end 
+      {% if v.base[i].hour <= end 
             and (v.base[i].hour > done + 2 or hours != 2.2)
             and v.tank|length < hours|round(0)
             and (v.base[i].energy + tank_power) < energy_limit %}
@@ -147,9 +148,15 @@ template:
       {% else %}
         {% set end = done + 24 %}
       {% endif %}
-      {% set done = pvguess|length if done > pvguess|length else done %}
+      {% set end = 6 if end <= 6 
+               else 16 if end <= 16 
+               else end if end < 24 
+               else 30 if end <= 30 
+               else 40 if end <= 40
+               else end %}
+      {% set end = pvguess|length if end > pvguess|length else end %}
       {% for i in range (v.base|length) %}
-      {% if v.base[i].hour < end 
+      {% if v.base[i].hour <= end 
             and (v.base[i].hour > done + 4 or hours != 1.1)
             and v.kjeller|length < hours|round(0) 
             and (v.base[i].energy + kjeller_power) < energy_limit %}
