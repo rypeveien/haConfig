@@ -134,9 +134,13 @@ template:
       {% set end = pvguess|length if end > pvguess|length else end %}
       {% for i in range (v.base|length) %}
       {% if v.base[i].hour <= end 
-            and (v.base[i].hour > done + 2 or hours != 2.2)
             and v.tank|length < hours|round(0)
             and (v.base[i].energy + tank_power) < energy_limit %}
+      {% if states.switch.vv_tank.state == 'off' 
+         or states.binary_sensor.vvtank_on.state == 'on' 
+         or now().minute < 5 %}
+      {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + tank_power, 'price': v.base[i].price}] + v.base[i+1:] %}
+      {% endif %}
       {% set v.tank = v.tank + [v.base[i].hour] %}
       {% endif %}
       {% endfor %}
@@ -157,10 +161,13 @@ template:
       {% set end = pvguess|length if end > pvguess|length else end %}
       {% for i in range (v.base|length) %}
       {% if v.base[i].hour <= end 
-            and (v.base[i].hour > done + 4 or hours != 1.1)
             and v.kjeller|length < hours|round(0) 
             and (v.base[i].energy + kjeller_power) < energy_limit %}
+      {% if states.switch.vv_tank.state == 'off' 
+         or states.binary_sensor.vvtank_on.state == 'on' 
+         or now().minute < 5 %}
       {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + kjeller_power, 'price': v.base[i].price}] + v.base[i+1:] %}
+      {% endif %}
       {% set v.kjeller = v.kjeller + [v.base[i].hour] %}
       {% endif %}
       {% endfor %}
