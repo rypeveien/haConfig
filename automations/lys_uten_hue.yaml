@@ -233,6 +233,11 @@
   condition: 
   - condition: template
     value_template: '{{ states.automation.styr_lys_i_gangen.attributes.current == 0 }}'
+  - condition: not
+    conditions:
+    - condition: template
+      value_template: "{{ states('sensor.howmanyhome') == 'unknown' }}"
+
   action:
   - choose:
     - conditions:
