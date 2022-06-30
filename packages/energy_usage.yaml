@@ -10,13 +10,14 @@ input_number:
     min: 0
     unit_of_measurement: "kWh"
 
-#sensor:
-#- platform: integration
-#  source: sensor.amshan_power_import
-#  method: left
-#  round: 2
-#  unit_prefix: k
-#  unit_time: h
+sensor:
+- platform: integration
+  name: energiforbruk
+  source: sensor.amshan_power_import
+  method: left
+  round: 2
+  unit_prefix: k
+  unit_time: h
     
 template:
   sensor:
