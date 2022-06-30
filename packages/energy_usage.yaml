@@ -233,13 +233,27 @@ automation:
         value: >
           {{ maxtoday }}
       target: 
-        entity_id: input_text.today_max_usage
-    - service: input_text.set_value
-      data: 
-        value: >
-          {{ (((max3 + [ maxtoday ])|sort(1))[:3])|to_json}}
-      target: 
-        entity_id: input_text.max_3hour_month_usage
+        entity_id: input_number.today_max_usage
+    - choose: 
+      - conditions:
+        - condition: template
+          value_template: "{{ now().hour == 23 }}"
+        sequence: 
+        - service: input_text.set_value
+          data: 
+            value: >
+              {{ (((max3 + [ maxtoday ])|sort(1))[:3])|to_json}}
+          target: 
+            entity_id: input_text.max_3hour_month_usage
+      - conditions:
+        - condition: template
+          value_template: "{{ now().month != states.input_text.max_3hour_month_usage.last_updated.month }}"
+        sequence: 
+        - service: input_text.set_value
+          data: 
+            value: '[]'
+          target: 
+            entity_id: input_text.max_3hour_month_usage
 
   - id: '1655936457693'
     alias: 'Kill power users to get under 5k this hour'
