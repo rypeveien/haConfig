@@ -4,11 +4,18 @@ input_text:
     max: 40
 
 input_number:
+  monthly_max_energy_limit:
+    name: Energy reading last hour
+    max: 20000
+    min: 0
+    unit_of_measurement: "Wh"
+    mode: box
   last_energy_reading:
     name: Energy reading last hour
     max: 200000
     min: 0
     unit_of_measurement: "kWh"
+    mode: box
   today_max_usage: 
     name: Max energy for an hour today
     max: 20
@@ -117,7 +124,7 @@ template:
       {% set hour = now().hour %}
       {% set tank_power = 2700 %}
       {% set kjeller_power = 1700 %}
-      {% set energy_limit = 5000 %}
+      {% set energy_limit = 4330 %}
       {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
       {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
       {% set pvguess = states.sensor.pv_guess_by_factor.state|from_json %}
@@ -220,7 +227,7 @@ automation:
         {% set max3 = states('input_text.max_3hour_month_usage') %}
         {{ ('[]' if (max3 == 'unknown' or states.input_text.max_3hour_month_usage.last_updated.month != now().month) else max3)|from_json }}
       maxtoday: >
-        {% set maxtoday = states('input_text.today_max_usage')|float(default=0) %}
+        {% set maxtoday = states('input_number.today_max_usage')|float(default=0) %}
         {{ ([ maxtoday , asofnow - saved ]|sort(1))[0]|round(3) }}
     action:
     - service: input_number.set_value
@@ -262,7 +269,7 @@ automation:
     trigger:
     - platform: template
       value_template: >-
-        {{ (states.sensor.energy_this_hour_estimate.state|float * 1000) > 5000 and
+        {{ (states.sensor.energy_this_hour_estimate.state|float * 1000) > 4330 and
         now().minute > 0 and now().minute % 15 == 0 }}
     condition: []
     action:
