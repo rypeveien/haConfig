@@ -227,7 +227,7 @@ automation:
         {% set max3 = states('input_text.max_3hour_month_usage') %}
         {{ ('[]' if (max3 == 'unknown' or states.input_text.max_3hour_month_usage.last_updated.month != now().month) else max3)|from_json }}
       maxtoday: >
-        {% set maxtoday = states('input_number.today_max_usage')|float(default=0) %}
+        {% set maxtoday = states('input_number.today_max_usage')|float(default=0) if now().hour > 0 else 0 %}
         {{ ([ maxtoday , asofnow - saved ]|sort(1))[0]|round(3) }}
     action:
     - service: input_number.set_value
