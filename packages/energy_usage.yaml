@@ -256,6 +256,11 @@ automation:
               {{ (((max3 + [ maxtoday ])|sort(1))[:3])|to_json}}
           target: 
             entity_id: input_text.max_3hour_month_usage
+        - service: input_number.set_value
+          data: 
+            value: 0
+          target: 
+            entity_id: input_number.today_max_usage
       - conditions:
         - condition: template
           value_template: "{{ now().month != states.input_text.max_3hour_month_usage.last_updated.month }}"
