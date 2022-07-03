@@ -180,7 +180,7 @@ template:
                else end %}
       {% set end = pvguess|length if end > pvguess|length else end %}
       {% for i in range (v.base|length) %}
-      {% if v.base[i].hour <= end 
+      {% if v.base[i].hour < end 
             and v.tank|length < hours|round(0)
             and (v.base[i].energy + tank_power) < energy_limit %}
       {% if states.switch.vv_tank.state == 'off' 
@@ -207,7 +207,7 @@ template:
                else end %}
       {% set end = pvguess|length if end > pvguess|length else end %}
       {% for i in range (v.base|length) %}
-      {% if v.base[i].hour <= end 
+      {% if v.base[i].hour < end 
             and v.kjeller|length < hours|round(0) 
             and (v.base[i].energy + kjeller_power) < energy_limit %}
       {% if states.switch.vv_tank.state == 'off' 
