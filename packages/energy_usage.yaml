@@ -39,6 +39,28 @@ sensor:
     
 template:
   sensor:
+  - name: rest_of_month_energy_limit
+    unit_of_measurement: Wh
+    device_class: energy
+    state: >
+      {% set limits = [0] + state_attr('input_select.energy_month_limit', 'options') %}
+      {% set target = states('input_select.energy_month_limit')|int %}
+      {% set max3 = (( states('input_text.max_3hour_month_usage')|from_json +
+                    [states('input_number.today_max_usage')|float])|sort(1))[:3] %}
+      {% set v = namespace (abovelimit=[], rest_of_month = 0) %}
+      {% for i in range(max3|length) %}
+        {% set v.abovelimit = v.abovelimit + [ max3[i] * 1000 ]
+               if max3[i] * 1000 > target else v.abovelimit %}
+      {% endfor %}
+      {% set v.rest_of_month =  (target * 3 - average(v.abovelimit) * v.abovelimit|length) / (3 - v.abovelimit|length) %}
+      {% if v.abovelimit|length >= 3  or average(states.sensor.uncontrolled_estimate.state|from_json) + 2700 > v.rest_of_month %}
+        {% for i in range(1,limits|length) %}
+          {% if average(v.abovelimit) > limits[i - 1]|int and average(v.abovelimit) <= limits[i]|int %}
+            {% set v.rest_of_month = limits[i] %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {{ v.rest_of_month }}
   - name: power_controlled
     unit_of_measurement: W
     device_class: power
