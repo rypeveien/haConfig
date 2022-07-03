@@ -54,7 +54,7 @@ template:
       {% set ev_charge_steps = states.input_number.ev_charge_steps.state|int %}
       {% set tank_power = 2700 %}
       {% set kjeller_power = 1700 %}
-      {% set energy_limit = 5000 %}
+      {% set energy_limit = states('rest_of_month_energy_limit')|int %}
       {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
       {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
       {% set pvguess = states.sensor.pv_guess_by_factor.state|from_json %}
