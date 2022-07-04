@@ -32,20 +32,6 @@ sensor:
       {% else %}
         0
       {% endif %}
-  - name: adax_guest_power
-    unit_of_measurement: "W"
-    device_class: power
-    state: >
-      {% set s = 'adax_guest' %}
-      {% set d = state_attr ('climate.' + s, 'temperature') - state_attr ('climate.' + s, 'current_temperature') %}
-      {% if d > 3.5 %} 600 {% elif d > 0.5 %} 300 {% else %} 0 {% endif %}
-  - name: adax_syrom_power
-    unit_of_measurement: "W"
-    device_class: power
-    state: >
-      {% set s = 'adax_syrom' %}
-      {% set d = state_attr ('climate.' + s, 'temperature') - state_attr ('climate.' + s, 'current_temperature') %}
-      {% if d > 3.5 %} 600 {% elif d > 0.5 %} 300 {% else %} 0 {% endif %}
   - name: cheap_x_kwh_hours
     state: >
       {% set today = states('sensor.energy_today_nok_kwh')|from_json %}

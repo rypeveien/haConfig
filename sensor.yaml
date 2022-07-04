@@ -53,24 +53,6 @@
   unit_prefix: k
   round: 3
   method: left
-- platform: integration
-  source: sensor.fa_adax_power
-  name: fa_adax_energy
-  unit_prefix: k
-  round: 3
-  method: left
-- platform: integration
-  source: sensor.adax_guest_power
-  name: adax_guest_energy
-  unit_prefix: k
-  round: 3
-  method: left
-- platform: integration
-  source: sensor.adax_syrom_power
-  name: adax_syrom_energy
-  unit_prefix: k
-  round: 3
-  method: left
 - platform: rest
   scan_interval: 300
 #  evnotify_ext: "https://app.evnotify.de/extended?akey=myakey&token=mytoken"
