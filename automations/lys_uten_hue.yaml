@@ -229,7 +229,7 @@
   - platform: template
     value_template: "{{ states.binary_sensor.inngangsdor_door_window.state == 'on' }}"
   - platform: template
-    value_template: "{{ states.sensor.pvlogger_power.state|int > 200 and states.switch.shellygang.state == 'off' and states.binary_sensor.anyonehow == 'on' }}"
+    value_template: "{{ states.sensor.pvlogger_power.state|int > 200 and states.switch.shellygang.state == 'off' and states.binary_sensor.anyone_home.state == 'on' }}"
     id: morning_light
   - platform: template
     value_template: "{{ now().timestamp() - states.binary_sensor.inngangsdor_door_window.last_updated.timestamp() > 600}}"
