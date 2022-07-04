@@ -1,0 +1,235 @@
+template: 
+  sensor:
+  - name: adax_faoff_temp
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.adax_faoff','current_temperature') }}"
+  - name: adax_syrom_temp
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.adax_syrom','current_temperature') }}"
+  - name: adax_guest_temp
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.adax_guest','current_temperature') }}"
+  - name: adax_faoff_power
+    unit_of_measurement: "W"
+    state: "{{ 600 if state_attr('climate.adaxg_faoff', 'hvac_action') == 'heating' else 0 }}"
+  - name: adax_syrom_power
+    unit_of_measurement: "W"
+    state: "{{ 600 if state_attr('climate.adaxg_syrom', 'hvac_action') == 'heating' else 0 }}"
+  - name: adax_guest_power
+    unit_of_measurement: "W"
+    state: "{{ 600 if state_attr('climate.adaxg_guest', 'hvac_action') == 'heating' else 0 }}"
+
+sensor:
+- platform: integration
+  source: sensor.adax_faoff_power
+  name: adax_faoff_energy
+  unit_prefix: k
+  round: 3
+  method: left
+- platform: integration
+  source: sensor.adax_syrom_power
+  name: adax_syrom_energy
+  unit_prefix: k
+  round: 3
+  method: left
+- platform: integration
+  source: sensor.adax_guest_power
+  name: adax_guest_energy
+  unit_prefix: k
+  round: 3
+  method: left
+
+switch:
+  - platform: template
+    switches:
+      adax_faoff:
+        turn_on:
+          service: climate.set_temperature
+          target:
+            entity_id: climate.adax_faoff
+          data: 
+            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') + 4 }}"
+        turn_off:
+          service: climate.set_temperature
+          target:
+            entity_id: climate.adax_faoff
+          data: 
+            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') - 1 }}"
+      adax_syrom:
+        turn_on:
+          service: climate.set_temperature
+          target:
+            entity_id: climate.adax_syrom
+          data: 
+            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') + 4 }}"
+        turn_off:
+          service: climate.set_temperature
+          target:
+            entity_id: climate.adax_syrom
+          data: 
+            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') - 1 }}"
+      adax_guest:
+        turn_on:
+          service: climate.set_temperature
+          target:
+            entity_id: climate.adax_guest
+          data: 
+            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') + 4 }}"
+        turn_off:
+          service: climate.set_temperature
+          target:
+            entity_id: climate.adax_guest
+          data: 
+            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') - 1 }}"
+
+climate:
+  - platform: generic_thermostat
+    name: adaxg_faoff
+    heater: switch.adax_faoff
+    target_sensor: sensor.adax_faoff_temp
+    target_temp_step: 1
+  - platform: generic_thermostat
+    name: adaxg_syrom
+    heater: switch.adax_syrom
+    target_sensor: sensor.adax_syrom_temp
+    target_temp_step: 1
+  - platform: generic_thermostat
+    name: adaxg_guest
+    heater: switch.adax_guest
+    target_sensor: sensor.adax_guest_temp
+    target_temp_step: 1
+        
+automation:
+  - id: '1644843799898'
+    alias: Adax varmestyring
+    description: ''
+    trigger:
+    - platform: state
+      entity_id: input_boolean.adax_faoff
+      id: hjemmekontorvalg
+    - platform: time
+      at: 07:00
+      id: morgen
+    - platform: time
+      at: '16:00'
+      id: ettermiddag
+    - platform: template
+      value_template: '{{ now().timestamp() - as_timestamp(states.person.finn_arne_johansen.last_changed) > 1800 }}'
+      id: finnarneaway
+    - platform: template
+      value_template: '{{ now().timestamp() - as_timestamp(states.climate.adax_faoff.last_updated) > 3600 }}'
+      id: lost_connection
+    condition: 
+    - condition: template
+      value_template: '{{ states.automation.kontortemp.attributes.current == 0 }}'
+    action:
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: '{{ now().timestamp() - as_timestamp(states.person.finn_arne_johansen.last_changed) > 1800 }}'
+        - condition: state
+          entity_id: person.finn_arne_johansen
+          state: 'not_home'
+        - condition: state
+          entity_id: input_boolean.adax_faoff
+          state: 'on'
+        - condition: time
+          after: 07:00
+          before: '16:00'
+          weekday:
+          - mon
+          - tue
+          - wed
+          - thu
+          - fri
+        sequence:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.adax_faoff
+      default: []
+    - choose:
+      - conditions:
+        - condition: trigger
+          id: 
+          - morgen
+          - ettermiddag
+          - finnarneaway
+        - condition: state
+          entity_id: input_boolean.adax_faoff
+          state: 'on'
+        - condition: time
+          after: 07:00
+          before: '16:00'
+          weekday:
+          - mon
+          - tue
+          - wed
+          - thu
+          - fri
+        - condition: not
+          conditions:
+          - condition: state
+            entity_id: person.finn_arne_johansen
+            state: 'home'
+        sequence:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.adax_faoff
+      - conditions:
+        - condition: trigger
+          id: lost_connection
+        sequence:
+        - service: notify.mobile_app_xq_au52
+          data:
+            message: Mistet forbindelsen til adax FA kontor
+      - conditions:
+        - condition: state
+          entity_id: input_boolean.adax_faoff
+          state: 'on'
+        - condition: time
+          after: 05:00
+          before: '16:00'
+          weekday:
+          - mon
+          - tue
+          - wed
+          - thu
+          - fri
+        - condition: numeric_state
+          entity_id: climate.adaxg_faoff
+          attribute: temperature
+          below: '19'
+        sequence:
+        - service: climate.set_temperature
+          data:
+            temperature: 19
+          target:
+            entity_id: climate.adaxg_faoff
+      - conditions:
+        - condition: numeric_state
+          entity_id: climate.adaxg_faoff
+          above: '18.9'
+        - condition: or
+          conditions:
+          - condition: state
+            entity_id: input_boolean.adax_faoff
+            state: 'off'
+          - condition: not
+            conditions:
+            - condition: time
+              after: 05:00
+              before: '16:00'
+              weekday:
+              - mon
+              - tue
+              - wed
+              - thu
+              - fri
+        sequence:
+        - service: climate.set_temperature
+          data:
+            temperature: 14
+          target:
+            entity_id: climate.adaxg_faoff
+      default: []
+    mode: single
