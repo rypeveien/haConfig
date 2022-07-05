@@ -92,6 +92,31 @@ template:
                 (energy_price[i] - subsides)|round(4) ] %} 
           {% endfor %}
           {{ var.price|to_json }}
+        analyzer: >
+          {% set v = namespace(priceanalyze = []) %}
+          {% set prices =
+             state_attr('sensor.template_energy_by_subsides_and_production','prices') %}
+          {% set diff = (prices|min / prices|max) - 1 %}
+          {% set p_threshold = (diff / 4) * -1 %}
+          {% set gp_threshold = 1 - p_threshold %}
+          {% set fp_threshold = 1 + p_threshold %}
+          {% for hour in range(prices|length) %}
+          {% set gaining = ((hour < prices|length - 1 and prices[hour]/prices[hour+1] < gp_threshold)
+                             or (hour < prices|length - 2 and prices[hour]/prices[hour+2] < gp_threshold)) %}
+          {% set falling = ((hour < prices|length - 1 and prices[hour]/prices[hour+1]) > fp_threshold
+             or (hour < prices|length - 2 and prices[hour]/prices[hour+2] > fp_threshold)
+             or (hour < prices|length - 3 and prices[hour]/prices[hour+3] > fp_threshold)) %}
+          {% set ret = -1 if hour > (prices|length - 1) and (prices[hour + 1] / prices[hour]) < 0.8
+                      else -1 if prices[hour] >= max(prices)
+                      else -1 if hour < prices|length - 1 and prices[hour+1] / prices[hour] < 0.60
+                      else 1 if gaining and prices[hour] < (prices|sort(1))[4]
+                      else -1 if falling and prices[hour] > average(prices)
+                      else 0 if prices[hour] <= (prices|sort(0))[9] and (not gaining or falling)
+                      else 0 %}
+          {% set v.priceanalyze = v.priceanalyze + [ret] %}
+          {% endfor %}
+          {{ v.priceanalyze |to_json }}
+
     - unique_id: grid_charge_rates
       state: >
         {{ { "flat": 0.3739, 
