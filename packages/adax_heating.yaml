@@ -181,7 +181,7 @@ automation:
         sequence:
         - service: notify.mobile_app_xq_au52
           data:
-            message: Mistet forbindelsen til adax FA kontor
+            message: Mistet forbindelsen til adax FA kontor {{ (now()|string)[:19] }} 
       - conditions:
         - condition: state
           entity_id: input_boolean.adax_faoff
