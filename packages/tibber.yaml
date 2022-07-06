@@ -101,11 +101,8 @@ template:
           {% set gp_threshold = 1 - p_threshold %}
           {% set fp_threshold = 1 + p_threshold %}
           {% for hour in range(prices|length) %}
-          {% set gaining = ((hour < prices|length - 1 and prices[hour]/prices[hour+1] < gp_threshold)
-                             or (hour < prices|length - 2 and prices[hour]/prices[hour+2] < gp_threshold)) %}
-          {% set falling = ((hour < prices|length - 1 and prices[hour]/prices[hour+1]) > fp_threshold
-             or (hour < prices|length - 2 and prices[hour]/prices[hour+2] > fp_threshold)
-             or (hour < prices|length - 3 and prices[hour]/prices[hour+3] > fp_threshold)) %}
+          {% set gaining = prices[hour]/max(prices[hour:hour+3]) < gp_threshold %}
+          {% set falling = prices[hour]/min(prices[hour:hour+4]) > fp_threshold %}
           {% set ret = -1 if hour > (prices|length - 1) and (prices[hour + 1] / prices[hour]) < 0.8
                       else -1 if prices[hour] >= max(prices)
                       else -1 if hour < prices|length - 1 and prices[hour+1] / prices[hour] < 0.60
