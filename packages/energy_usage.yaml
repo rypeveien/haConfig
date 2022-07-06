@@ -165,12 +165,12 @@ template:
       {% endfor %}
       {% set v.base = v.base | sort(attribute='price') %}
       {% set hours = states.input_number.vvtank_hours.state|float %}
-      {% set done = as_datetime(states.input_datetime.vvtank_last_on.state).hour %}
-      {% if hour < done %}
-        {% set end = done %}
-        {% set done = done - 24 %}
+      {% set done = as_datetime(states.input_datetime.vvtank_last_on.state) %}
+      {% if hour < done.hour or now().timestamp() - done.timestamp() > 82800 %}
+        {% set end = done.hour %}
+        {% set done = done.hour - 24 %}
       {% else %}
-        {% set end = done + 24 %}
+        {% set end = done.hour + 24 %}
       {% endif %}
       {% set end = 6 if end <= 6 
                else 16 if end <= 16 
@@ -192,12 +192,12 @@ template:
       {% endif %}
       {% endfor %}
       {% set hours = states.input_number.vvkjeller_hours.state|float %}
-      {% set done = as_datetime(states.input_datetime.vvkjeller_last_on.state).hour %}
-      {% if hour < done %}
-        {% set end = done %}
-        {% set done = done - 24 %}
+      {% set done = as_datetime(states.input_datetime.vvkjeller_last_on.state) %}
+      {% if hour < done.hour or now().timestamp() - done.timestamp() > 82800 %}
+        {% set end = done.hour %}
+        {% set done = done.hour - 24 %}
       {% else %}
-        {% set end = done + 24 %}
+        {% set end = done.hour + 24 %}
       {% endif %}
       {% set end = 6 if end <= 6 
                else 16 if end <= 16 
