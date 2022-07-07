@@ -1,0 +1,10 @@
+
+climate:
+  - platform: generic_thermostat
+    name: cold_room
+    heater: switch.shellykjol_switch_0
+    target_sensor: sensor.lumi_kjole_temperature
+    min_temp: 2
+    max_temp: 7
+    ac_mode: true
+
