@@ -36,6 +36,21 @@ sensor:
   round: 2
   unit_prefix: k
   unit_time: h
+- platform: integration
+  name: energiproduksjon
+  source: sensor.amshan_power_export
+  method: left
+  round: 2
+  unit_prefix: k
+  unit_time: h
+
+utility_meter:
+  energiforbruk_time:
+    source: sensor.energiforbruk
+    cycle: hourly
+  energiproduksjon_time:
+    source: sensor.energiproduksjon
+    cycle: hourly
     
 template:
   sensor:
