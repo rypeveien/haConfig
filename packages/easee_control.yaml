@@ -75,7 +75,8 @@ template:
     state: >
       {% set charge_hours = states('sensor.charge_hours')|from_json %}
       {{ (charge_hours|length > 0 and charge_hours[0]|int(default=24) == now().hour) or 
-         (charge_hours|length > 1 and charge_hours[1]|int(default=24) == now().hour) }}
+         (charge_hours|length > 1 and charge_hours[1]|int(default=24) == now().hour) or 
+         states('input_number.ladestatus')|float < 20.0 }}
   - name: easee_on
     state: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
     delay_off: 
