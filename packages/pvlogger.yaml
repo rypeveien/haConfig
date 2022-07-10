@@ -17,28 +17,19 @@ template:
         {% set numbers = states.input_text.met_cache.state|from_json %}
         {% set factors = states.sensor.pvlogger_factor.state|from_json %}
         {% set potentials = states.input_text.met2_potential_max.state|from_json %}
-
+        {% set potentials = potentials + potentials %}
         {% set local = namespace(guess=[]) %}
         {% for number in numbers %}
-          {% if local.guess|length < 48 - now().hour %}
-            {% set index = now().hour + local.guess|length %}
-            {% set index = index - 24 if index >= 24 else index %}
-            {% set num2fac = factors[number]|float(2) if factors[number] is defined else 0.1 %}
-            {% set local.guess = local.guess + [ (num2fac * potentials[index])|int ] %}
-          {% endif %} 
+          {% set num2fac = factors[number]|float(2) if factors[number] is defined else 0.1 %}
+          {% set local.guess = local.guess + [ (num2fac * potentials[loop.index-1])|int ] %}
         {% endfor %}
         {{ local.guess }}
     - name: pv_guess_this_hour
       state: >
-        {% set forecast = (states.input_text.met_cache.state|from_json)[0] %}
-        {% set factors = states.sensor.pvlogger_factor.state|from_json %}
-        {% set potentials = states.input_text.met2_potential_max.state|from_json %}
-        {% set factor = factors[forecast]|float if factors[forecast] is defined else 0.1 %}
-        {{ (potentials[now().hour] * factor)|int }}
+        {{ (states.sensor.pv_guess_by_factor.state|from_json)[now().hour] }}
     - name: pv_guess_12h
       state: >
-        {{ (states.sensor.pv_guess_by_factor.state|from_json)[12] }}
+        {{ (states.sensor.pv_guess_by_factor.state|from_json)[now().hour+12] }}
     - name: pv_guess_24h
       state: >
-        {{ (states.sensor.pv_guess_by_factor.state|from_json)[24] }}
-
+        {{ (states.sensor.pv_guess_by_factor.state|from_json)[now().hour+24] }}

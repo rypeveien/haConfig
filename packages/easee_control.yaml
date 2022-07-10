@@ -57,7 +57,7 @@ template:
       {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int %}
       {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
       {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
-      {% set pvguess = states.sensor.pv_guess_by_factor.state|from_json %}
+      {% set pvguess = (states.sensor.pv_guess_by_factor.state|from_json)[now().hour] %}
       {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices[now().hour:] %}
       {% set availible = energy_limit - uctrld[now().hour] + pvguess[0] %}
       {% if usage.vvtank|length > 0 and usage.vvtank[0] == now().hour %}

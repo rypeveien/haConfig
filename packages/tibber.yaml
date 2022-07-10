@@ -35,9 +35,7 @@ template:
     - unique_id: energy_by_subsides_and_production
       unit_of_measurement: 'NOK/kWh'
       state: >
-        {% set pv_guess = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][:now().hour] +
-                           states.sensor.pv_guess_by_factor.state|from_json %}
+        {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
         {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
         {% set energy_price =  states.sensor.energy_all_nok_kwh.attributes.prices %}
         {% set price_to_grid = states.sensor.to_grid_today_nok_kwh.state|from_json  + 
@@ -50,9 +48,7 @@ template:
         friendly_name: "Energycost @ rypeveien"
         prices: >
           {% set delivered = states.input_text.delivered_grid_today.state|from_json %}
-          {% set pv_guess = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][:now().hour] +
-                             states.sensor.pv_guess_by_factor.state|from_json %}
+          {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
           {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
           {% set uncontrolled = uncontrolled + uncontrolled %}
           {% set energy_price =  states.sensor.energy_all_nok_kwh.attributes.prices %}
@@ -69,9 +65,7 @@ template:
           {{ var.price|to_json }}
         solar: >
           {% set delivered = states.input_text.delivered_grid_today.state|from_json %}
-          {% set pv_guess = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][:now().hour] +
-                             states.sensor.pv_guess_by_factor.state|from_json %}
+          {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
           {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
           {% set uncontrolled = uncontrolled + uncontrolled %}
           {% set price_to_grid = states.sensor.to_grid_today_nok_kwh.state|from_json + 
@@ -86,9 +80,7 @@ template:
           {{ var.price|to_json }}
         subsides: >
           {% set delivered = states.input_text.delivered_grid_today.state|from_json %}
-          {% set pv_guess = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][:now().hour] +
-                             states.sensor.pv_guess_by_factor.state|from_json %}
+          {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
           {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
           {% set uncontrolled = uncontrolled + uncontrolled %}
           {% set energy_price =  states.sensor.energy_all_nok_kwh.attributes.prices %}
@@ -222,73 +214,6 @@ template:
         prices: >
           {{ (states.sensor.energy_today_nok_kwh.state|from_json + 
               states.sensor.energy_tomorrow_nok_kwh.state|from_json)|to_json }}
-    - name: usage_by_subsides
-      state: >
-        {% set hour = now().hour %}
-        {% set vvtank_hours =  states.input_number.vvtank_hours.state|float|round %}
-        {% set vvkjeller_hours =  states.input_number.vvkjeller_hours.state|float|round %}
-        {% set easee_hours =  states.sensor.wanted_easee_hours.state|float|round %}
-        {% set vvtank_done = as_datetime(states.input_datetime.vvtank_last_on.state).hour %}
-        {% if as_datetime(states.input_datetime.vvtank_last_on.state).day != now().day %}
-          {% if vvtank_done <= 6 %} {% set vvtank_done = 6 %}
-          {% elif vvtank_done <= 16 %}  {% set vvtank_done = 16 %}
-          {% endif %}
-        {% elif hour == vvtank_done %}
-          {% set vvtank_done = vvtank_done - 1 if vvtank_done > 0 else 23 %}
-        {% endif %}
-        {% set vvkjeller_done = as_datetime(states.input_datetime.vvkjeller_last_on.state).hour %}
-        {% if as_datetime(states.input_datetime.vvkjeller_last_on.state).day != now().day %}
-          {% if vvkjeller_done <= 6 %} {% set vvkjeller_done = 6 %}
-          {% elif vvkjeller_done <= 16 %} {% set vvkjeller_done = 16 %}
-          {% endif %}
-        {% elif hour == vvkjeller_done %}
-          {% set vvkjeller_done = vvkjeller_done - 1 if vvkjeller_done > 0 else 23 %}
-        {% endif %}
-        {% set easee_done = states.input_datetime.car_ready_charged.attributes.hour %}
-        {% set solarprices = (states.input_text.tibber_today.state|from_json)[hour:] +
-                              states.input_text.tibber_tomorrow.state|from_json %}
-        {% set energyprice = (states.sensor.energy_today_nok_kwh.state|from_json)[hour:] +
-                              states.sensor.energy_tomorrow_nok_kwh.state|from_json %}
-        {% set subsides = states.input_number.tibber_day_average_month_sum.state|float / now().day - 0.7 %}
-        {% set production = states.sensor.pv_guess_by_factor.state|from_json %}
-        {% set uncontrolled = (states.input_text.uncontrolled_estimate.state|from_json)[hour:] +
-                               states.input_text.uncontrolled_estimate.state|from_json %}
-        {% set vvtank_count = (vvtank_done - hour if hour <= vvtank_done else vvtank_done + 24 - hour) + 1 %}
-        {% set vvkjeller_count = (vvkjeller_done - hour if hour <= vvkjeller_done else vvkjeller_done + 24 - hour) + 1 %}
-        {% set easee_count = easee_done - hour if hour < easee_done else easee_done + 24 - hour %}
-        {% set prices = namespace (netto = [], vvtank = [], vvkjeller=[], easee=[]) %}
-        {% for h in range(energyprice|length) %}
-        {% set prices.netto = prices.netto + [(solarprices[h] if production[h] > uncontrolled[h] else energyprice[h] - subsides)|round(4)] %}
-        {% endfor %}
-        {% set prices_count = prices.netto|length %}
-        {% set vvtank_count = prices_count if vvtank_count > prices_count else vvtank_count %}
-        {% set vvkjeller_count = prices_count if vvkjeller_count > prices_count else vvkjeller_count %}
-        {% set easee_count = prices_count if easee_count > prices_count else easee_count %}
-        {% set limit = (prices.netto[:vvtank_count]|sort)[vvtank_hours] 
-           if vvtank_hours < vvtank_count else prices.netto[:vvtank_count]|max + 0.01 %}
-        {% for h in range(vvtank_count) %}
-        {% if prices.netto[h] < limit %}
-        {% set next = h + hour %}
-        {% set prices.vvtank = prices.vvtank + [ next if next < 24 else next - 24] %}
-        {% endif %}
-        {% endfor %}
-        {% set limit = (prices.netto[:vvkjeller_count]|sort)[vvkjeller_hours] 
-           if vvkjeller_hours < vvkjeller_count else prices.netto[:vvkjeller_count]|max + 0.01 %}
-        {% for h in range(vvkjeller_count) %}
-        {% if vvkjeller_count <= vvkjeller_hours or prices.netto[h] < limit  %}
-        {% set next = h + hour %}
-        {% set prices.vvkjeller = prices.vvkjeller + [ next if next < 24 else next - 24] %}
-        {% endif %}
-        {% endfor %}
-        {% set limit = (prices.netto[:easee_count]|sort)[easee_hours] 
-           if easee_hours < easee_count else prices.netto[:easee_count]|max + 0.01 %}
-        {% for h in range(easee_count) %}
-        {% if prices.netto[h] < limit %}
-        {% set next = h + hour %}
-        {% set prices.easee = prices.easee + [ next if next < 24 else next - 24] %}
-        {% endif %}
-        {% endfor %}
-        {{ { 'vvtank': prices.vvtank, 'vvkjeller': prices.vvkjeller, 'easee': prices.easee }|to_json }}
 
 automation:
   - id: '1647958426770'

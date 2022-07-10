@@ -41,33 +41,9 @@ template:
     - name: uncontrolled_estimate
       state: >
         {{ states.input_text.uncontrolled_estimate.state|from_json }}
-  - trigger: 
-      - platform: state
-        entity_id: input_number.last_pvlogger_production
-    sensor:
-      - name: produced_last_hour
-        unit_of_measurement: 'Wh'
-        state: >
-          {% set from = trigger.from_state.state|int(default=0) %}
-          {% set to = trigger.to_state.state|int(default=0) %}
-          {{ to - from if to > from else 0 }}
-  - trigger: 
-      - platform: state
-        entity_id: sensor.pv_logger_electric_production_kwh
-    sensor: 
-    - name: produced_this_hour
-      unit_of_measurement: 'Wh'
-      state: >
-        {% set last = states('input_number.last_pvlogger_production')|int(default=0) %}
-        {% set sensor = states.sensor.pv_logger_electric_production_kwh.state|int(default0) %}
-        {% if last == 0 or last > sensor %} 
-          {{ 0 }}
-        {% else %}
-          {{ ((sensor - last) * 60 / now().minute)|int }}
-        {% endif %}
     - name: met_number2raw
       unit_of_measurement: 'id'
-      state: '{{ (states.input_text.met_cache.state|from_json)[0] }}'
+      state: '{{ (states.input_text.met_cache.state|from_json)[now().hour] }}'
 
 automation:
   - id: '1653423797'
@@ -108,6 +84,7 @@ automation:
     trigger: 
     - platform: time_pattern
       minutes: 59
+      seconds: 59
     - platform: template
       value_template: '{{ as_local(states.input_text.met_cache.last_updated).hour != now().hour }}'
     - platform: state
@@ -186,6 +163,7 @@ automation:
               {% set local.cache = local.cache + [ time.location.symbol["@number"]] %}
             {% endif %}
           {%- endfor %}
-          {{ (local.cache if local.cache|length > 0 else (states.input_text.met_cache.state|from_json)[1:])|to_json }}
+          {{ ((states.input_text.met_cache.state|from_json)[:now().hour] + local.cache)|to_json if local.cache|length > 0
+               else states.input_text.met_cache.state }}
       target: 
         entity_id: input_text.met_cache

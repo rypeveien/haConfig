@@ -51,6 +51,9 @@ utility_meter:
   energiproduksjon_time:
     source: sensor.energiproduksjon
     cycle: hourly
+  uncontrolled_hourly:
+    source: sensor.power_uncontrolled
+    cycle: hourly
     
 template:
   sensor:
@@ -171,7 +174,6 @@ template:
       {% set pvguess = states.sensor.pv_guess_by_factor.state|from_json %}
       {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices %}
       {% set uctrld = uctrld + uctrld %}
-      {% set pvguess = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0][:now().hour] + pvguess %}
       {% if pvguess|length > prices|length %}
       {% set pvguess = pvguess[:prices|length] %}
       {% endif %}
