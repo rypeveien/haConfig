@@ -8,3 +8,83 @@ climate:
     max_temp: 7
     ac_mode: true
 
+automation:
+  - id: '1646511571836'
+    alias: Varsle om kjølerom har hengt seg opp
+    description: ''
+    trigger:
+    - platform: template
+      value_template: '{{ now().timestamp() - as_timestamp(states.binary_sensor.kjolerom_on.last_updated)
+        > 10900 }}'
+    - platform: state
+      entity_id: binary_sensor.anyone_home
+      for:
+        hours: 0
+        minutes: 5
+        seconds: 0
+      to: 'on'
+    - platform: time
+      at: 07:30
+    - platform: time
+      at: '10:30'
+    condition:
+    - condition: template
+      value_template: '{{ now().timestamp() - as_timestamp(states.binary_sensor.kjolerom_on.last_updated)
+        > 10900 }}'
+    - condition: or
+      conditions:
+      - condition: time
+        after: 07:00
+        before: '22:00'
+        weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+      - condition: time
+        after: 09:00
+        before: '22:00'
+        weekday:
+        - sat
+        - sun
+    - condition: state
+      entity_id: binary_sensor.anyone_home
+      state: 'on'
+    action:
+    - service: media_player.volume_set
+      data:
+        volume_level: 0.3
+      target:
+        entity_id: media_player.stue
+    - service: tts.google_translate_say
+      data:
+        entity_id: media_player.stue
+        language: 'no'
+        message: 'Har kjølerommet hengt seg opp ? '
+    mode: single
+
+  - id: '1657401474141'
+    alias: 'Cold Room continue to cool'
+    description: 'Continue to cool down when above setpoint but input switch turns off'
+    mode: single
+    trigger:
+      - type: not_powered
+        platform: device
+        device_id: 65e4d0e17a9d7119c81824d5c4fadff0
+        entity_id: binary_sensor.shellykjol_switch_0_input
+        domain: binary_sensor
+    condition:
+      - condition: template
+        value_template: "{{ state_attr('climate.cold_room', 'current_temperature') > state_attr('climate.cold_room', 'temperature') }}"
+      - condition: device
+        type: is_off
+        device_id: 65e4d0e17a9d7119c81824d5c4fadff0
+        entity_id: switch.shellykjol_switch_0
+        domain: switch
+    action:
+      - type: turn_on
+        device_id: 65e4d0e17a9d7119c81824d5c4fadff0
+        entity_id: switch.shellykjol_switch_0
+        domain: switch
+
