@@ -1,3 +1,8 @@
+utility_meter:
+  pvlogger_hourly:
+    source: sensor.pvlogger_power
+    cycle: hourly
+  
 rest:
   - resource: "http://localhost/restproxy/pvlogger_factor.php"
     scan_interval: 3600

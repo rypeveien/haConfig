@@ -24,12 +24,6 @@
   max_age:
     minutes: 15
 - platform: statistics
-  name: "average hour solar production"
-  entity_id: sensor.pvlogger_power
-  state_characteristic: mean
-  max_age:
-    minutes: 60
-- platform: statistics
   name: "average uncontrolled power usage"
   entity_id: sensor.power_uncontrolled
   state_characteristic: mean
