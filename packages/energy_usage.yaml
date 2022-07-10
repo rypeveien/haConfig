@@ -14,12 +14,6 @@ input_text:
     max: 40
 
 input_number:
-  last_energy_reading:
-    name: Energy reading last hour
-    max: 200000
-    min: 0
-    unit_of_measurement: "kWh"
-    mode: box
   today_max_usage: 
     name: Max energy for an hour today
     max: 20
@@ -264,20 +258,14 @@ automation:
       seconds: '59'
     condition: []
     variables: 
-      saved: '{{ states(''input_number.last_energy_reading'')|float(default=0) }}'
-      asofnow: '{{ states(''sensor.energiforbruk'')|float(default=0) }}'
       max3: >
         {% set max3 = states('input_text.max_3hour_month_usage') %}
         {{ ('[]' if (max3 == 'unknown' or states.input_text.max_3hour_month_usage.last_updated.month != now().month) else max3)|from_json }}
       maxtoday: >
         {% set maxtoday = states('input_number.today_max_usage')|float(default=0) if now().hour > 0 else 0 %}
-        {{ ([ maxtoday , asofnow - saved ]|sort(1))[0]|round(3) }}
+        {% set this_hour = states('sensor.energiforbruk_time')|float(default=0) %}
+        {{ ([ maxtoday , this_hour ]|sort(1))[0]|round(3) }}
     action:
-    - service: input_number.set_value
-      data: 
-        value: '{{ asofnow }}'
-      target: 
-        entity_id: input_number.last_energy_reading
     - service: input_number.set_value
       data: 
         value: >
