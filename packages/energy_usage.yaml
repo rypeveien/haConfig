@@ -131,10 +131,10 @@ template:
   - name: energy_this_hour_estimate
     unit_of_measurement: 'kWh'
     state: >
-      {% set this_hour = states('sensor.energy_this_hour_estimate') %}
-      {% set last_energy_reading = states('input_number.last_energy_reading') %}
-      {% set tdiff = now().timestamp() - states.input_number.last_energy_reading.last_updated.timestamp() %}
-      {{ ((states.sensor.energiforbruk.state|float - last_energy_reading|float) * 3600 / tdiff)|round(3) if tdiff > 60 else this_hour }}
+      {% set so_far = states.sensor.energiforbruk_time.state|float %}
+      {% set power = states.sensor.amshan_power_import.state|float / 1000 %}
+      {% set seconds_left = 3600 - now().minute * 60 - now().second %}
+      {{ (so_far + power * seconds_left / 3600)|round(3) }}
   - name: today_max_usage_guestimate
     unit_of_measurement: 'kWh'
     state: >
