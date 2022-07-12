@@ -50,11 +50,6 @@ template:
     unit_of_measurement: W
     device_class: power
     state: '{{ states(''sensor.easee_home_63089_power'')|float(default=0)*1000 }}'
-  - name: wanted_easee_hours
-    unit_of_measurement: 'Hours'
-    state: >
-      {% set SoC = states('input_number.ladestatus') | float(default=50) %}
-      {{ ((1-SoC/100)*28/states('input_number.ladefart')|float(default=2) + 0.5)|round(0) }}
   - name: charge_hours
     state: >
       {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
