@@ -28,6 +28,16 @@ input_number:
     step: 0.1
     mode: box
 
+input_select: 
+  why_charge:
+    options:
+      - Solar charging
+      - User selected
+      - No charging
+      - Charge hours
+      - Completed
+      - Disconnected
+
 input_datetime:
   holiday_until:
     has_date: true
@@ -115,6 +125,44 @@ automation:
         target:
           entity_id: input_datetime.car_ready_charged
 
+  - id: '1657636827656'
+    alias: Easee charger throttling
+    description: ''
+    trigger:
+    - platform: template
+      value_template: >
+        {% set every5 = (now().minute % 5) == 1 %}
+        {% set charging = states('sensor.easee_home_63089_status') == 'charging' %}
+        {{ every5 and charging }}
+    action: 
+      - choose: 
+        - conditions:
+          - condition: template
+            value_template: >
+              {{ states('sensor.energy_this_hour_estimate')|float * 1000 > 
+                      states('sensor.rest_of_month_energy_limit')|float }}
+          sequence:
+          - service: easee.set_charger_dynamic_limit
+            data:
+              charger_id: EH630897
+              current: "{{ states('sensor.easee_home_63089_current')|int - 1 }}"
+        - conditions:
+          - condition: template
+            value_template: >
+              {{ states('sensor.energy_this_hour_estimate')|float * 1000 +
+                      states('input_number.ev_charge_steps')|float < 
+                      states('sensor.rest_of_month_energy_limit')|float }}
+          - condition: template
+            value_template: >
+              {{ states('sensor.easee_home_63089_power')|float * 1000 + 
+                  states('input_number.ev_charge_steps')|float < 
+                  states('input_number.ev_max_charge')|float }}
+          sequence:
+          - service: easee.set_charger_dynamic_limit
+            data:
+              charger_id: EH630897
+              current: "{{ states('sensor.easee_home_63089_current')|int + 2 }}"
+
   - id: '1616512764082'
     alias: Easee start trigger
     description: ''
@@ -128,7 +176,8 @@ automation:
           - condition: template
             value_template: >
               {% set hours = states('sensor.charge_hours')|from_json %}
-              {{ hours|length > 0 and hours[0] == now().hour }}
+              {{ hours|length > 0 and hours[0] == now().hour or
+                 hours|length > 1 and hours[1] == now().hour }}
           - condition: template
             value_template: >
               {{ states('sensor.easee_home_63089_status') == 'awaiting_start' }}
@@ -136,6 +185,11 @@ automation:
           - service: easee.resume
             data:
               charger_id: EH630897
+          - service: input_select.select_option
+            data:
+              option: 'Charge hours'
+            target:
+              entity_id: input_select.why_charge
         - conditions:
           - condition: template
             value_template: >
@@ -148,9 +202,14 @@ automation:
           - service: easee.pause
             data:
               charger_id: EH630897
+          - service: input_select.select_option
+            data:
+              option: 'No charging'
+            target:
+              entity_id: input_select.why_charge
 
-  - id: '1616512764082'
-    alias: Easee kontroll
+  - id: '1657649088080'
+    alias: Easee charger status change
     description: ''
     trigger:
     - platform: state
@@ -165,85 +224,26 @@ automation:
       entity_id: sensor.easee_home_63089_status
       to: completed
       id: completed
-    - platform: state
-      entity_id: sensor.evnotify_soc
-      id: evnotify
-    condition:
-    - condition: template
-      value_template: '{{ states.automation.sjekk_ladestatus_ved_tilkobling.attributes.current == 0 }}'
-    variables:
-      easee_on_ts: >
-        {{ as_timestamp(states.binary_sensor.easee_on.last_updated if states.binary_sensor.easee_on != 'None' else now()) }} 
-      ladestatus_ts: '{{ states.input_number.ladestatus.last_updated.timestamp() }}' 
-      last_hour: >
-        {{ states.binary_sensor.easee_on.last_updated.hour if easee_on_ts > ladestatus_ts else 
-           states.input_number.ladestatus.last_updated.hour }}
-      last_hour_ts: >
-        {{ easee_on_ts if easee_on_ts > ladestatus_ts else ladestatus_ts }}
     action:
     - choose: 
       - conditions:
         - condition: trigger
           id: completed
         sequence:
-        - service: input_number.set_value
-          data: 
-            value: 100
-          target:
-            entity_id: input_number.ladestatus
         - service: input_select.select_option
           data:
-            option: 'No charging'
+            option: 'Completed'
           target:
             entity_id: input_select.why_charge
-      - conditions:
-        - condition: trigger
-          id: evnotify
-        - condition: template
-          value_template: '{{ now().timestamp() - state_attr(''sensor.evnotify_soc'', ''last_soc'') <= 300  }}'
-        sequence:
-        - service: input_number.set_value
-          data: 
-            value: '{{ trigger.to_state.state }}'
-          target:
-            entity_id: input_number.ladestatus
-      - conditions:
-        - condition: state
-          entity_id: binary_sensor.easee_on
-          state: 'on'
-        - condition: template
-          value_template: '{{ now().hour != last_hour }}'
-        - condition: template
-          value_template: '{{ now().timestamp() - state_attr(''sensor.evnotify_soc'', ''last_soc'') > 360  }}'
-        - condition: template
-          value_template: >
-            {% set SoC = states('input_number.ladestatus')|float %}
-            {{ SoC < 99 - (states('input_number.ladefart')|float(default=2) / 28) * 100 }}
-        sequence:
-        - service: input_number.set_value
-          target:
-            entity_id: input_number.ladestatus
-          data:
-            value: >
-              {% set addSoC = states('input_number.ladefart')|float(default=2)*(now().timestamp()-last_hour_ts)/1008 %}
-              {{ (states('input_number.ladestatus')|float(default=50) + addSoC)|round(1) }}
       - conditions:
         - condition: trigger
           id: disconnected
         sequence:
         - service: input_select.select_option
           data:
-            option: 'No charging'
+            option: 'Disconnected'
           target:
             entity_id: input_select.why_charge
-        - condition: state
-          entity_id: switch.easee_home_63089_enable_idle_current
-          state: 'off'
-        - service: easee.pause
-          data:
-            charger_id: EH630897
-      default: []
-    - choose:
       - conditions:
         - condition: trigger
           id: connected
@@ -271,6 +271,91 @@ automation:
               option: 'No charging'
             target:
               entity_id: input_select.why_charge
-      default: []
-    mode: single
+
+#  - id: '1616512764082'
+#    alias: Easee kontroll
+#    description: ''
+#    trigger:
+#    - platform: state
+#      entity_id: sensor.evnotify_soc
+#      id: evnotify
+#    variables:
+#      easee_on_ts: >
+#        {{ as_timestamp(states.binary_sensor.easee_on.last_updated if states.binary_sensor.easee_on != 'None' else now()) }} 
+#      ladestatus_ts: '{{ states.input_number.ladestatus.last_updated.timestamp() }}' 
+#      last_hour: >
+#        {{ states.binary_sensor.easee_on.last_updated.hour if easee_on_ts > ladestatus_ts else 
+#           states.input_number.ladestatus.last_updated.hour }}
+#      last_hour_ts: >
+#        {{ easee_on_ts if easee_on_ts > ladestatus_ts else ladestatus_ts }}
+#    action:
+#    - choose: 
+#      - conditions:
+#        - condition: trigger
+#          id: evnotify
+#        - condition: template
+#          value_template: '{{ now().timestamp() - state_attr(''sensor.evnotify_soc'', ''last_soc'') <= 300  }}'
+#        sequence:
+#        - service: input_number.set_value
+#          data: 
+#            value: '{{ trigger.to_state.state }}'
+#          target:
+#            entity_id: input_number.ladestatus
+#      - conditions:
+#        - condition: state
+#          entity_id: binary_sensor.easee_on
+#          state: 'on'
+#        - condition: template
+#          value_template: '{{ now().hour != last_hour }}'
+#        - condition: template
+#          value_template: '{{ now().timestamp() - state_attr(''sensor.evnotify_soc'', ''last_soc'') > 360  }}'
+#        - condition: template
+#          value_template: >
+#            {% set SoC = states('input_number.ladestatus')|float %}
+#            {{ SoC < 99 - (states('input_number.ladefart')|float(default=2) / 28) * 100 }}
+#        sequence:
+#        - service: input_number.set_value
+#          target:
+#            entity_id: input_number.ladestatus
+#          data:
+#            value: >
+#              {% set addSoC = states('input_number.ladefart')|float(default=2)*(now().timestamp()-last_hour_ts)/1008 %}
+#              {{ (states('input_number.ladestatus')|float(default=50) + addSoC)|round(1) }}
+#        - condition: state
+#          entity_id: switch.easee_home_63089_enable_idle_current
+#          state: 'off'
+#        - service: easee.pause
+#          data:
+#            charger_id: EH630897
+#      default: []
+#    - choose:
+#      - conditions:
+#        - condition: trigger
+#          id: connected
+#        sequence:
+#        - choose:
+#          - conditions:
+#            - condition: state
+#              entity_id: binary_sensor.wants_to_charge
+#              state: 'on'
+#            sequence:
+#            - service: easee.resume
+#              data:
+#                charger_id: EH630897
+#            - service: input_select.select_option
+#              data:
+#                option: 'Charge hours'
+#              target:
+#                entity_id: input_select.why_charge
+#          default:
+#          - service: easee.pause
+#            data:
+#              charger_id: EH630897
+#          - service: input_select.select_option
+#            data:
+#              option: 'No charging'
+#            target:
+#              entity_id: input_select.why_charge
+#      default: []
+#    mode: single
 
