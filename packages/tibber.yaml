@@ -141,6 +141,8 @@ template:
                                                charge.night ] %}
           {% endfor %}
           {{ var.charge|to_json }}
+    - name: analyzer_updown
+      state: "{{ state_attr('sensor.template_energy_by_subsides_and_production', 'analyzer')[now().hour] }}"
     - name: nettleie_nok_kwh
       unit_of_measurement: 'NOK/kWh'
       state: 0.3739
