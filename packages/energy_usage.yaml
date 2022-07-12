@@ -233,7 +233,7 @@ template:
       {% set v.kjeller = v.kjeller + [v.base[i].hour] %}
       {% endif %}
       {% endfor %}
-      {% set v.needed_charge = ev_battery_pack * (1 - states.input_number.ladestatus.state|float/100) %}
+      {% set v.needed_charge = ev_battery_pack * (1 - states('sensor.soc_estimate')|float/100) %}
       {% set done = states.input_datetime.car_ready_charged.attributes.hour %}
       {% set done = done + 24 if done < hour else done %}
       {% set done = pvguess|length if done > pvguess|length else done %}

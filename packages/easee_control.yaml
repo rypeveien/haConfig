@@ -54,25 +54,24 @@ template:
     state: >
       {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
       {{ by_subsides.easee|sort }}
-  - name: wanted_charge
+  - name: soc_estimate
     state: >
-      {% set wanted = (100 - states('sensor.evnotify_soc')|float) * states('input_number.ev_battery_pack')|int/100 %}
+      {% set soc = states('sensor.evnotify_soc')|float %}
       {% if is_state('sensor.easee_home_63089_status', 'completed') %}
-        {{ 0 }}
+        {% set soc = 100 %}
       {% elif is_state('sensor.easee_home_63089_status', 'disconnected') %}
-        {% if states.sensor.evnotify_soc.last_updated > 
+        {% if states.sensor.evnotify_soc.last_updated <= 
            states.sensor.easee_home_63089_session_energy.last_updated %}
-          {{ wanted }}
-        {% else %}
-          {{ states('input_number.ev_battery_pack')|int * 0.05 }}
+          {% set soc = 95 %}
         {% endif %}
       {% else %}
-      {% if states.sensor.evnotify_soc.last_updated < 
+        {% if states.sensor.evnotify_soc.last_updated < 
          states.sensor.easee_home_63089_session_energy.last_updated %}
-        {% set wanted = wanted - states('sensor.easee_home_63089_session_energy')|float * 875 %}
+          {% set soc = soc + states('sensor.easee_home_63089_session_energy')|float * states('input_number.ev_charge_efficiency')|float * 1000  / states('input_number.ev_battery_pack')|int %}
+          {% set soc = 95 if soc > 95 else soc %}
+        {% endif %}  
       {% endif %}
-        {{ wanted }}
-      {% endif %}
+      {{ soc }}
 
   binary_sensor:
   - name: wants_to_charge
@@ -80,7 +79,7 @@ template:
       {% set charge_hours = states('sensor.charge_hours')|from_json %}
       {{ (charge_hours|length > 0 and charge_hours[0]|int(default=24) == now().hour) or 
          (charge_hours|length > 1 and charge_hours[1]|int(default=24) == now().hour) or 
-         states('input_number.ladestatus')|float < 20.0 }}
+         states('sensor.estimate_soc')|float < 20.0 }}
   - name: easee_on
     state: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
     delay_off: 
