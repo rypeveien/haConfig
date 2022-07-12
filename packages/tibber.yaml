@@ -59,7 +59,7 @@ template:
           {% for i in range(energy_price|length) %}
             {% set var.price = var.price + [
                 price_to_grid[i] if (i < delivered|length and delivered[i]|float > 0) or 
-                 ( i >= delivered|length and (pv_guess[i - delivered|length] - uncontrolled[i]) > 0) else
+                 ( i >= delivered|length and (pv_guess[i] - uncontrolled[i]) > 0) else
                 (energy_price[i] - subsides)|round(4) ] %} 
           {% endfor %}
           {{ var.price|to_json }}
@@ -74,7 +74,7 @@ template:
           {% for i in range(price_to_grid|length) %}
             {% set var.price = var.price + [
                 price_to_grid[i] if (i < delivered|length and delivered[i]|float > 0) or 
-                                    (i >= delivered|length and (pv_guess[i - delivered|length] - uncontrolled[i]) > 0) else
+                                    (i >= delivered|length and (pv_guess[i] - uncontrolled[i]) > 0) else
                 0  ] %} 
           {% endfor %}
           {{ var.price|to_json }}
@@ -88,7 +88,8 @@ template:
           {% set var = namespace ( price = [] ) %}
           {% for i in range(energy_price|length) %}
             {% set var.price = var.price + [
-                0 if (i < delivered|length and delivered[i]|float > 0) or (i >= delivered|length and (pv_guess[i - delivered|length] - uncontrolled[i]) > 0) else
+                0 if (i < delivered|length and delivered[i]|float > 0) or 
+                     (i >= delivered|length and (pv_guess[i] - uncontrolled[i]) > 0) else
                 (energy_price[i] - subsides)|round(4) ] %} 
           {% endfor %}
           {{ var.price|to_json }}
