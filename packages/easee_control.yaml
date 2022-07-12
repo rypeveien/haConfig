@@ -27,6 +27,12 @@ input_number:
     min: 50
     step: 0.1
     mode: box
+
+input_datetime:
+  holiday_until:
+    has_date: true
+    has_time: false
+  
   
 template:
   sensor:
@@ -43,32 +49,6 @@ template:
     state: >
       {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
       {{ by_subsides.easee|sort }}
-  - name: charge_current
-    unit_of_measurement: A
-    state: >
-      {% set current = 0 %}
-      {% set usage = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
-      {% if usage.easee|length > 0 and usage.easee[0] == now().hour %}
-      {% set ev_max_charge = states.input_number.ev_max_charge.state|int %}
-      {% set ev_min_charge = states.input_number.ev_min_charge.state|int %}
-      {% set ev_charge_steps = states.input_number.ev_charge_steps.state|int %}
-      {% set tank_power = 2700 %}
-      {% set kjeller_power = 1700 %}
-      {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int %}
-      {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
-      {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
-      {% set pvguess = (states.sensor.pv_guess_by_factor.state|from_json)[now().hour] %}
-      {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices[now().hour:] %}
-      {% set availible = energy_limit - uctrld[now().hour] + pvguess[0] %}
-      {% if usage.vvtank|length > 0 and usage.vvtank[0] == now().hour %}
-      {% set availible = availible - tank_power %}
-      {% endif %}
-      {% if usage.vvkjeller|length > 0 and usage.vvkjeller[0] == now().hour %}
-      {% set availible = availible - kjeller_power %}
-      {% endif %}
-      {% set current = (ev_max_charge if availible > ev_max_charge else 0 if availible < ev_min_charge else (availible / ev_charge_steps)|int * ev_charge_steps)|int / 225 %}
-      {% endif %}
-      {{ current }}
 
   binary_sensor:
   - name: wants_to_charge
@@ -83,19 +63,96 @@ template:
       minutes: 2
 
 automation:
-  - id: '1616512764082'
-    alias: Easee kontroll
-    description: ''
+  - id: '1657578526896'
+    alias: Easee daily commute schedule
     trigger:
     - platform: state
       entity_id:  input_boolean.kjorer_til_jobb
       id: kjorer_til_jobb
     - platform: state
-      entity_id:  sensor.charge_hours
-      id: charge_hours
+      entity_id: sensor.easee_home_63089_status
+      from: disconnected
+      id: connected
+    condition:
+    - condition: template
+      value_template: "{{ now().timestamp() > state_attr('input_datetime.holiday_until', 'timestamp') }}"
+    action:
+    - choose: 
+      - conditions:
+        - condition: time
+          after: input_datetime.car_ready_charged
+          weekday:
+            - mon
+            - tue
+            - wed
+            - thu
+            - sun
+        - condition: state
+          entity_id: input_boolean.kjorer_til_jobb
+          state: 'on'
+        sequence:
+        - service: input_datetime.set_datetime
+          data:
+            time: '07:00:00'
+          target:
+            entity_id: input_datetime.car_ready_charged
+      - conditions:
+        - condition: time
+          after: input_datetime.car_ready_charged
+          weekday:
+            - fri
+            - sat
+        sequence:
+        - service: input_datetime.set_datetime
+          data:
+            time: '09:00:00'
+          target:
+            entity_id: input_datetime.car_ready_charged
+      default:
+      - service: input_datetime.set_datetime
+        data:
+          time: '16:00:00'
+        target:
+          entity_id: input_datetime.car_ready_charged
+
+  - id: '1616512764082'
+    alias: Easee start trigger
+    description: ''
+    trigger:
     - platform: state
-      entity_id:  binary_sensor.wants_to_charge
-      id: triggercharge
+      entity_id: 
+        - sensor.charge_hours
+    action: 
+      - choose: 
+        - conditions:
+          - condition: template
+            value_template: >
+              {% set hours = states('sensor.charge_hours')|from_json %}
+              {{ hours|length > 0 and hours[0] == now().hour }}
+          - condition: template
+            value_template: >
+              {{ states('sensor.easee_home_63089_status') == 'awaiting_start' }}
+          sequence:
+          - service: easee.resume
+            data:
+              charger_id: EH630897
+        - conditions:
+          - condition: template
+            value_template: >
+              {% set hours = states('sensor.charge_hours')|from_json %}
+              {{ hours|length == 0 or hours[0] != now().hour }}
+          - condition: template
+            value_template: >
+              {{ states('sensor.easee_home_63089_status') != 'awaiting_start' }}
+          sequence:
+          - service: easee.pause
+            data:
+              charger_id: EH630897
+
+  - id: '1616512764082'
+    alias: Easee kontroll
+    description: ''
+    trigger:
     - platform: state
       entity_id: sensor.easee_home_63089_status
       from: disconnected
@@ -174,33 +231,6 @@ automation:
         - condition: trigger
           id: disconnected
         sequence:
-        - choose:
-          - conditions:
-              - condition: time
-                weekday:
-                  - fri
-                  - sat
-            sequence:
-              - service: input_datetime.set_datetime
-                data:
-                  time: '09:00:00'
-                target:
-                  entity_id: input_datetime.car_ready_charged
-          - conditions:
-              - condition: template
-                value_template: "{{ states.input_boolean.kjorer_til_jobb.state == 'off' }}"
-            sequence:
-              - service: input_datetime.set_datetime
-                data:
-                  time: '16:00:00'
-                target:
-                  entity_id: input_datetime.car_ready_charged
-          default:
-          - service: input_datetime.set_datetime
-            data:
-              time: '07:00:00'
-            target:
-              entity_id: input_datetime.car_ready_charged
         - service: input_select.select_option
           data:
             option: 'No charging'
@@ -214,24 +244,6 @@ automation:
             charger_id: EH630897
       default: []
     - choose:
-      - conditions:
-        - condition: state
-          entity_id: binary_sensor.wants_to_charge
-          state: 'on'
-        - condition: template
-          value_template: '{{ is_state (''sensor.easee_home_63089_status'', ''awaiting_start'') }}'
-        sequence:
-        - condition: state
-          entity_id: binary_sensor.easee_on
-          state: 'off'
-        - service: easee.resume
-          data:
-            charger_id: EH630897
-        - service: input_select.select_option
-          data:
-            option: 'Charge hours'
-          target:
-            entity_id: input_select.why_charge
       - conditions:
         - condition: trigger
           id: connected
@@ -259,52 +271,6 @@ automation:
               option: 'No charging'
             target:
               entity_id: input_select.why_charge
-      - conditions:
-        - condition: template
-          value_template: '{{ (states(''sensor.charge_hours'')|from_json)[0]|int(default=24) == now().hour }}'
-        - condition: template
-          value_template: '{{ states(''sensor.easee_home_63089_status'') == ''awaiting_start'' }}'
-        sequence:
-        - service: easee.resume
-          data:
-            charger_id: EH630897
-        - service: input_select.select_option
-          data:
-            option: 'Charge hours'
-          target:
-            entity_id: input_select.why_charge
-      - conditions:
-        - condition: template
-          value_template: '{{ (states(''sensor.charge_hours'')|from_json)[0]|int(default=24) != now().hour }}'
-        - condition: template
-          value_template: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
-        sequence:
-        - service: easee.pause
-          data:
-            charger_id: EH630897
-        - service: input_select.select_option
-          data:
-            option: 'No charging'
-          target:
-            entity_id: input_select.why_charge
       default: []
     mode: single
 
-  - id: '1656018672107'
-    alias: Easee charge current
-    description: ''
-    trigger:
-    - platform: state
-      entity_id:  sensor.charge_current
-    condition:
-    - condition: numeric_state
-      entity_id: sensor.charge_current
-      above: '0'
-    action:
-    - service: easee.set_charger_dynamic_limit
-      data:
-        charger_id: EH630897
-        current: '{{ states.sensor.charge_current.state }}'
-      
-      
-    
