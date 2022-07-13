@@ -80,13 +80,13 @@ binary_sensor:
   - name: vvkjeller_on
     state: '{{ states(''sensor.vv_kjeller_power'')|float(default=0) > 0 }}'
   - name: vaskemaskin_on
-    state: '{{ states(''sensor.shellyvask_power'')|float(default=0) > 2 }}'
+    state: '{{ states(''sensor.stikk_vaskemaskin_power'')|float(default=0) > 2 }}'
     delay_off: 
       minutes: 2
   - name: kjolerom_on
     state: "{{ states('sensor.shellykjol_switch_0_power')|float(default=0) > 20 }}"
   - name: torketrommel_on
-    state: "{{ states('sensor.torketrommel_power')|float(default=0) > 20 }}"
+    state: "{{ states('sensor.stikk_torketrommel_power')|float(default=0) > 20 }}"
     delay_on: 
       minutes: 2
     delay_off: 
