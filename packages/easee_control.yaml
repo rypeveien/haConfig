@@ -232,7 +232,7 @@ automation:
               {{ hours|length == 0 or hours[0] != now().hour }}
           - condition: template
             value_template: >
-              {{ states('sensor.easee_home_63089_status') != 'awaiting_start' }}
+              {{ states('sensor.easee_home_63089_status') == 'charging' }}
           sequence:
           - service: easee.pause
             data:
