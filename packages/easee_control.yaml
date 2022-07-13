@@ -55,6 +55,7 @@ template:
       {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
       {{ by_subsides.easee|sort }}
   - name: soc_estimate
+    unit_of_measurement: "%"
     state: >
       {% set soc = states('sensor.evnotify_soc')|float %}
       {% if is_state('sensor.easee_home_63089_status', 'completed') %}
@@ -147,6 +148,9 @@ automation:
         {% set every5 = (now().minute % 5) == 1 %}
         {% set charging = states('sensor.easee_home_63089_status') == 'charging' %}
         {{ every5 and charging }}
+    variables:
+      current: "{{ states('sensor.easee_home_63089_current')|float }}"
+      power: "{{ states('sensor.easee_home_63089_power')|float * 1000 }}"
     action: 
       - choose: 
         - conditions:
@@ -155,10 +159,26 @@ automation:
               {{ states('sensor.energy_this_hour_estimate')|float * 1000 > 
                       states('sensor.rest_of_month_energy_limit')|float }}
           sequence:
-          - service: easee.set_charger_dynamic_limit
-            data:
-              charger_id: EH630897
-              current: "{{ states('sensor.easee_home_63089_current')|int - 1 }}"
+          - choose: 
+            - conditions:
+              - condition: template
+                value_template: >
+                  {{ power - states('input_number.ev_charge_steps')|float >
+                      states('input_number.ev_min_charge')|float }}
+              sequence:
+              - service: easee.set_charger_dynamic_limit
+                data:
+                  charger_id: EH630897
+                  current: "{{ current|int - 1 }}"
+            default:
+            - service: easee.pause
+              data:
+                charger_id: EH630897
+            - service: input_select.select_option
+              data:
+                option: 'No charging'
+              target:
+                entity_id: input_select.why_charge
         - conditions:
           - condition: template
             value_template: >
@@ -167,14 +187,13 @@ automation:
                       states('sensor.rest_of_month_energy_limit')|float }}
           - condition: template
             value_template: >
-              {{ states('sensor.easee_home_63089_power')|float * 1000 + 
-                  states('input_number.ev_charge_steps')|float < 
+              {{ power + states('input_number.ev_charge_steps')|float < 
                   states('input_number.ev_max_charge')|float }}
           sequence:
           - service: easee.set_charger_dynamic_limit
             data:
               charger_id: EH630897
-              current: "{{ states('sensor.easee_home_63089_current')|int + 2 }}"
+              current: "{{ current|int + 2 }}"
 
   - id: '1616512764082'
     alias: Easee start trigger
