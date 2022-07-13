@@ -186,13 +186,9 @@ template:
         {% set done = done.hour - 24 %}
       {% else %}
         {% set end = done.hour + 24 %}
+        {% set done = done.hour %}
       {% endif %}
-      {% set end = 6 if end <= 6 
-               else 16 if end <= 16 
-               else end if end < 24 
-               else 30 if end <= 30 
-               else 40 if end <= 40
-               else end %}
+      {% set end = 6 if end <= 6 else 16 if end <= 16 else end if end < 24 else 30 if end <= 30 else 40 if end <= 40 else end %}
       {% set end = pvguess|length if end > pvguess|length else end %}
       {% for i in range (v.base|length) %}
       {% if v.base[i].hour < end 
@@ -213,13 +209,9 @@ template:
         {% set done = done.hour - 24 %}
       {% else %}
         {% set end = done.hour + 24 %}
+        {% set done = done.hour %}
       {% endif %}
-      {% set end = 6 if end <= 6 
-               else 16 if end <= 16 
-               else end if end < 24 
-               else 30 if end <= 30 
-               else 40 if end <= 40
-               else end %}
+      {% set end = 6 if end <= 6 else 16 if end <= 16 else end if end < 24 else 30 if end <= 30 else 40 if end <= 40 else end %}
       {% set end = pvguess|length if end > pvguess|length else end %}
       {% for i in range (v.base|length) %}
       {% if v.base[i].hour < end 
