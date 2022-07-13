@@ -57,20 +57,23 @@ template:
   - name: soc_estimate
     unit_of_measurement: "%"
     state: >
-      {% set soc = states('sensor.evnotify_soc')|float %}
-      {% if is_state('sensor.easee_home_63089_status', 'completed') %}
-        {% set soc = 100 %}
-      {% elif is_state('sensor.easee_home_63089_status', 'disconnected') %}
-        {% if states.sensor.evnotify_soc.last_updated <= 
+      {% set soc = states('sensor.soc_estimate')|float(default=50) %}
+      {% if soc != 100 or is_state('sensor.easee_home_63089_status',  'disconnected') %}
+        {% set soc = states('sensor.evnotify_soc')|float %}
+        {% if is_state('sensor.easee_home_63089_status', 'completed') %}
+          {% set soc = 100 %}
+        {% elif is_state('sensor.easee_home_63089_status', 'disconnected') %}
+          {% if states.sensor.evnotify_soc.last_updated <= 
+             states.sensor.easee_home_63089_session_energy.last_updated %}
+            {% set soc = 95 %}
+          {% endif %}
+        {% else %}
+          {% if states.sensor.evnotify_soc.last_updated < 
            states.sensor.easee_home_63089_session_energy.last_updated %}
-          {% set soc = 95 %}
+            {% set soc = soc + states('sensor.easee_home_63089_session_energy')|float * states('input_number.ev_charge_efficiency')|float * 1000  / states('input_number.ev_battery_pack')|int %}
+            {% set soc = 95 if soc > 95 else soc %}
+          {% endif %}  
         {% endif %}
-      {% else %}
-        {% if states.sensor.evnotify_soc.last_updated < 
-         states.sensor.easee_home_63089_session_energy.last_updated %}
-          {% set soc = soc + states('sensor.easee_home_63089_session_energy')|float * states('input_number.ev_charge_efficiency')|float * 1000  / states('input_number.ev_battery_pack')|int %}
-          {% set soc = 95 if soc > 95 else soc %}
-        {% endif %}  
       {% endif %}
       {{ soc }}
 
