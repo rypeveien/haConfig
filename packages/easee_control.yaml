@@ -152,7 +152,10 @@ automation:
         {% set charging = states('sensor.easee_home_63089_status') == 'charging' %}
         {{ every5 and charging }}
     variables:
-      current: "{{ states('sensor.easee_home_63089_current')|float }}"
+      current: >
+        {% set current = states('sensor.easee_home_63089_current')|float %}
+        {% set min = states('input_number.ev_min_charge')|int / states('input_number.ev_charge_steps')|int %}
+        {{ min if current < min else current }}
       power: "{{ states('sensor.easee_home_63089_power')|float * 1000 }}"
     action: 
       - choose: 
