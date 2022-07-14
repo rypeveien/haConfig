@@ -10,28 +10,6 @@ sensor:
   - name: windgust_ms
     state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_gust_strength'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
-  - name: fa_adax_temp
-    unit_of_measurement: "°C"
-    state: "{{ state_attr('climate.adax_faoff','current_temperature') }}"
-  - name: syrom_adax_temp
-    unit_of_measurement: "°C"
-    state: "{{ state_attr('climate.adax_syrom','current_temperature') }}"
-  - name: gjesterom_adax_temp
-    unit_of_measurement: "°C"
-    state: "{{ state_attr('climate.adax_guest','current_temperature') }}"
-  - name: fa_adax_power
-    unit_of_measurement: "W"
-    device_class: power
-    state: >
-      {% set s = 'adax_faoff' %}
-      {% set d = state_attr ('climate.' + s, 'temperature') - state_attr ('climate.' + s, 'current_temperature') %}
-      {% if d > 3.5 %}
-        600
-      {% elif d > 0.5 %}
-        300
-      {% else %}
-        0
-      {% endif %}
   - name: cheap_x_kwh_hours
     state: >
       {% set today = states('sensor.energy_today_nok_kwh')|from_json %}
