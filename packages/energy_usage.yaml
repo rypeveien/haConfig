@@ -107,7 +107,7 @@ template:
        + states('sensor.shellykjol_switch_0_power')|int(default=0)
        + states('sensor.adax_guest_power')|int(default=0)
        + states('sensor.adax_syrom_power')|int(default=0)
-       + states('sensor.fa_adax_power')|int(default=0) }}
+       + states('sensor.adax_faoff_power')|int(default=0) }}
   - name: power_unmonitored
     unit_of_measurement: W
     device_class: power
