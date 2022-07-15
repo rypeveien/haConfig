@@ -65,7 +65,9 @@ template:
                if max3[i] * 1000 > target else v.abovelimit %}
       {% endfor %}
       {% if v.abovelimit|length >0 %}
-        {% set v.rest_of_month =  (target * 3 - average(v.abovelimit) * v.abovelimit|length) / (3 - v.abovelimit|length) %}
+        {% if v.abovelimit|length < 3 %}
+          {% set v.rest_of_month =  (target * 3 - average(v.abovelimit) * v.abovelimit|length) / (3 - v.abovelimit|length) %}
+        {% endif %}
         {% if v.abovelimit|length >= 3  or average(states.sensor.uncontrolled_estimate.state|from_json) + 2700 > v.rest_of_month %}
           {% for i in range(1,limits|length) %}
             {% if average(v.abovelimit) > limits[i - 1]|int and average(v.abovelimit) <= limits[i]|int %}
