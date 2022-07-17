@@ -1,11 +1,4 @@
 - platform: filter
-  name: "torketrommel filterered energy consumption"
-  entity_id: sensor.torketrommel_energy
-  filters:
-  - filter: outlier
-    window_size: 4
-    radius: 100
-- platform: filter
   name: "power unmonitored filtered"
   entity_id: sensor.power_unmonitored
   filters:
