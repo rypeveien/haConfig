@@ -223,6 +223,10 @@ automation:
           - service: easee.resume
             data:
               charger_id: EH630897
+          - service: easee.set_charger_dynamic_limit
+            data:
+              charger_id: EH630897
+              current: 16
           - service: input_select.select_option
             data:
               option: 'Charge hours'
