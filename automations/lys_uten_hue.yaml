@@ -176,47 +176,6 @@
       domain: light
       brightness_pct: 30
   mode: single
-- id: '1654601572540'
-  alias: Lys på i hagestue
-  description: ''
-  trigger:
-  - platform: numeric_state
-    entity_id: sensor.pvlogger_power
-    for:
-      hours: 0
-      minutes: 5
-      seconds: 0
-    below: '100'
-    id: low light
-  - platform: time
-    at: 01:30:00
-  condition: []
-  action:
-  - choose:
-    - conditions:
-      - condition: trigger
-        id: low light
-      - condition: time
-        after: '12:00:00'
-        before: '23:59:00'
-      sequence:
-      - type: turn_on
-        device_id: d4305c6feca526b0e16cdecff1d937d6
-        entity_id: light.hagestue
-        domain: light
-    - conditions:
-      - condition: device
-        type: is_on
-        device_id: d4305c6feca526b0e16cdecff1d937d6
-        entity_id: light.hagestue
-        domain: light
-      sequence:
-      - type: turn_off
-        device_id: d4305c6feca526b0e16cdecff1d937d6
-        entity_id: light.hagestue
-        domain: light
-    default: []
-  mode: single
 
 - id: '1652905890675'
   alias: Styr lys i gangen
