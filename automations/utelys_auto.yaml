@@ -24,10 +24,6 @@
         id: night_off
       sequence:
       - type: turn_off
-        device_id: 89c8e491871bffad8151dcab1f8809e4
-        entity_id: switch.garasjelys
-        domain: switch
-      - type: turn_off
         device_id: b6395abb2835f10fd7b0fce5b869d279
         entity_id: switch.utelys
         domain: switch
@@ -36,10 +32,6 @@
         id: sunset
       sequence:
       - type: turn_on
-        device_id: 89c8e491871bffad8151dcab1f8809e4
-        entity_id: switch.garasjelys
-        domain: switch
-      - type: turn_on
         device_id: b6395abb2835f10fd7b0fce5b869d279
         entity_id: switch.utelys
         domain: switch
@@ -47,10 +39,6 @@
       - condition: trigger
         id: sunrise
       sequence:
-      - type: turn_off
-        device_id: 89c8e491871bffad8151dcab1f8809e4
-        entity_id: switch.garasjelys
-        domain: switch
       - type: turn_off
         device_id: b6395abb2835f10fd7b0fce5b869d279
         entity_id: switch.utelys
@@ -62,10 +50,6 @@
         entity_id: sun.sun
         state: 'below_horizon'
       sequence:
-      - type: turn_on
-        device_id: 89c8e491871bffad8151dcab1f8809e4
-        entity_id: switch.garasjelys
-        domain: switch
       - type: turn_on
         device_id: b6395abb2835f10fd7b0fce5b869d279
         entity_id: switch.utelys
