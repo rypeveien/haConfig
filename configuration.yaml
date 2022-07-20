@@ -31,9 +31,6 @@ rest: !include rest.yaml
 
 python_script:
 
-tibber_custom:
-
-
 recorder:
   purge_keep_days: 7
 #  mysqldburl: mysql://dbuser:dbpass@dbhost/dbname?charset=utf8mb4
