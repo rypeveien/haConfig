@@ -33,3 +33,16 @@ template:
     - name: pv_guess_24h
       state: >
         {{ (states.sensor.pv_guess_by_factor.state|from_json)[now().hour+24] }}
+
+automation: 
+  - id: '1658480557485'
+    alias: 'Update solar potentiale cache'
+    trigger: 
+    - platform: state
+      entity_id: sensor.pvlogger_potentiale
+    action:
+    - service: input_text.set_value
+      data:
+        value: "{{ states('sensor.pvlogger_potentiale') }}"
+      target: 
+        entity_id: input_text.met2_potential_max
