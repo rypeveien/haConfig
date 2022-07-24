@@ -49,18 +49,23 @@ template:
     
 automation:
   - id: '1658529461779'
-    alias: VV Tank on or off
+    alias: VV Tank on or off by hours
     trigger: 
     - platform: template
       value_template: >
-        {% set hours = states.sensor.vvtank_hours.state|from_json %}
-        {{ (hours | length > 0 and hours[0]|int == now().hour) or 
-           (hours | length > 1 and hours[1]|int == now().hour) }}
+        {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvtank %}
+        {% set last = as_datetime(states('input_datetime.vvtank_last_on')).hour %}
+        {{ false if last == now().hour or hours|length == 0 
+           else hours[0] == now().hour or (hours|length > 1 and hours[1] == now().hour)
+        }}
       id: turnon
     - platform: template
       value_template: >
         {% set hours = states.sensor.vvtank_hours.state|from_json %}
-        {{ hours | length == 0 or hours[0]|int != now().hour }}
+        {% set last = as_datetime(states('input_datetime.vvtank_last_on')).hour %}
+        {{ true if last == now().hour or hours|length == 0 
+           else hours[0] != now().hour and (hours|length < 2 and hours[1] != now().hour)
+        }}
       id: turnoff
     action:
     - choose: 
