@@ -280,3 +280,36 @@ automation:
           domain: switch
       default: []
     mode: single
+
+  - id: '1652881309414'
+    alias: vvtank_on update
+    description: ''
+    trigger:
+    - platform: template
+      value_template: >
+        {{ states.binary_sensor.vvtank_on.state == 'on' 
+           and states.switch.vv_tank.state == 'off'
+          and now().timestamp() - states.switch.vv_tank.last_updated.timestamp() > 30 }}
+    condition: []
+    action:
+    - service: notify.persistent_notification
+      data:
+        message: vvtank_on ser ut til å henge
+        title: 'vvtank debug '
+    - service: homeassistant.update_entity
+      data: {}
+      target:
+        entity_id: sensor.vv_tank_electric_consumption_w
+    - delay:
+        hours: 0
+        minutes: 1
+        seconds: 0
+        milliseconds: 0
+    - condition: template
+      value_template: >
+        {{ states.switch.vv_tank.state == 'off' and states.binary_sensor.vvtank_on.state == 'on' }}
+    - service: notify.persistent_notification
+      data:
+        message: vvtank_on ser fortsatt ut til å henge litt
+        title: 'vvtank debug '
+    mode: single
