@@ -10,40 +10,6 @@ sensor:
   - name: windgust_ms
     state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_gust_strength'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
-  - name: cheap_x_kwh_hours
-    state: >
-      {% set today = states('sensor.energy_today_nok_kwh')|from_json %}
-      {% set tomorrow = states('sensor.energy_tomorrow_nok_kwh')|from_json %}
-      {% set prices = today[now().hour:24] %}
-      {% if tomorrow|length > 0 %}
-      {% set prices = prices + tomorrow %}
-      {% endif %}
-      {% set prices = prices[0:24] %}
-      {% set all = namespace(done = False) %}
-      {% set hours = namespace(to = '') %}
-      {% set max = prices | length %}
-      {% if max > 12 %}
-        {% set max = 12 %}
-      {% endif %}
-      {% for j in range(max) %}
-        {% set all.done = False if j < max else True %}
-        {% set sums = namespace(sums = []) %}
-        {% for i in range(prices|length - j) %}
-          {% set sums.sums = sums.sums + [prices[i:i+j+1]|sum] %}
-        {% endfor %}
-        {% set sums.sums = sums.sums[:max] %}
-        {% set lowsum = (sums.sums| sort)[0] %}
-        {% for i in range (sums.sums|count) %}
-          {% if (sums.sums[i] <= lowsum ) %}
-            {% if hours.to == '' %}
-              {% set hours.to = i|string %}
-            {% else %}
-              {% set hours.to = hours.to + ', ' + i|string %}
-            {% endif %}
-          {% endif %}    
-        {% endfor %}
-      {% endfor %}
-      {{ hours.to }}
   - name: howmanyhome
     unit_of_measurement: 'stk'
     state: "{{ states.person | selectattr('state','eq','home') | list | count }}"
@@ -81,13 +47,3 @@ binary_sensor:
     state: '{{ states(''binary_sensor.inngangsdor_door_window'') == ''on'' }}'
     delay_off: 
       minutes: 5
-  - name: prices_nok_kwh_lowthird
-    state: >
-      {% set prices = states('sensor.energy_today_nok_kwh')|from_json %}
-      {% set prices = prices[now().hour:] %}
-      {% set tomorrow =  states('sensor.energy_tomorrow_nok_kwh')|from_json %}
-      {% if tomorrow|length > 0 %}
-        {% set prices = prices + tomorrow %}
-      {% endif %}
-      {% set count=(prices|length/3)|int %}
-      {{ prices[0] < (prices|sort)[count] }}

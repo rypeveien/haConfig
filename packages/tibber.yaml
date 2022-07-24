@@ -135,7 +135,7 @@ template:
           {% set charge = states.sensor.template_grid_charge_rates.state|from_json %}
           {% set var = namespace ( charge = [] ) %}
           {% for h in range(48) %}
-            {% set check = now() + timedelta (h - now().hour) %}
+            {% set check = now() + timedelta (hours=h - now().hour) %}
             {% set var.charge = var.charge + [ charge.flat if check.year == 2022 and check.month < 7 else
                                                charge.day if check.hour >= 6 and check.hour < 22 else
                                                charge.night ] %}
@@ -143,21 +143,15 @@ template:
           {{ var.charge|to_json }}
     - name: analyzer_updown
       state: "{{ state_attr('sensor.template_energy_by_subsides_and_production', 'analyzer')[now().hour] }}"
-    - name: nettleie_nok_kwh
-      unit_of_measurement: 'NOK/kWh'
-      state: 0.3739
     - name: energy_raw_nok_kwh
       unit_of_measurement: 'NOK/kWh'
       state: '{{ (states(''input_text.tibber_today'')|from_json)[now().hour] }}'
-    - name: energy_nok_kwh
-      unit_of_measurement: 'NOK/kWh'
-      state: '{{ ((states(''input_text.tibber_today'')|from_json)[now().hour] * 1.25 + 0.01 + states(''sensor.nettleie_nok_kwh'')|float)|round(4) }}'
     - name: energy_today_nok_kwh
       state: >
         {% set prices = namespace(list=[]) %}
         {% set priceInfo = states('input_text.tibber_today')|from_json %}
         {% for i in range(priceInfo|length) %}
-          {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + 0.01 + states('sensor.nettleie_nok_kwh')|float)|round(3)] %}
+          {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + 0.01 + state_attr('sensor.template_grid_charge', 'prices')[i]|float)|round(3)] %}
         {% endfor %}
         {{ prices.list|to_json }}
     - name: to_grid_today_nok_kwh
@@ -183,7 +177,7 @@ template:
         {% set prices = namespace(sum=0) %}
         {% set priceInfo = states('input_text.tibber_today')|from_json %}
         {% for i in range(priceInfo|length) %}
-          {% set prices.sum = prices.sum + (priceInfo[i] * 1.25 + 0.01 + states('sensor.nettleie_nok_kwh')|float)|round(3) %}
+          {% set prices.sum = prices.sum + (priceInfo[i] * 1.25 + 0.01 + state_attr('sensor.template_grid_charge', 'prices')[i]|float)|round(3) %}
         {% endfor %}
         {{ (prices.sum / priceInfo|length)|round(3) }}
     - name: energy_tomorrow_nok_kwh
@@ -191,7 +185,7 @@ template:
         {% set prices = namespace(list=[]) %}
         {% set priceInfo = states('input_text.tibber_tomorrow')|from_json %}
         {% for i in range(priceInfo|length) %}
-          {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + 0.01 + states('sensor.nettleie_nok_kwh')|float)|round(3)] %}
+          {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + 0.01 + state_attr('sensor.template_grid_charge', 'prices')[i+24]|float)|round(3)] %}
         {% endfor %}
         {{ prices.list|to_json }}
     - name: to_grid_tomorrow_nok_kwh
@@ -208,7 +202,7 @@ template:
         {% set prices = namespace(sum=0) %}
         {% set priceInfo = states('input_text.tibber_tomorrow')|from_json %}
         {% for i in range(priceInfo|length) %}
-          {% set prices.sum = prices.sum + (priceInfo[i] * 1.25 + 0.01 + states('sensor.nettleie_nok_kwh')|float)|round(3) %}
+          {% set prices.sum = prices.sum + (priceInfo[i] * 1.25 + 0.01 + state_attr('sensor.template_grid_charge', 'prices')[i+24]|float)|round(3) %}
         {% endfor %}
         {{ (prices.sum / priceInfo|length)|round(3) }}
     - name: energy_all_nok_kwh

@@ -9,9 +9,6 @@
     entity_id: input_number.stue_temp
     id: stuetemp
   - platform: state
-    entity_id: binary_sensor.prices_nok_kwh_lowthird
-    id: lowthird
-  - platform: state
     entity_id: input_number.kjeller_temp
     id: kjellertemp
   - platform: state
@@ -22,9 +19,7 @@
     value_template: '{{ states.automation.vv_etter_pris_og_temp_eller_produksjon.attributes.current == 0}}'
   variables:
     pricediff: >
-      {{ 0 if states('input_boolean.heatonlowthird') != 'on' 
-        else 2 if states('binary_sensor.prices_nok_kwh_lowthird') == 'on' 
-        else -1 }}
+      {{ 0 }}
     stue_wanted: >
       {{ states('input_number.stue_temp')|int(default=22) + pricediff }}
     kjeller_wanted: >
