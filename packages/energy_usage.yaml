@@ -303,7 +303,7 @@ automation:
     trigger:
     - platform: template
       value_template: >
-        {% set energy_limit = states('rest_of_month_energy_limit')|int %}
+        {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int %}
         {{ (states.sensor.energy_this_hour_estimate.state|float * 1000) > energy_limit and 
             now().minute > 0 and now().minute % 15 == 0 }}
     condition: []
