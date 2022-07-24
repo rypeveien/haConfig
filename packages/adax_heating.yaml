@@ -208,6 +208,7 @@ automation:
       - conditions:
         - condition: numeric_state
           entity_id: climate.adaxg_faoff
+          attribute: temperature
           above: '18.9'
         - condition: or
           conditions:
