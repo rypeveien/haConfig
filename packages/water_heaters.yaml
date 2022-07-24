@@ -55,13 +55,13 @@ automation:
       value_template: >
         {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvtank %}
         {% set last = as_datetime(states('input_datetime.vvtank_last_on')).hour %}
-        {{ false if last == now().hour or hours|length == 0 
+        {{ false if last == now().hour or hours|length == 0 or now().minute == 59
            else hours[0] == now().hour or (hours|length > 1 and hours[1] == now().hour)
         }}
       id: turnon
     - platform: template
       value_template: >
-        {% set hours = states.sensor.vvtank_hours.state|from_json %}
+        {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvtank %}
         {% set last = as_datetime(states('input_datetime.vvtank_last_on')).hour %}
         {{ true if last == now().hour or hours|length == 0 
            else hours[0] != now().hour and (hours|length <= 1 or hours[1] != now().hour)
