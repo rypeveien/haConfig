@@ -64,7 +64,7 @@ automation:
         {% set hours = states.sensor.vvtank_hours.state|from_json %}
         {% set last = as_datetime(states('input_datetime.vvtank_last_on')).hour %}
         {{ true if last == now().hour or hours|length == 0 
-           else hours[0] != now().hour and (hours|length < 2 and hours[1] != now().hour)
+           else hours[0] != now().hour and (hours|length <= 1 or hours[1] != now().hour)
         }}
       id: turnoff
     action:
