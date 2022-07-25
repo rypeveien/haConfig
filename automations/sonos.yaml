@@ -1,0 +1,21 @@
+- id: '1658736501012'
+  alias: Group Sonos media player
+  description: ''
+  trigger:
+  - platform: device
+    device_id: 4c987082739701f62bf579160b329451
+    domain: media_player
+    entity_id: media_player.stue
+    type: playing
+  condition:
+  - condition: template
+    value_template: '{{ state_attr(''media_player.stue'', ''group_members'')|count
+      < 2}}'
+  action:
+  - service: media_player.join
+    data:
+      group_members: media_player.kjokken
+    target:
+      entity_id: media_player.stue
+  mode: single
+
