@@ -13,6 +13,12 @@ climate:
     max_temp: 7
     ac_mode: true
 
+template:
+  sensor:
+    - name: coldroom_temp_update_age
+      unit_of_measurement: seconds
+      state: "{{ (now().timestamp() - states.sensor.lumi_kjole_temperature.last_updated.timestamp())|int }}"
+
 automation:
   - id: '1646511571836'
     alias: Varsle om kjølerom har hengt seg opp
