@@ -148,7 +148,7 @@ automation:
     trigger:
     - platform: template
       value_template: >
-        {% set every5 = (now().minute % 5) == 1 %}
+        {% set every5 = (now().minute % 5) == 4 %}
         {% set charging = states('sensor.easee_home_63089_status') == 'charging' %}
         {{ every5 and charging }}
     variables:
