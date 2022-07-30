@@ -312,7 +312,7 @@ automation:
       - conditions:
         - condition: state
           entity_id: binary_sensor.easee_on
-          state: 'true'
+          state: 'on'
         sequence:
         - service: easee.pause
           data:
