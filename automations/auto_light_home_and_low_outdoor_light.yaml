@@ -18,7 +18,7 @@
       value_template: '{{ states(''sensor.howmanyhome'')|int(default=0) > 0}}'
     - condition: numeric_state
       entity_id: sensor.pvlogger_power
-      below: '200'
+      below: '50'
     - condition: template
       value_template: '{{ states(''binary_sensor.shellygang_input'') == ''on''}}'
   action:
@@ -27,8 +27,3 @@
       brightness_pct: 61
     target:
       entity_id: light.livingroom_lights
-#  - service: light.turn_on
-#    data:
-#      brightness_pct: 90
-#    target:
-#      entity_id: light.kitchen_lights
