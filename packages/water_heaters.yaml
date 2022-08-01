@@ -55,16 +55,16 @@ automation:
       value_template: >
         {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvtank %}
         {% set last =  as_local(states.binary_sensor.vvtank_on.last_updated) %}
-        {{ false if (last.hour == now().hour and last.day == now().day) or hours|length == 0 or now().minute == 59
-           else hours[0] == now().hour or (hours|length > 1 and hours[1] == now().hour)
+        {{ false if (last.hour == now().hour and last.day == now().day) or now().minute == 59
+           else hours|length == 0 or hours[0] == now().hour or (hours|length > 1 and hours[1] == now().hour)
         }}
       id: turnon
     - platform: template
       value_template: >
         {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvtank %}
         {% set last = as_datetime(states('input_datetime.vvtank_last_on')) %}
-        {{ true if (last.hour == now().hour and last.day == now().day) or hours|length == 0 
-           else hours[0] != now().hour and (hours|length <= 1 or hours[1] != now().hour)
+        {{ true if (last.hour == now().hour and last.day == now().day) 
+           else hours|length != 0 and hours[0] != now().hour and (hours|length <= 1 or hours[1] != now().hour)
         }}
       id: turnoff
     action:
@@ -205,16 +205,16 @@ automation:
       value_template: >
         {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvkjeller %}
         {% set last =  as_local(states.binary_sensor.vvkjeller_on.last_updated) %}
-        {{ false if (last.hour == now().hour and last.day == now().day) or hours|length == 0 or now().minute == 59
-           else hours[0] == now().hour or (hours|length > 1 and hours[1] == now().hour)
+        {{ false if (last.hour == now().hour and last.day == now().day) or now().minute == 59
+           else hours|length == 0 or hours[0] == now().hour or (hours|length > 1 and hours[1] == now().hour)
         }}
       id: turnon
     - platform: template
       value_template: >
         {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvkjeller %}
         {% set last = as_datetime(states('input_datetime.vvkjeller_last_on')) %}
-        {{ true if (last.hour == now().hour and last.day == now().day) or hours|length == 0 
-           else hours[0] != now().hour and (hours|length <= 1 or hours[1] != now().hour)
+        {{ true if (last.hour == now().hour and last.day == now().day) 
+           else hours|length != 0 and hours[0] != now().hour and (hours|length <= 1 or hours[1] != now().hour)
         }}
       id: turnoff
     action:
