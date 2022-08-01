@@ -219,8 +219,8 @@ template:
       {% if v.base[i].hour < end 
             and v.kjeller|length < hours|round(0) 
             and (v.base[i].energy + kjeller_power) < energy_limit %}
-      {% if states.switch.vv_tank.state == 'off' 
-         or states.binary_sensor.vvtank_on.state == 'on' 
+      {% if states.switch.vv_kjeller.state == 'off' 
+         or states.binary_sensor.vvkjeller_on.state == 'on' 
          or now().minute < 5 %}
       {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + kjeller_power, 'price': v.base[i].price}] + v.base[i+1:] %}
       {% endif %}
