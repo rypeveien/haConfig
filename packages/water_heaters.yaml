@@ -205,7 +205,7 @@ automation:
       value_template: >
         {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvkjeller %}
         {% set last =  as_local(states.binary_sensor.vvkjeller_on.last_updated) %}
-        {{ false if (last.hour == now().hour and last.day == now().day) or now().minute == 59
+        {{ false if (last.hour == now().hour and last.day == now().day) or now().minute == 59 or (now().minute == 0 and now().second < 30)
            else hours|length == 0 or hours[0] == now().hour or (hours|length > 1 and hours[1] == now().hour)
         }}
       id: turnon

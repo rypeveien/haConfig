@@ -214,8 +214,9 @@ automation:
           - condition: template
             value_template: >
               {% set hours = states('sensor.charge_hours')|from_json %}
-              {{ hours|length > 0 and hours[0] == now().hour or
-                 hours|length > 1 and hours[1] == now().hour }}
+              {{ now().minute > 0 and (
+                   (hours|length > 0 and hours[0] == now().hour) or 
+                   (hours|length > 1 and hours[1] == now().hour)) }}
           - condition: template
             value_template: >
               {{ states('sensor.easee_home_63089_status') == 'awaiting_start' }}
