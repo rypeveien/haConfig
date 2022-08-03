@@ -171,6 +171,8 @@ template:
           {% set prices.sum = prices.sum + priceInfo[i] %}
         {% endfor %}
         {{ (prices.sum / priceInfo|length)|round(5) }}
+    - name: analyzer
+      state: '{{ states.sensor.template_energy_by_subsides_and_production.attributes.analyzer }}'
     - name: energy_today_average_nok_kwh
       unit_of_measurement: "NOK/kWh"
       state: >
