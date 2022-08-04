@@ -49,18 +49,22 @@ template:
   - name: easee_current_limit
     unit_of_measurement: Ah
     state: >
-      {% set so_far = states.sensor.energiforbruk_time.state|float * 1000 %}
-      {% set power = states.sensor.amshan_power_import.state|float  %}
-      {% set seconds_left = 3600 - now().minute * 60 - now().second %}
-      {% set easee_power = states('sensor.easee_home_63089_power') | float * 1000 %}
-      {% set no_easee_power = 0 if power < easee_power else power - easee_power %}
-      {% set restofhour_energy = no_easee_power * seconds_left / 3600 %}
-      {% set limit = states('sensor.rest_of_month_energy_limit')|int %}
-      {% set availible = (limit - (so_far  + restofhour_energy)) * 3600 / seconds_left %}
-      {% set ev_max = states('input_number.ev_max_charge')|int %}
-      {% set ev_min = states('input_number.ev_min_charge')|int %}
-      {% set ev_steps = states('input_number.ev_charge_steps')|int %}
-      {{ ev_max/ ev_steps if availible > ev_max else 0 if availible < ev_min else (availible / ev_steps)|int + 1  }}
+      {% if now().timestamp() - states.sensor.easee_test_limit.last_updated.timestamp() < 150 %}
+        {{ states.sensor.easee_test_limit.state|int(default=0) }}
+      {% else %}
+        {% set so_far = states.sensor.energiforbruk_time.state|float * 1000 %}
+        {% set power = states.sensor.amshan_power_import.state|float  %}
+        {% set seconds_left = 3600 - now().minute * 60 - now().second %}
+        {% set easee_power = states('sensor.easee_home_63089_power') | float * 1000 %}
+        {% set no_easee_power = 0 if power < easee_power else power - easee_power %}
+        {% set restofhour_energy = no_easee_power * seconds_left / 3600 %}
+        {% set limit = states('sensor.rest_of_month_energy_limit')|int %}
+        {% set availible = (limit - (so_far  + restofhour_energy)) * 3600 / seconds_left %}
+        {% set ev_max = states('input_number.ev_max_charge')|int %}
+        {% set ev_min = states('input_number.ev_min_charge')|int %}
+        {% set ev_steps = states('input_number.ev_charge_steps')|int %}
+        {{ ev_max/ ev_steps if availible > ev_max else 0 if availible < ev_min else (availible / ev_steps)|int + 1  }}
+      {% endif %}
   - name: easee_power
     unit_of_measurement: W
     device_class: power
@@ -165,7 +169,7 @@ automation:
       entity_id: sensor.easee_current_limit
     condition:
     - condition: state
-      entity_id: sensor.easee_home_63089_state
+      entity_id: sensor.easee_home_63089_status
       state: charging
     action: 
     - service: easee.set_charger_dynamic_limit
@@ -192,6 +196,9 @@ automation:
           - condition: template
             value_template: >
               {{ states('sensor.easee_home_63089_status') == 'awaiting_start' }}
+          - condition: numeric_state
+            entity_id: sensor.easee_current_limit
+            above: 0
           sequence:
           - service: easee.resume
             data:
@@ -199,7 +206,7 @@ automation:
           - service: easee.set_charger_dynamic_limit
             data:
               charger_id: EH630897
-              current: 16
+              current: "{{ states('sensor.easee_current_limit') }}"
           - service: input_select.select_option
             data:
               option: 'Charge hours'
