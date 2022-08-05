@@ -49,8 +49,10 @@ template:
   - name: easee_current_limit
     unit_of_measurement: Ah
     state: >
-      {% if now().timestamp() - states.sensor.easee_test_limit.last_updated.timestamp() < 150 %}
-        {{ states.sensor.easee_test_limit.state|int(default=0) }}
+      {% if states('sensor.easee_current_limit') in ['unavailable'] %}
+        {{ 0 }}
+      {% elif now().timestamp() - states.sensor.easee_current_limit.last_updated.timestamp() < 300 %}
+        {{ states('sensor.easee_current_limit')|int(default=0) }}
       {% else %}
         {% set so_far = states.sensor.energiforbruk_time.state|float * 1000 %}
         {% set power = states.sensor.amshan_power_import.state|float  %}
