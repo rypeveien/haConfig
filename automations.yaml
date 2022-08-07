@@ -1,1 +1,19 @@
-[]
+- id: '1659781447147'
+  alias: update laptoplader power
+  description: ''
+  trigger:
+  - platform: template
+    value_template: '{{ now().timestamp() - states.sensor.laptoplader_electric_consumption_w.last_updated.timestamp()
+      > 300 }}'
+  condition:
+  - condition: device
+    type: is_on
+    device_id: 381b70ad0b92687d94def574c24d0812
+    entity_id: switch.laptoplader
+    domain: switch
+  action:
+  - service: zwave_js.refresh_value
+    data:
+      entity_id: sensor.laptoplader_electric_consumption_w
+      refresh_all_values: true
+  mode: single
