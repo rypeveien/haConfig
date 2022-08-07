@@ -186,6 +186,9 @@ automation:
     - platform: state
       entity_id: 
         - sensor.charge_hours
+    - platform: template
+      value_template: >
+        {{ now().minute > 0 and states.sensor.easee_current_limit.state|int > 0 }}
     action: 
       - choose: 
         - conditions:
