@@ -250,6 +250,12 @@ automation:
       from: 'on'
       to: 'off'
       id: vvkjeller_off
+    - platform: template
+      value_template: >
+        {{ states.switch.vv_kjeller.state == 'on' 
+           and states.binary_sensor.vvkjeller_on.state == 'off' 
+           and now().timestamp() - states.switch.vv_kjeller.last_updated.timestamp() > 300 }}
+      id: vvkjeller_not_starting
     condition: 
     - condition: template
       value_template: '{{ states.automation.vv_kjeller_hours_update.attributes.current == 0}}'
@@ -283,8 +289,11 @@ automation:
           target:
             entity_id: input_number.vvkjeller_hours
       - conditions:
-        - condition: trigger
-          id: vvkjeller_off
+        - or: 
+            - condition: trigger
+              id: vvkjeller_off
+            - condition: trigger
+              id: vvkjeller_not_starting
         sequence:
         - choose:
           - conditions:
