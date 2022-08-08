@@ -18,6 +18,21 @@ template:
     - name: coldroom_temp_update_age
       unit_of_measurement: seconds
       state: "{{ (now().timestamp() - states.sensor.lumi_kjole_temperature.last_updated.timestamp())|int }}"
+  binary_sensor:
+    - name: coldroom_hangup
+      state: >
+        {% set ts = now().timestamp() %}
+        {% set ts_on = states.binary_sensor.kjolerom_on.last_updated.timestamp() %}
+        {% set ts_temp = states.sensor.lumi_kjole_temperature.last_updated.timestamp() %}
+        {% set temp_cur = states.climate.cold_room.attributes.current_temperature|float %}
+        {% set temp_set = states.climate.cold_room.attributes.temperature|float %}
+        {% set action = states.climate.cold_room.attributes.hvac_action %}
+        {{ ts - ts_temp > 3600 or 
+           (action == 'idle' and temp_cur > temp_set + 0.3) or 
+           (action == 'cooling' and temp_cur < temp_set - 0.3) }}
+      delay_on:
+        minutes: 1
+
 
 automation:
   - id: '1646511571836'
