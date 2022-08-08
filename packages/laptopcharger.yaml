@@ -1,0 +1,17 @@
+automation:
+  - id: '1659781447148'
+    alias: update laptoplader power
+    description: ''
+    trigger:
+    - platform: template
+      value_template: >
+        {{ states.binary_sensor.laptoplader_on.state == 'on' 
+           and now().timestamp() - states.binery_sensor.laptoplader_on.last_updated.timestamp() > 300 and
+           now().minute % 5 == states.sensor.laptoplader_electric_consumption_w.last_updated.minute % 5 }}
+    condition: []
+    action:
+    - service: zwave_js.refresh_value
+      data:
+        entity_id: sensor.laptoplader_electric_consumption_w
+        refresh_all_values: true
+    mode: single
