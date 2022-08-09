@@ -6,7 +6,7 @@ automation:
     - platform: template
       value_template: >
         {{ states.binary_sensor.laptoplader_on.state == 'on' 
-           and now().timestamp() - states.binery_sensor.laptoplader_on.last_updated.timestamp() > 300 and
+           and now().timestamp() - states.binary_sensor.laptoplader_on.last_updated.timestamp() > 300 and
            now().minute % 5 == states.sensor.laptoplader_electric_consumption_w.last_updated.minute % 5 }}
     condition: []
     action:
