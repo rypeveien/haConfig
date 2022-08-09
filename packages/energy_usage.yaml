@@ -68,7 +68,7 @@ template:
         {% if v.abovelimit|length < 3 %}
           {% set v.rest_of_month =  (target * 3 - average(v.abovelimit) * v.abovelimit|length) / (3 - v.abovelimit|length) %}
         {% endif %}
-        {% if v.abovelimit|length >= 3  or average(states.sensor.uncontrolled_estimate.state|from_json) + 2700 > v.rest_of_month %}
+        {% if v.abovelimit|length >= 3  or average(states.sensor.uncontrolled_estimate.state|from_json) + 3000 > v.rest_of_month %}
           {% for i in range(1,limits|length) %}
             {% if average(v.abovelimit) > limits[i - 1]|int and average(v.abovelimit) <= limits[i]|int %}
               {% set v.rest_of_month = limits[i] %}
@@ -166,8 +166,8 @@ template:
       {% set ev_charge_steps = states.input_number.ev_charge_steps.state|int %}
       {% set ev_charge_efficiency = states.input_number.ev_charge_efficiency.state|float %}
       {% set hour = now().hour %}
-      {% set tank_power = 2700 %}
-      {% set kjeller_power = 1700 %}
+      {% set tank_power = 3000 %}
+      {% set kjeller_power = 2000 %}
       {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int %}
       {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
       {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
