@@ -3,10 +3,12 @@ automation:
     alias: update laptoplader power
     description: ''
     trigger:
+    - platform: state
+      entity_id: switch.laptoplader
     - platform: template
       value_template: >
-        {{ states.binary_sensor.laptoplader_on.state == 'on' 
-           and now().timestamp() - states.binary_sensor.laptoplader_on.last_updated.timestamp() > 300 and
+        {{ states.switch.laptoplader.state == 'on' 
+           and now().timestamp() - states.switch.laptoplader.last_updated.timestamp() > 300 and
            now().minute % 5 == states.sensor.laptoplader_electric_consumption_w.last_updated.minute % 5 }}
     condition: []
     action:
@@ -15,3 +17,4 @@ automation:
         entity_id: sensor.laptoplader_electric_consumption_w
         refresh_all_values: true
     mode: single
+
