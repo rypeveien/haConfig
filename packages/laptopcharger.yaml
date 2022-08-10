@@ -5,6 +5,7 @@ automation:
     trigger:
     - platform: state
       entity_id: switch.laptoplader
+      id: state_trigger
     - platform: template
       value_template: >
         {{ states.switch.laptoplader.state == 'on' 
@@ -12,6 +13,13 @@ automation:
            now().minute % 5 == states.sensor.laptoplader_electric_consumption_w.last_updated.minute % 5 }}
     condition: []
     action:
+    - choose:
+      - conditions:
+        - condition: trigger
+          id: state_trigger
+        sequence: 
+        - delay: 
+            seconds: 10
     - service: zwave_js.refresh_value
       data:
         entity_id: sensor.laptoplader_electric_consumption_w
@@ -27,7 +35,7 @@ automation:
     - platform: template
       value_template: '{{ states(''sensor.fajlat2_battery'')|int(default=50) < 20 }}'
     - platform: template
-      value_template: '{{ states(''binary_sensor.laptoplader_on'') != ''on''}}'
+      value_template: '{{ states(''sensor.laptoplader_electric_consumption_w'')|float(default=0) <= 5}}'
     - platform: template
       value_template: '{{ now().timestamp() - states.switch.laptoplader.last_updated.timestamp() > (8 * 3600) }}'
       id: 8hour
@@ -87,7 +95,7 @@ automation:
                 domain: switch
             - conditions:
               - condition: template
-                value_template: '{{ states(''binary_sensor.laptoplader_on'') == ''off''}}'
+                value_template: '{{ states(''sensor.laptoplader_electric_consumption_w'')|float(default=0) <= 5 }}'
               sequence:
               - type: turn_off
                 device_id: 381b70ad0b92687d94def574c24d0812

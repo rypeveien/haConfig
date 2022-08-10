@@ -17,8 +17,6 @@ sensor:
 binary_sensor:
   - name: winter_tires_check
     state: '{{ states.input_boolean.winter_tyres.state == states.binary_sensor.snowtire.state }}'
-  - name: laptoplader_on
-    state: '{{ states(''sensor.laptoplader_electric_consumption_w'')|float(default=0) > 5 }}'
   - name: vvtank_on
     state: '{{ states(''sensor.vv_tank_electric_consumption_w'')|float(default=0) > 0 }}'
   - name: vvkjeller_on
