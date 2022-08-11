@@ -314,9 +314,10 @@ automation:
           entity_id: binary_sensor.easee_on
           state: 'on'
         sequence:
-        - service: easee.pause
+        - service: easee.set_charger_dynamic_limit
           data:
             charger_id: EH630897
+            current: "{{ states('sensor.easee_current_limit') }}"
       - conditions:
         - condition: device
           type: is_on
