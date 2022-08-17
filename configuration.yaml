@@ -32,7 +32,8 @@ rest: !include rest.yaml
 python_script:
 
 recorder:
-  purge_keep_days: 7
+  purge_keep_days: 30
+  commit_interval: 20
 #  mysqldburl: mysql://dbuser:dbpass@dbhost/dbname?charset=utf8mb4
   db_url: !secret mysqldburl
   include:
