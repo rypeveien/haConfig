@@ -6,136 +6,21 @@
     domain: mqtt
     device_id: 0da02203702a99b5cb616c8fcea949c1
     type: action
-    subtype: on_press_release
-    discovery_id: 0x00178801020e912a action_on_press_release
-    id: on_press
-  - platform: device
-    domain: mqtt
-    device_id: 0da02203702a99b5cb616c8fcea949c1
-    type: action
-    subtype: on_hold_release
-    discovery_id: 0x00178801020e912a action_on_hold_release
-    id: on_hold
-  - platform: device
-    domain: mqtt
-    device_id: 0da02203702a99b5cb616c8fcea949c1
-    type: action
-    subtype: up_press_release
-    discovery_id: 0x00178801020e912a action_up_press_release
-    id: up_press
-  - platform: device
-    domain: mqtt
-    device_id: 0da02203702a99b5cb616c8fcea949c1
-    type: action
-    subtype: up_hold_release
-    discovery_id: 0x00178801020e912a action_up_hold_release
-    id: up_hold
-  - platform: device
-    domain: mqtt
-    device_id: 0da02203702a99b5cb616c8fcea949c1
-    type: action
-    subtype: down_press_release
-    discovery_id: 0x00178801020e912a action_down_press_release
-    id: down_press
-  - platform: device
-    domain: mqtt
-    device_id: 0da02203702a99b5cb616c8fcea949c1
-    type: action
-    subtype: down_hold_release
-    discovery_id: 0x00178801020e912a action_down_hold_release
-    id: down_hold
-  - platform: device
-    domain: mqtt
-    device_id: 0da02203702a99b5cb616c8fcea949c1
-    type: action
-    subtype: off_press_release
+    subtype: off-press
     discovery_id: 0x00178801020e912a action_off_press_release
     id: off_press
-  - platform: device
-    domain: mqtt
-    device_id: 0da02203702a99b5cb616c8fcea949c1
-    type: action
-    subtype: off_hold_release
-    discovery_id: 0x00178801020e912a action_off_hold_release
-    id: off_hold
   condition: []
   action:
   - choose:
     - conditions:
       - condition: trigger
-        id: on_press
-      sequence:
-      - service: light.turn_on
-        data:
-          brightness_pct: 60
-        target:
-          entity_id: light.livingroom_lights
-    - conditions:
-      - condition: trigger
         id: off_press
       sequence:
-      - service: light.turn_off
-        data: {}
-        target:
-          entity_id: light.livingroom_lights
       - condition: time
         after: '21:00'
         before: '05:00'
       - service: light.turn_off
         data: {}
-        target:
-          entity_id: light.kitchen_lights
-    - conditions:
-      - condition: trigger
-        id: up_press
-      sequence:
-      - service: light.turn_on
-        data:
-          brightness_step_pct: 10
-        target:
-          entity_id: light.livingroom_lights
-    - conditions:
-      - condition: trigger
-        id: down_press
-      sequence:
-      - service: light.turn_on
-        data:
-          brightness_step_pct: -10
-        target:
-          entity_id: light.livingroom_lights
-    - conditions:
-      - condition: trigger
-        id: on_hold
-      sequence:
-      - service: light.turn_on
-        data:
-          brightness_pct: 60
-        target:
-          entity_id: light.kitchen_lights
-    - conditions:
-      - condition: trigger
-        id: off_hold
-      sequence:
-      - service: light.turn_off
-        data: {}
-        target:
-          entity_id: light.kitchen_lights
-    - conditions:
-      - condition: trigger
-        id: up_hold
-      sequence:
-      - service: light.turn_on
-        data:
-          brightness_step_pct: 10
-        target:
-          entity_id: light.kitchen_lights
-    - conditions:
-      - condition: trigger
-        id: down_hold
-      sequence:
-      - service: light.turn_on
-        data:
-          brightness_step_pct: -10
         target:
           entity_id: light.kitchen_lights
     default: []
@@ -220,7 +105,7 @@
         data:
           brightness: 4
         target:
-          entity_id: light.lys_i_gangen
+          entity_id: light.hallway_lights
       - service: light.turn_on
         data:
           brightness: 40
@@ -234,7 +119,7 @@
       sequence:
       - service: light.turn_off
         target:
-          entity_id: light.lys_i_gangen
+          entity_id: light.hallway_lights
         data: {}
       - service: light.turn_on
         data:
@@ -246,7 +131,7 @@
       data:
         brightness: 204
       target:
-        entity_id: light.lys_i_gangen
+        entity_id: light.hallway_lights
     - service: light.turn_on
       data:
         brightness: 200
