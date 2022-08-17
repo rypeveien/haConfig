@@ -33,6 +33,13 @@ template:
       delay_on:
         minutes: 1
 
+sensor:
+- platform: integration
+  source: sensor.shellykjol_switch_0_power
+  name: coldroom_energy
+  unit_prefix: k
+  round: 3
+  method: left
 
 automation:
   - id: '1646511571836'
