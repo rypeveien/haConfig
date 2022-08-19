@@ -1,9 +1,4 @@
 sensor:
-  - name: energy_subsides
-    unit_of_measurement: 'NOK/kWh'
-    state: >
-      {% set raw = states('input_number.energy_raw_month_average')|float %}
-      {{ (raw - 0.7)|round(4) if raw > 0.7 else 0 }}
   - name: windspeed_ms
     state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_wind_strength'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
