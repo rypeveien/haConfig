@@ -13,6 +13,14 @@ input_number:
     min: 0
     step: 0.001
     unit_of_measurement: "NOK"
+  energy_raw_month_average:
+    name: Cached calculated average cost NOK/kWh
+    max: 100
+    min: 0
+    step: 0.00001
+    unit_of_measurement: "NOK/kWh"
+    mode: box
+
 
 rest: 
   - resource: "https://api.tibber.com/v1-beta/gql"
