@@ -374,22 +374,12 @@ automation:
     variables:
       new_average: >
         {% set input = states.input_text.tibber_today.state|from_json %}
-        {% set raw = namespace (average=0) %}
-        {% for price in input %}
-        {% set raw.average = raw.average + price %}
-        {% endfor %}
         {% set sum = states.input_number.energy_raw_month_average.state|float * (now().day - 1) if now().day > 1 else 0 %}
-        {% set raw.average = raw.average/input|length + sum %}
-        {{ (raw.average / now().day)|round(5) }}
+        {{ ((input|average + sum) / now().day)|round(5) }}
       new_sum: >
         {% set last = states.input_number.tibber_day_average_month_sum.state|float if now().day > 1 else 0 %}
         {% set input = states.input_text.tibber_today.state|from_json %}
-        {% set raw = namespace (average=0) %}
-        {% for price in input %}
-        {% set raw.average = raw.average + price %}
-        {% endfor %}
-        {% set raw.average = raw.average/input|length + last %}
-        {{ raw.average }}
+        {{ input|average + last }}
     action:
     - condition: template
       value_template: >
