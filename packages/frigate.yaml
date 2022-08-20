@@ -1,0 +1,16 @@
+automation:
+  - id: '1660990404933'
+    alias: Frigate notify
+    trigger:
+      platform: mqtt
+      topic: frigate/events
+    variables:
+      ext_address: !secret ext_address
+    action:
+      - service: notify.mobile_app_xq_au52
+        data_template:
+          message: 'A {{trigger.payload_json["after"]["label"]}} was detected.'
+          data:
+            image: '{{ ext_address }}/api/frigate/notifications/{{trigger.payload_json["after"]["id"]}}/thumbnail.jpg?format=android'
+            tag: '{{trigger.payload_json["after"]["id"]}}'
+            when: '{{trigger.payload_json["after"]["start_time"]|int}}'
