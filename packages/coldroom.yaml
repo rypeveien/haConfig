@@ -28,8 +28,8 @@ template:
         {% set temp_set = states.climate.cold_room.attributes.temperature|float %}
         {% set action = states.climate.cold_room.attributes.hvac_action %}
         {{ ts - ts_temp > 3600 or 
-           (action == 'idle' and temp_cur > temp_set + 0.3) or 
-           (action == 'cooling' and temp_cur < temp_set - 0.3) }}
+           (action == 'idle' and temp_cur > temp_set + 0.5) or 
+           (action == 'cooling' and temp_cur < temp_set - 0.5) }}
       delay_on:
         minutes: 1
 
