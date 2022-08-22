@@ -6,6 +6,10 @@ automation:
       topic: frigate/events
     variables:
       ext_address: !secret ext_address
+    condition:
+      - condition: state
+        entity_id: binary_sensor.anyone_home
+        state: "off"
     action:
       - service: notify.mobile_app_xq_au52
         data_template:
