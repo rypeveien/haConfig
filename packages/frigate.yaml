@@ -23,7 +23,7 @@ automation:
     alias: Turn frigate recordings on or off
     trigger: 
       platform: template
-      value_template: "{{ (states('lock.dana_oppe') == 'locked' or states('binary_sensor.anyone_home') == 'off') != states('switch.inngang_recordings') == 'on' }}"
+      value_template: "{{ (states('lock.dana_oppe') == 'locked' or states('binary_sensor.anyone_home') == 'off') != (states('switch.inngang_recordings') == 'on') }}"
     action:
       - service: switch.toggle
         target:
