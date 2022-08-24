@@ -3,7 +3,7 @@
   description: ''
   trigger:
   - platform: time_pattern
-    hours: '22'
+    hours: '21'
     minutes: '30'
     id: lock_time
   - platform: state
