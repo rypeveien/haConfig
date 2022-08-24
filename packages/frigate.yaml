@@ -18,3 +18,14 @@ automation:
             image: '{{ ext_address }}/api/frigate/notifications/{{trigger.payload_json["after"]["id"]}}/thumbnail.jpg?format=android'
             tag: '{{trigger.payload_json["after"]["id"]}}'
             when: '{{trigger.payload_json["after"]["start_time"]|int}}'
+
+  - id: '1661326781305'
+    alias: Turn frigate recordings on or off
+    trigger: 
+      platform: template
+      value_template: "{{ (states('lock.dana_oppe') == 'locked' or states('binary_sensor.anyone_home') == 'off') != states('switch.inngang_recordings') == 'on' }}"
+    action:
+      - service: switch.toggle
+        target:
+          entity_id: switch.inngang_recordings
+
