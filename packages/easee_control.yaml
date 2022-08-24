@@ -64,7 +64,7 @@ template:
         {% set easee_power = states('sensor.easee_home_63089_power') | float * 1000 %}
         {% set no_easee_power = 0 if power < easee_power else power - easee_power %}
         {% set restofhour_energy = no_easee_power * seconds_left / 3600 %}
-        {% set limit = states('sensor.rest_of_month_energy_limit')|int %}
+        {% set limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
         {% set availible = (limit - (so_far  + restofhour_energy)) * 3600 / seconds_left %}
         {% set ev_max = states('input_number.ev_max_charge')|int %}
         {% set ev_min = states('input_number.ev_min_charge')|int %}

@@ -60,24 +60,33 @@ template:
       {% set max3 = (( states('input_text.max_3hour_month_usage')|from_json +
                     [states('input_number.today_max_usage')|float])|sort(1))[:3] %}
       {% set v = namespace (abovelimit=[], rest_of_month = 0) %}
-      {% for i in range(max3|length) %}
-        {% set v.abovelimit = v.abovelimit + [ max3[i] * 1000 ]
-               if max3[i] * 1000 > target else v.abovelimit %}
-      {% endfor %}
-      {% if v.abovelimit|length >0 %}
-        {% if v.abovelimit|length < 3 %}
-          {% set v.rest_of_month =  (target * 3 - average(v.abovelimit) * v.abovelimit|length) / (3 - v.abovelimit|length) %}
-        {% endif %}
-        {% if v.abovelimit|length >= 3  or average(states.sensor.uncontrolled_estimate.state|from_json) + 3000 > v.rest_of_month %}
-          {% for i in range(1,limits|length) %}
-            {% if average(v.abovelimit) > limits[i - 1]|int and average(v.abovelimit) <= limits[i]|int %}
-              {% set v.rest_of_month = limits[i] %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-        {{ v.rest_of_month }}
+      {% if max3|length >= 3 and (max3|average * 1000) >= target %}
+        {% for option in states.input_select.energy_month_limit.attributes.options %}
+          {% if option|int > target %}
+            {% set v.abovelimit = v.abovelimit + [ option|int ] %}
+          {% endif %}
+        {% endfor %}
+        {{ v.abovelimit[0] }}
       {% else %}
-        {{ target }}
+        {% for i in range(max3|length) %}
+          {% set v.abovelimit = v.abovelimit + [ max3[i] * 1000 ]
+                 if max3[i] * 1000 >= target else v.abovelimit %}
+        {% endfor %}
+        {% if v.abovelimit|length >0 %}
+          {% if v.abovelimit|length < 3 %}
+            {% set v.rest_of_month =  (target * 3 - average(v.abovelimit) * v.abovelimit|length) / (3 - v.abovelimit|length) %}
+          {% endif %}
+          {% if v.abovelimit|length >= 3  or average(states.sensor.uncontrolled_estimate.state|from_json) + 3000 > v.rest_of_month %}
+            {% for i in range(1,limits|length) %}
+              {% if average(v.abovelimit) > limits[i - 1]|int and average(v.abovelimit) <= limits[i]|int %}
+                {% set v.rest_of_month = limits[i] %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ v.rest_of_month }}
+        {% else %}
+          {{ target }}
+        {% endif %}
       {% endif %}
   - name: power_controlled
     unit_of_measurement: W
@@ -168,7 +177,7 @@ template:
       {% set hour = now().hour %}
       {% set tank_power = 3000 %}
       {% set kjeller_power = 2000 %}
-      {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int %}
+      {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
       {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
       {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
       {% set pvguess = states.sensor.pv_guess_by_factor.state|from_json %}
@@ -303,8 +312,8 @@ automation:
     trigger:
     - platform: template
       value_template: >
-        {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int %}
-        {{ (states.sensor.energy_this_hour_estimate.state|float * 1000) > energy_limit and 
+        {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
+        {{ (states.sensor.energy_this_hour_estimate.state|float * 1000) >= energy_limit and 
             now().minute > 0 and now().minute % 15 == 0 }}
     condition: []
     action:
