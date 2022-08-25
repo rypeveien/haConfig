@@ -55,7 +55,7 @@ template:
         {% else %}
           {{ states('sensor.easee_home_63089_dynamic_charger_limit') }}
         {% endif %}
-      {% elif now().timestamp() - states.sensor.easee_current_limit.last_updated.timestamp() < 300 %}
+      {% elif now().timestamp() - states.sensor.easee_current_limit.last_updated.timestamp() < 300 or now().minute == 0 %}
         {{ states('sensor.easee_current_limit')|int(default=0) }}
       {% else %}
         {% set so_far = states.sensor.energiforbruk_time.state|float * 1000 %}
@@ -266,6 +266,10 @@ automation:
             option: 'Completed'
           target:
             entity_id: input_select.why_charge
+        - service: easee.set_charger_dynamic_limit
+          data:
+            charger_id: EH630897
+            current: 16
       - conditions:
         - condition: trigger
           id: disconnected
@@ -275,6 +279,10 @@ automation:
             option: 'Disconnected'
           target:
             entity_id: input_select.why_charge
+        - service: easee.set_charger_dynamic_limit
+          data:
+            charger_id: EH630897
+            current: 16
       - conditions:
         - condition: trigger
           id: connected
