@@ -56,11 +56,18 @@ automation:
         value: >
           {% set l = namespace(prices=[]) %}
           {% for row in states.sensor.nordpool_api.attributes.Rows %}
-          {% if (as_datetime(row.EndTime).timestamp() - as_datetime(row.StartTime).timestamp() == 3600) %}
-          {% set l.prices = l.prices + [(row.Columns[1].Value|replace(" ", "")|replace(",", ".")|float/1000)|round(4)] %}
-          {% endif %}
-          {%- endfor %}
+            {% if (as_datetime(row.EndTime).timestamp() - as_datetime(row.StartTime).timestamp() == 3600) %}
+              {% for column in row.Columns %}
+                {% if column.Name  == 'Kr.sand' %}
+                  {% set l.prices = l.prices +
+                    [(column.Value|replace(" ", "")|replace(",",".")|float/1000)|round(4)] %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          {% endfor %}
           {{ l.prices|to_json }}
+#          To list names for the different sones. Use template in Developer tools to list them
+#          {% for cols in state_attr('sensor.nordpool_api', 'Rows')[0].Columns %} {{ cols.Name }} {% endfor %}
       target: 
         entity_id: input_text.tibber_tomorrow
 
