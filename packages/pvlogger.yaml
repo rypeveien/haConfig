@@ -25,6 +25,7 @@ template:
         {% endfor %}
         {{ local.guess }}
     - name: pv_guess_this_hour
+      unit_of_measurement: "W"
       state: >
         {{ (states.sensor.pv_guess_by_factor.state|from_json)[now().hour] }}
     - name: pv_guess_12h
