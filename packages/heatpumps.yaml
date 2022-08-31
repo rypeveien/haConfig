@@ -1,46 +1,35 @@
+template:
+  binary_sensor:
+  - name: hot_outside
+    state: "{{ states('sensor.netatmo_rypeveien_netatmo_ute_temperature')|float(default=10) > 25 }}"
+    delay_on:
+      minutes: 20
+  - name: hot_livingroom
+    state: >
+      {{ states('sensor.netatmo_rypeveien_netatmo_temperature')|float(default=20) > 25 
+         or states('sensor.vp_oppe_air_temperature')|float(default=20) > 25}}
+    delay_on:
+      minutes: 30
+    
 automation: 
   - id: '1658673475311'
     alias: 'Climate VP Oppe Start cooling '
     description: ''
     trigger:
-    - type: temperature
-      platform: device
-      device_id: ebea6b2a64973129f827b002460b82b8
-      entity_id: sensor.netatmo_rypeveien_netatmo_temperature
-      domain: sensor
-      above: 25
-      for:
-        hours: 0
-        minutes: 30
-        seconds: 0
+    - platform: template
+      value_template: >
+        {{ states('binary_sensor.hot_livingroom') == 'on'
+           and states('binary_sensor.hot_outside')  == 'on'
+           and states('sensor.pvlogger_power')|int(default=0) > 2000
+           and states('binary_sensor.dor_inngang_on') == 'off'
+           and states('binary_sensor.verandador_contact') == 'off' }}
     condition:
-    - condition: numeric_state
-      entity_id: sensor.pvlogger_power
-      above: '2000'
     - condition: device
       device_id: c26046a34e1fac9463da2e9fe2b62a84
       domain: climate
       entity_id: climate.vp_oppe
       type: is_hvac_mode
       hvac_mode: 'off'
-    - type: is_not_open
-      condition: device
-      device_id: 6bc64238a27390d5438678e684f642e6
-      entity_id: binary_sensor.verandador_contact
-      domain: binary_sensor
-      for:
-        hours: 0
-        minutes: 30
-        seconds: 0
-    - type: is_not_open
-      condition: device
-      device_id: ad3160c2bf2ac77b821e2f52e3d26ab9
-      entity_id: binary_sensor.inngangsdor_door_window
-      domain: binary_sensor
-      for:
-        hours: 0
-        minutes: 30
-        seconds: 0
     action:
     - device_id: c26046a34e1fac9463da2e9fe2b62a84
       domain: climate
@@ -53,6 +42,7 @@ automation:
       target:
         entity_id: climate.vp_oppe
     mode: single
+
   - id: '1658673749726'
     alias: Climate VP oppe Turn off when idle for 20 hours
     description: ''
@@ -80,4 +70,17 @@ automation:
       type: set_hvac_mode
       hvac_mode: 'off'
     mode: single
+
+  - id: '1661848057589'
+    alias: Refresh air temp values periodically
+    trigger: 
+    - platform: time_pattern
+      minutes: '/12'
+    action: 
+    - service: zwave_js.refresh_value
+      data:
+        entity_id: 
+          - sensor.vv_tank_air_temperature
+          - sensor.vp_oppe_air_temperature
+          - sensor.vp_nede_air_temperature
 
