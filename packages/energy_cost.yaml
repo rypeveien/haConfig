@@ -5,6 +5,9 @@ input_text:
   tibber_tomorrow: 
     name: Tibber price tomorrow
     max: 200
+  tibber_month_average:
+    name: Tibber average month price
+    max: 255
 
 input_number:
   tibber_day_average_month_sum:
@@ -373,6 +376,10 @@ automation:
       entity_id: input_text.tibber_today
     condition: []
     variables:
+      new_list: >
+        {% set today = states.input_text.tibber_today.state|from_json %}
+        {% set month = states.input_text.tibber_month_average.state|from_json if now().day > 1 else [] %}
+        {{ month + [ input|average ] }}
       new_average: >
         {% set input = states.input_text.tibber_today.state|from_json %}
         {% set sum = states.input_number.energy_raw_month_average.state|float * (now().day - 1) if now().day > 1 else 0 %}
@@ -395,4 +402,9 @@ automation:
         value: '{{ new_sum }}'
       target: 
         entity_id: input_number.tibber_day_average_month_sum
+    - service: input_text.set_value
+      data:
+        value: '{{ new_list }}'
+      target: 
+        entity_id: input_text.tibber_month_average
 
