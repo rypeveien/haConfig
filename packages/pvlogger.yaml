@@ -12,6 +12,9 @@ rest:
 
 template:
   - sensor:
+    - name: forecast_solar_next_hour_watt
+      unit_of_measurement: "W"
+      state: "{{ (states('sensor.energy_next_hour')|float)*1000|int }}"
     - name: pv_guess_by_factor
       state: >
         {% set numbers = states.input_text.met_cache.state|from_json %}
