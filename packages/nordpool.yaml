@@ -1,3 +1,14 @@
+input_text:
+  nordpool_today:
+    name: Nordpool spot price today
+    max: 200
+  nordpool_tomorrow:
+    name: Nordpool spot price tomorrow
+    max: 200
+  nordpool_month:
+    name: Nordpool spot price month daily average
+    max: 255
+
 rest:
   - resource: "https://www.nordpoolgroup.com/api/marketdata/page/23?currency=,NOK,NOK,EUR"
     scan_interval: 129600
@@ -47,10 +58,6 @@ automation:
         entity_id: sensor.nordpool_api
     - delay: 
         seconds: '10'
-    - condition: template
-      value_template: '{{ states.input_text.tibber_tomorrow.state == ''[]'' }}'
-    - condition: template
-      value_template: '{{ as_datetime(states.sensor.nordpool_api.state).day == now().day }}'
     - service: input_text.set_value
       data:
         value: >
@@ -69,5 +76,43 @@ automation:
 #          To list names for the different sones. Use template in Developer tools to list them
 #          {% for cols in state_attr('sensor.nordpool_api', 'Rows')[0].Columns %} {{ cols.Name }} {% endfor %}
       target: 
+        entity_id: input_text.nordpool_tomorrow
+    - delay: 
+        seconds: '10'
+    - condition: template
+      value_template: '{{ states.input_text.tibber_tomorrow.state == ''[]'' }}'
+    - condition: template
+      value_template: '{{ as_datetime(states.sensor.nordpool_api.state).day == now().day }}'
+    - service: input_text.set_value
+      data:
+        value: "{{ states('input_text.nordpool_tomorrow') }}"
+      target: 
         entity_id: input_text.tibber_tomorrow
 
+  - id: '1662150028981'
+    alias: Calculate monthly spot price average price
+    description: ''
+    trigger: 
+    - platform: template
+      value_template: "{{ as_local(states.input_text.nordpool_today.last_updated).day == now().day }}"
+    action:
+    - service: input_text.set_value
+      data:
+        value: "{{ states('input_text.nordpool_tomorrow') }}"
+      target: 
+        entity_id: input_text.nordpool_today
+    - service: input_text.set_value
+      data:
+        value: '[]'
+      target: 
+        entity_id: input_text.nordpool_tomorrow
+    - delay: 
+        seconds: '10'
+    - service: input_text.set_value
+      data:
+        value: >
+          {% set today = states.input_text.tibber_today.state|from_json %}
+          {% set month = states.input_text.tibber_month_average.state|from_json if now().day > 1 else [] %}
+          {{ month + [ today|average ] }}
+      target: 
+        entity_id: input_text.nordpool_month
