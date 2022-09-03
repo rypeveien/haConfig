@@ -94,7 +94,7 @@ automation:
     description: ''
     trigger: 
     - platform: template
-      value_template: "{{ as_local(states.input_text.nordpool_today.last_updated).day == now().day }}"
+      value_template: "{{ as_local(states.input_text.nordpool_today.last_updated).day != now().day }}"
     action:
     - service: input_text.set_value
       data:
@@ -113,6 +113,6 @@ automation:
         value: >
           {% set today = states.input_text.tibber_today.state|from_json %}
           {% set month = states.input_text.tibber_month_average.state|from_json if now().day > 1 else [] %}
-          {{ month + [ today|average ] }}
+          {{ month + [ (today|average)|round(4) ] }}
       target: 
         entity_id: input_text.nordpool_month

@@ -379,7 +379,7 @@ automation:
       new_list: >
         {% set today = states.input_text.tibber_today.state|from_json %}
         {% set month = states.input_text.tibber_month_average.state|from_json if now().day > 1 else [] %}
-        {{ month + [ today|average ] }}
+        {{ month + [ (today|average)|round(4) ] }}
       new_average: >
         {% set input = states.input_text.tibber_today.state|from_json %}
         {% set sum = states.input_number.energy_raw_month_average.state|float * (now().day - 1) if now().day > 1 else 0 %}
