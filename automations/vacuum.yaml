@@ -81,13 +81,9 @@
             entity_id: vacuum.martin
             type: dock
         - conditions:
-          - condition: not
-            conditions:
-            - condition: device
-              device_id: 22bed80b6a2c686ba9af11178f87dc16
-              domain: vacuum
-              entity_id: vacuum.martin
-              type: is_docked
+          - condition: state
+            entity_id: vacuum.martin
+            state: error
           sequence:
           - delay:
               hours: 0
