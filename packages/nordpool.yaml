@@ -111,8 +111,8 @@ automation:
     - service: input_text.set_value
       data:
         value: >
-          {% set today = states.input_text.tibber_today.state|from_json %}
-          {% set month = states.input_text.tibber_month_average.state|from_json if now().day > 1 else [] %}
+          {% set today = states.input_text.nordpool_today.state|from_json %}
+          {% set month = states.input_text.nordpool_month.state|from_json if now().day > 1 else [] %}
           {{ month + [ (today|average)|round(4) ] }}
       target: 
         entity_id: input_text.nordpool_month
