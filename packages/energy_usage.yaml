@@ -96,6 +96,7 @@ template:
          + states('sensor.vv_kjeller_power')|int(default=0)
          + states('sensor.stikk_vaskemaskin_power')|int(default=0)
          + states('sensor.stikk_torketrommel_power')|int(default=0)
+         + states('sensor.shellyhvitevare_channel_1_power')|int(default=0)
          + states('sensor.easee_power')|int(default=0) }}
   - name: power_uncontrolled
     unit_of_measurement: W
