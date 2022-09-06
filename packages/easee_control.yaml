@@ -187,27 +187,21 @@ automation:
     alias: Easee start trigger
     description: ''
     trigger:
-    - platform: state
-      entity_id: 
-        - sensor.charge_hours
     - platform: template
       value_template: >
-        {{ now().minute > 0 and states.sensor.easee_current_limit.state|int > 0 }}
+        {% set state = states('sensor.easee_home_63089_status') %}
+        {% set hours = states('sensor.charge_hours')|from_json %}
+        {% set limit = states.sensor.easee_current_limit.state|int %}
+        {{ (now().minute > 0 and limit > 0 and state == 'awaiting_start'
+           and (hours|length == 0 or hours[0] == now().hour))
+           or (state == 'charging' and hours|length > 0 and hours[0] != now().hour) }}
     action: 
       - choose: 
         - conditions:
           - condition: template
             value_template: >
               {% set hours = states('sensor.charge_hours')|from_json %}
-              {{ now().minute > 0 and (
-                   (hours|length > 0 and hours[0] == now().hour) or 
-                   (hours|length > 1 and hours[1] == now().hour)) }}
-          - condition: template
-            value_template: >
-              {{ states('sensor.easee_home_63089_status') == 'awaiting_start' }}
-          - condition: numeric_state
-            entity_id: sensor.easee_current_limit
-            above: 0
+              {{ hours|length == 0 or hours[0] == now().hour }}
           sequence:
           - service: easee.resume
             data:
@@ -225,7 +219,7 @@ automation:
           - condition: template
             value_template: >
               {% set hours = states('sensor.charge_hours')|from_json %}
-              {{ hours|length == 0 or hours[0] != now().hour }}
+              {{ hours|length > 0 and hours[0] != now().hour }}
           - condition: template
             value_template: >
               {{ states('sensor.easee_home_63089_status') == 'charging' }}
