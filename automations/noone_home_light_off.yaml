@@ -15,5 +15,6 @@
       - light.livingroom_lights
       - light.kitchen_lights
       - light.kjokkentak
+      - light.spisestuetak
   mode: single
 
