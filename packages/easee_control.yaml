@@ -194,7 +194,7 @@ automation:
         {% set limit = states.sensor.easee_current_limit.state|int %}
         {{ (now().minute > 0 and limit > 0 and state == 'awaiting_start'
            and (hours|length == 0 or hours[0] == now().hour))
-           or (state == 'charging' and hours|length > 0 and hours[0] != now().hour) }}
+           or (state == 'charging' and states.sensor.evnotify_soc.state|int > 20 and hours|length > 0 and hours[0] != now().hour) }}
     action: 
       - choose: 
         - conditions:
@@ -219,7 +219,7 @@ automation:
           - condition: template
             value_template: >
               {% set hours = states('sensor.charge_hours')|from_json %}
-              {{ hours|length > 0 and hours[0] != now().hour }}
+              {{ hours|length > 0 and hours[0] != now().hour and states.sensor.evnotify_soc.state|int > 20 }}
           - condition: template
             value_template: >
               {{ states('sensor.easee_home_63089_status') == 'charging' }}
@@ -295,6 +295,18 @@ automation:
                 option: 'Charge hours'
               target:
                 entity_id: input_select.why_charge
+          - conditions:
+            - condition: numeric_state
+              entity_id: sensor.ev_soc
+              below: 20
+            sequence:
+            - service: easee.resume
+              data:
+                charger_id: EH630897
+            - service: easee.set_charger_dynamic_limit
+              data:
+                charger_id: EH630897
+                current: 16
           default:
           - service: easee.pause
             data:
