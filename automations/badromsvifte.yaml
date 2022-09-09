@@ -1,0 +1,43 @@
+- id: '1662628125245'
+  alias: Styr vifte bad nede
+  description: ''
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.lumi_bad_nede_humidity
+    above: '80'
+  - platform: numeric_state
+    entity_id: sensor.lumi_bad_nede_humidity
+    below: '70'
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: device
+        type: is_off
+        device_id: 485562750d88f6818a0405dda7176d43
+        entity_id: switch.shellyfan
+        domain: switch
+      - condition: numeric_state
+        entity_id: sensor.lumi_bad_nede_humidity
+        above: '80'
+      sequence:
+      - type: turn_on
+        device_id: 485562750d88f6818a0405dda7176d43
+        entity_id: switch.shellyfan
+        domain: switch
+    - conditions:
+      - condition: device
+        type: is_on
+        device_id: 485562750d88f6818a0405dda7176d43
+        entity_id: switch.shellyfan
+        domain: switch
+      - condition: numeric_state
+        entity_id: sensor.lumi_bad_nede_humidity
+        below: '70'
+      sequence:
+      - type: turn_off
+        device_id: 485562750d88f6818a0405dda7176d43
+        entity_id: switch.shellyfan
+        domain: switch
+    default: []
+  mode: single
