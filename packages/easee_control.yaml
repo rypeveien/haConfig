@@ -113,6 +113,16 @@ template:
     state: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
     delay_off: 
       minutes: 2
+  - name: charge_hours_override
+    state: >
+      {% set l = namespace (prices=[]) %}
+      {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices %}
+      {% set hours = states.sensor.charge_hours.state|from_json %}
+      {% for hour in hours %}
+      {% set l.prices = l.prices + [ prices[hour] ] %}
+      {% endfor %}
+      {{ states.sensor.easee_current_limit.state|int > 0 
+         and l.prices|max > states.sensor.template_energy_by_subsides_and_production.state|float }}
 
 automation:
   - id: '1657578526896'
