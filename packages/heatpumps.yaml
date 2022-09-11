@@ -1,4 +1,20 @@
 template:
+  sensor: 
+  - name: livingroom_temp
+    unit_of_measurement: "°C"
+    state: >
+      {% set l = namespace (temp=[]) %}
+      {% if not states('sensor.netatmo_rypeveien_netatmo_temperature') in ('unavailible', 'unknown') %}
+      {% set l.temp = l.temp + [ states('sensor.netatmo_rypeveien_netatmo_temperature')|float] %}
+      {% endif %}
+      {% if not states('sensor.vp_oppe_air_temperature') in  ('unavailible', 'unknown') %}
+      {% set l.temp = l.temp + [states('sensor.vp_oppe_air_temperature')|float] %}
+      {% endif %}
+      {% if not states('sensor.verandador_temperature') in  ('unavailible', 'unknown') %}
+      {% set l.temp = l.temp + [states('sensor.verandador_temperature')|float] %}
+      {% endif %}
+      {{ l.temp|average|round(1) }}
+
   binary_sensor:
   - name: hot_outside
     state: "{{ states('sensor.netatmo_rypeveien_netatmo_ute_temperature')|float(default=10) > 25 }}"
