@@ -23,9 +23,7 @@
         data: {}
         target:
           entity_id: 
-          - light.kitchen_lights
-          - light.kjokkentak
-          - light.spisestuetak
+          - light.livingandkitchen
     default: []
   mode: single
 
