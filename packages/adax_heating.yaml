@@ -117,7 +117,7 @@ automation:
       value_template: '{{ now().timestamp() - as_timestamp(states.person.finn_arne_johansen.last_changed) > 1800 }}'
       id: finnarneaway
     - platform: template
-      value_template: '{{ now().timestamp() - as_timestamp(states.climate.adax_faoff.last_updated) > 7200 }}'
+      value_template: '{{ now().timestamp() - as_timestamp(states.climate.adax_faoff.last_updated) > (3 * 3600) }}'
       id: lost_connection
     condition: 
     - condition: template
