@@ -44,6 +44,15 @@ input_datetime:
     has_time: false
   
   
+sensor: 
+- platform: integration
+  name: easee_energy
+  source: sensor.easee_power
+  method: left
+  round: 2
+  unit_prefix: k
+  unit_time: h
+
 template:
   sensor:
   - name: easee_current_limit
