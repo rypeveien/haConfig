@@ -21,7 +21,9 @@ template:
       state: >
         {% set hours = states.input_number.vvtank_hours.state|float %}
         {% if states.binary_sensor.vvtank_on.state == 'on' %}
-        {% set now = (now().timestamp() - states.binary_sensor.vvtank_on.last_updated.timestamp())/3600 %}
+        {% set vvtank_on = states.binary_sensor.vvtank_on.last_updated.timestamp() %}
+        {% set vvtank_hours = states.input_number.vvtank_hours.last_updated.timestamp() %}
+        {% set now = (now().timestamp() - vvtank_on if vvtank_on > vvtank_hours else vvtank_hours)/3600 %}
         {% set hours = (hours - now)|round(1) if hours > now else 0.1 %}
         {% endif %}
         {{ hours|round(2) }}
@@ -147,7 +149,7 @@ automation:
         sequence:
         - service: input_number.set_value
           data:
-            value: '{{ (states.input_number.vvtank_hours.state|float + 0.7)|round(2) }}'
+            value: '{{ (states.input_number.vvtank_hours.state|float + 0.8)|round(2) }}'
           target:
             entity_id: input_number.vvtank_hours
       - conditions:
@@ -164,7 +166,7 @@ automation:
             sequence:
             - service: input_number.set_value
               data:
-                value: 2.2
+                value: 1.2
               target:
                 entity_id: input_number.vvtank_hours
             - service: input_datetime.set_datetime
