@@ -9,6 +9,8 @@ automation:
       value_template: >
         {{ trigger.from_state.state != 'unknown' 
            and trigger.to_state.state != 'unknown' 
+           and trigger.from_state.state != '' 
+           and trigger.to_state.state != '' 
            and trigger.from_state.state != trigger.to_state.state }}
     - service: climate.set_temperature
       data: 
