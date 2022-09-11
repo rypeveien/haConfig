@@ -1,0 +1,19 @@
+automation:
+  - id: '1662913867828'
+    alias: Endre temperatur på baderom etter analyzer
+    trigger: 
+      - platform: state
+        entity_id: sensor.analyzer_updown
+    action: 
+    - condition: template
+      value_template: >
+        {{ trigger.from_state.state != 'unknown' 
+           and trigger.to_state.state != 'unknown' 
+           and trigger.from_state.state != trigger.to_state.state }}
+    - service: climate.set_temperature
+      data: 
+        temperature: >
+          {{ state_attr('climate.baderomsgulv', 'temperature') + 0.5 * (trigger.to_state.state|int - trigger.from_state.state|int) }}
+      target:
+        climate.baderomsgulv
+
