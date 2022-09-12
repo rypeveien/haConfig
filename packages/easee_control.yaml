@@ -56,7 +56,7 @@ sensor:
 template:
   sensor:
   - name: easee_current_limit
-    unit_of_measurement: Ah
+    unit_of_measurement: A
     state: >
       {% if states('sensor.easee_current_limit') in ['unavailable'] %}
         {% if states('sensor.easee_home_63089_dynamic_charger_limit') in ['unavailable'] %}
@@ -131,7 +131,7 @@ template:
       {% set l.prices = l.prices + [ prices[hour] ] %}
       {% endfor %}
       {{ states.sensor.easee_current_limit.state|int > 0 
-         and l.prices|max > states.sensor.template_energy_by_subsides_and_production.state|float }}
+         and l.prices|max >= states.sensor.template_energy_by_subsides_and_production.state|float }}
 
 automation:
   - id: '1657578526896'
