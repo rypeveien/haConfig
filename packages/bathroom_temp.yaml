@@ -12,18 +12,17 @@ automation:
     trigger: 
       - platform: state
         entity_id: sensor.analyzer_updown
-    action: 
+      - platform: state
+        entity_id: input_number.bathroom_temp
+    condition: 
     - condition: template
       value_template: >
-        {{ trigger.from_state.state != 'unknown' 
-           and trigger.to_state.state != 'unknown' 
-           and trigger.from_state.state != '' 
-           and trigger.to_state.state != '' 
-           and trigger.from_state.state != trigger.to_state.state }}
+        {{ states('sensor.analyzer_updown') in ['-1', '0', '1'] }}
+    action: 
     - service: climate.set_temperature
       data: 
         temperature: >
-          {{ state_attr('climate.baderomsgulv', 'temperature') + 0.5 * (trigger.to_state.state|int - trigger.from_state.state|int) }}
+          {{ states('input_number.bathroom_temp')|float + 0.5 * states('sensor.analyzer_updown')|int }}
       target:
         entity_id: climate.baderomsgulv
 
