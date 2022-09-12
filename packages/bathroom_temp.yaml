@@ -1,3 +1,11 @@
+input_number:
+  bathroom_temp: 
+    name: Bathroom target temp 
+    max: 27
+    min: 10
+    step: 0.5
+    mode: slider
+
 automation:
   - id: '1662913867828'
     alias: Bathroom Analyzer temp adjustment
