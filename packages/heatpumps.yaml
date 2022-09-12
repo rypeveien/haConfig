@@ -4,13 +4,13 @@ template:
     unit_of_measurement: "°C"
     state: >
       {% set l = namespace (temp=[]) %}
-      {% if not states('sensor.netatmo_rypeveien_netatmo_temperature') in ('unavailible', 'unknown') %}
+      {% if not states('sensor.netatmo_rypeveien_netatmo_temperature') in ['unavailible', 'unknown'] %}
       {% set l.temp = l.temp + [ states('sensor.netatmo_rypeveien_netatmo_temperature')|float] %}
       {% endif %}
-      {% if not states('sensor.vp_oppe_air_temperature') in  ('unavailible', 'unknown') %}
+      {% if not states('sensor.vp_oppe_air_temperature') in  ['unavailible', 'unknown'] and states('sensor.vp_oppe_air_temperature')|float < 50 %}
       {% set l.temp = l.temp + [states('sensor.vp_oppe_air_temperature')|float] %}
       {% endif %}
-      {% if not states('sensor.verandador_temperature') in  ('unavailible', 'unknown') %}
+      {% if not states('sensor.verandador_temperature') in  ['unavailible', 'unknown'] %}
       {% set l.temp = l.temp + [states('sensor.verandador_temperature')|float] %}
       {% endif %}
       {{ l.temp|average|round(1) }}
