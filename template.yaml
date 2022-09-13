@@ -8,6 +8,18 @@ sensor:
   - name: howmanyhome
     unit_of_measurement: 'stk'
     state: "{{ states.person | selectattr('state','eq','home') | list | count }}"
+  - name: outside_temp
+    unit_of_measurement: '°C'
+    state: >
+      {% set o = namespace (temp=[]) %} 
+      {% if not states('sensor.netatmo_rypeveien_netatmo_ute_temperature') in ['unavailable'] %}
+        {% set o.temp = o.temp + [ states('sensor.netatmo_rypeveien_netatmo_ute_temperature')|float ] %}
+      {% endif %}
+      {% if not states('sensor.lumi_ute_temperature') in ['unavailable'] %}
+        {% set o.temp = o.temp + [ states('sensor.lumi_ute_temperature')|float ] %}
+      {% endif %}
+      {{ o.temp|average|round(1) if o.temp|length > 0 else 'undefined' }}
+      
 
 binary_sensor:
   - name: winter_tires_check
