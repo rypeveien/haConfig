@@ -37,6 +37,7 @@ input_select:
       - Charge hours
       - Completed
       - Disconnected
+      - Charging scheduled
 
 input_datetime:
   holiday_until:
@@ -58,13 +59,15 @@ template:
   - name: easee_current_limit
     unit_of_measurement: A
     state: >
+      {% set status_ts = states.sensor.easee_home_63089_status.last_updated.timestamp() %}
       {% if states('sensor.easee_current_limit') in ['unavailable'] %}
         {% if states('sensor.easee_home_63089_dynamic_charger_limit') in ['unavailable'] %}
           {{ 0 }}
         {% else %}
           {{ states('sensor.easee_home_63089_dynamic_charger_limit') }}
         {% endif %}
-      {% elif now().timestamp() - states.sensor.easee_current_limit.last_updated.timestamp() < 300 or now().minute == 0 %}
+      {% elif now().timestamp() - states.sensor.easee_current_limit.last_updated.timestamp() < 300 or now().minute == 0 
+              or (states('sensor.easee_home_63089_status') == 'charging' and now().timestamp() < status_ts + 300) %}
         {{ states('sensor.easee_current_limit')|int(default=0) }}
       {% else %}
         {% set so_far = states.sensor.energiforbruk_time.state|float * 1000 %}
@@ -194,17 +197,45 @@ automation:
     - platform: state
       entity_id: sensor.easee_current_limit
     condition:
-    - condition: state
-      entity_id: sensor.easee_home_63089_status
-      state: charging
+    - condition: or 
+      conditions:
+      - condition: state
+        entity_id: sensor.easee_home_63089_status
+        state: charging
+      - condition: state
+        entity_id: binary_sensor.easee_home_63089_basic_schedule
+        state: 'on'
     action: 
     - service: easee.set_charger_dynamic_limit
       data:
         charger_id: EH630897
         current: "{{ states('sensor.easee_current_limit') }}"
 
+  - id: '1663097253593'
+    alias: Easee set schedule
+    trigger: 
+    - platform: state
+      entity_id: sensor.charge_hours
+    condition:
+    - condition: template
+      value_template: "{{ states('sensor.charge_hours')|from_json|length > 0 }}"
+    action:
+      - service: easee.set_basic_charge_plan
+        data:
+          charger_id: EH630897
+          start_datetime: >
+            {% set start_hour = states('sensor.charge_hours')|from_json|min %}
+            {% set start = now() + timedelta (hours=start_hour - now().hour, minutes=2-now().minute, seconds=-now().second) %}
+            {{ (start|string)[:16] }}
+          stop_datetime: >
+            {% set done_hour = state_attr('input_datetime.car_ready_charged', 'hour') %}
+            {% set done_hour = done_hour if  done_hour > now().hour else  done_hour + 24 %}
+            {% set done = now() + timedelta (hours = done_hour - now().hour, minutes=59-now().minute, seconds=-now().second) %}
+            {{ (done|string)[:16] }}
+          repeat: true
+
   - id: '1616512764082'
-    alias: Easee start trigger
+    alias: Easee start trigger (no schedule)
     description: ''
     trigger:
     - platform: template
@@ -254,7 +285,7 @@ automation:
               entity_id: input_select.why_charge
 
   - id: '1657649088080'
-    alias: Easee charger status change
+    alias: Easee charger status change (no schedule)
     description: ''
     trigger:
     - platform: state
@@ -334,6 +365,74 @@ automation:
           - service: input_select.select_option
             data:
               option: 'No charging'
+            target:
+              entity_id: input_select.why_charge
+
+  - id: '1663156755035'
+    alias: Easee charger status change (schedule usage)
+    description: ''
+    trigger:
+    - platform: state
+      entity_id: sensor.easee_home_63089_status
+      from: disconnected
+      id: connected
+    - platform: state
+      entity_id: sensor.easee_home_63089_status
+      to: disconnected
+      id: disconnected
+    - platform: state
+      entity_id: sensor.easee_home_63089_status
+      to: completed
+      id: completed
+    action:
+    - choose: 
+      - conditions:
+        - condition: trigger
+          id: completed
+        sequence:
+        - service: input_select.select_option
+          data:
+            option: 'Completed'
+          target:
+            entity_id: input_select.why_charge
+        - service: easee.set_charger_dynamic_limit
+          data:
+            charger_id: EH630897
+            current: 16
+      - conditions:
+        - condition: trigger
+          id: disconnected
+        sequence:
+        - service: input_select.select_option
+          data:
+            option: 'Disconnected'
+          target:
+            entity_id: input_select.why_charge
+        - service: easee.set_charger_dynamic_limit
+          data:
+            charger_id: EH630897
+            current: 16
+      - conditions:
+        - condition: trigger
+          id: connected
+        sequence:
+        - choose:
+          - conditions:
+            - condition: numeric_state
+              entity_id: sensor.ev_soc
+              below: 20
+            sequence:
+            - service: easee.resume
+              data:
+                charger_id: EH630897
+            - service: easee.set_charger_dynamic_limit
+              data:
+                charger_id: EH630897
+                current: 16
+          default:
+          - service: input_select.select_option
+            data:
+              option: 'Charging scheduled'
             target:
               entity_id: input_select.why_charge
 
