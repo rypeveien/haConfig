@@ -76,10 +76,17 @@
             entity_id: vacuum.martin
             type: is_cleaning
           sequence:
-          - device_id: 22bed80b6a2c686ba9af11178f87dc16
-            domain: vacuum
-            entity_id: vacuum.martin
-            type: dock
+          - service: vacuum.pause
+            data: {}
+            target:
+              device_id: 22bed80b6a2c686ba9af11178f87dc16
+          - wait_template: "{{ states('vacuum.martin') == 'paused' }}"
+            continue_on_timeout: true
+            timeout: "60"
+          - service: vacuum.return_to_base
+            data: {}
+            target:
+              entity_id: vacuum.martin
         - conditions:
           - condition: state
             entity_id: vacuum.martin
