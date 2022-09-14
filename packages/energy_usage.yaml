@@ -242,11 +242,13 @@ template:
       {% set done = done + 24 if done < hour else done %}
       {% set done = pvguess|length if done > pvguess|length else done %}
       {% for i in range (v.base|length) %}
-      {% if v.base[i].hour < done and v.needed_charge > 0 and (v.base[i].energy + ev_min_charge ) < energy_limit -%}
+      {% if v.base[i].hour < done and v.needed_charge > 0 %}
+      {% if  (v.base[i].energy + ev_min_charge ) < energy_limit %}
       {% set availible = ((energy_limit - v.base[i].energy) / ev_charge_steps)|int * ev_charge_steps -%}
       {% set availible = ev_max_charge if availible > ev_max_charge else availible %}
       {% set v.needed_charge = v.needed_charge - (availible * ev_charge_efficiency/100)|int %}
       {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + availible, 'price': v.base[i].price}] + v.base[i+1:] %}
+      {% endif %}
       {% set v.easee = v.easee + [ v.base[i].hour ] %}
       {% endif %}
       {% endfor %}
