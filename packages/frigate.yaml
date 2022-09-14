@@ -1,3 +1,12 @@
+timer:
+  frigate_silencer:
+    duration: 00:05:00
+    restore: true
+
+input_text: 
+  frigate_last: 
+    max: 255
+
 automation:
   - id: '1660990404933'
     alias: Frigate notify
@@ -11,13 +20,32 @@ automation:
         entity_id: binary_sensor.anyone_home
         state: "off"
     action:
-      - service: notify.mobile_app_xq_au52
-        data_template:
-          message: 'A {{trigger.payload_json["after"]["label"]}} was detected.'
+      - choose:
+        - conditions: 
+          - condition: state
+            entity_id: timer.frigate_silencer
+            state: idle
+          sequence:
+          - service: timer.start
+            entity_id: timer.frigate_silencer
+          - service: notify.mobile_app_xq_au52
+            data_template:
+              message: 'A {{trigger.payload_json["after"]["label"]}} was detected.'
+              data:
+                image: '{{ ext_address }}/api/frigate/notifications/{{trigger.payload_json["after"]["id"]}}/thumbnail.jpg?format=android'
+                tag: '{{trigger.payload_json["after"]["id"]}}'
+                when: '{{trigger.payload_json["after"]["start_time"]|int}}'
+        default:
+        - service: input_text.set_value
+          target:
+            entity_id: timer.frigate_last
           data:
-            image: '{{ ext_address }}/api/frigate/notifications/{{trigger.payload_json["after"]["id"]}}/thumbnail.jpg?format=android'
-            tag: '{{trigger.payload_json["after"]["id"]}}'
-            when: '{{trigger.payload_json["after"]["start_time"]|int}}'
+            value: >
+              {% set msg = trigger.payload_json["after"]["label"] %}
+              {% set img = trigger.payload_json["after"]["id"] %}
+              {% set tag = trigger.payload_json["after"]["id"] %}
+              {% set ts = trigger.payload_json["after"]["start_time"]|int %}
+              {{ { 'msg': msg, 'img': img, 'tag': tag, 'ts': ts }|to_json }}
 
   - id: '1661326781305'
     alias: Turn frigate recordings on or off
