@@ -38,14 +38,49 @@ automation:
         default:
         - service: input_text.set_value
           target:
-            entity_id: timer.frigate_last
+            entity_id: input_text.frigate_last
           data:
             value: >
+              {% set last = states('input_text.frigate_last')|from_json %}
+              {% set count = last.count + 1 if last.count is defined else 1 %}
               {% set msg = trigger.payload_json["after"]["label"] %}
-              {% set img = trigger.payload_json["after"]["id"] %}
-              {% set tag = trigger.payload_json["after"]["id"] %}
+              {% set id = trigger.payload_json["after"]["id"] %}
               {% set ts = trigger.payload_json["after"]["start_time"]|int %}
-              {{ { 'msg': msg, 'img': img, 'tag': tag, 'ts': ts }|to_json }}
+              {{ { 'msg': msg, 'id': id, 'count': count, 'ts': ts }|to_json }}
+
+  - id: '1660990404934'
+    alias: Frigate timer
+    trigger:
+      platform: event
+      event_type: timer_finished
+      event_data:
+        entity_id: timer.frigate_silencer
+    variables:
+      ext_address: !secret ext_address
+      last_frigate: "{{ states('input_text.frigate_last')|from_json }}"
+    action:
+      - choose:
+        - conditions: 
+          - condition: template
+            value_template: >
+              {% set count = last_frigate.count if last_frigate.count is defined else 0 %}
+              {{ count > 1 }}
+          sequence:
+          - service: timer.start
+            entity_id: timer.frigate_silencer
+          - service: notify.mobile_app_xq_au52
+            data_template:
+              message: 'A {{last_frigate.msg}} was detected {{ last_frigate.count }} time(s).'
+              data:
+                image: '{{ ext_address }}/api/frigate/notifications/{{last_frigate.id}}/thumbnail.jpg?format=android'
+                tag: '{{last_frigate.id}}'
+                when: '{{last_frigate.ts}}'
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.frigate_last
+        data:
+          value: >
+            {{ { 'msg': last_frigate.msg, 'id': last_frigate.id, 'ts': last_frigate.ts, 'count': 0}|to_json }}
 
   - id: '1661326781305'
     alias: Turn frigate recordings on or off
