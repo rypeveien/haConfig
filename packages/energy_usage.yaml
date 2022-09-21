@@ -147,10 +147,11 @@ template:
   - name: energy_this_hour_estimate
     unit_of_measurement: 'kWh'
     state: >
-      {% set so_far = states.sensor.energiforbruk_time.state|float %}
-      {% set power = states.sensor.amshan_power_import.state|float / 1000 %}
-      {% set seconds_left = 3600 - now().minute * 60 - now().second %}
-      {{ (so_far + power * seconds_left / 3600)|round(3) }}
+      {% set mnow = now().minute %}
+      {% set mleft = 60 - mnow %}
+      {% set enow = states('sensor.energiforbruk_time')|float * 1000 if mnow > 1 else 0 %}
+      {% set pnow = states('sensor.amshan_power_import')|int %}
+      {{ (enow + pnow * mleft  / 60)|int / 1000 }}
   - name: today_max_usage_guestimate
     unit_of_measurement: 'kWh'
     state: >
