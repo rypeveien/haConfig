@@ -64,7 +64,7 @@ automation:
     description: ''
     trigger:
     - platform: numeric_state
-      entity_id: sensor.vpoppe_power
+      entity_id: sensor.stikk_vp_oppe_power
       for:
         hours: 20
         minutes: 0
