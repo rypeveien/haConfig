@@ -68,7 +68,7 @@ template:
         {% endif %}
       {% elif now().timestamp() - states.sensor.easee_current_limit.last_updated.timestamp() < 300 or now().minute == 0 
               or (states('sensor.easee_home_63089_status') == 'charging' and now().timestamp() < status_ts + 300) %}
-        {{ states('sensor.easee_current_limit')|int(default=0) }}
+        {{ states('sensor.easee_current_limit')|int(default=16) }}
       {% else %}
         {% set so_far = states.sensor.energiforbruk_time.state|float * 1000 %}
         {% set power = states.sensor.amshan_power_import.state|float  %}
