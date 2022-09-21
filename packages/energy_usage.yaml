@@ -109,7 +109,7 @@ template:
     unit_of_measurement: W
     device_class: power
     state: >
-      {{ states('sensor.vpoppe_power')|int(default=0)
+      {{ states('sensor.stikk_vp_oppe_power')|int(default=0)
        + states('sensor.vpnede_power')|int(default=0)
        + states('sensor.kjoleskap_electric_consumption_w')|int(default=0)
        + states('sensor.inngangstikk_power')|int(default=0)
