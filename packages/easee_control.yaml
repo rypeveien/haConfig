@@ -96,7 +96,8 @@ template:
     state: >
       {% set soc = states('sensor.soc_estimate')|float(default=50) %}
       {% if soc != 100 or is_state('sensor.easee_home_63089_status',  'disconnected') %}
-        {% set soc = states('sensor.evnotify_soc')|float %}
+        {% set soc_evn = states('sensor.evnotify_soc') %}
+        {% set soc = soc_evn|float if soc_evn not in ['unavailable'] else soc %}
         {% if is_state('sensor.easee_home_63089_status', 'completed') %}
           {% set soc = 100 %}
         {% elif is_state('sensor.easee_home_63089_status', 'disconnected') %}
