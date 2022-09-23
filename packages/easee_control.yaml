@@ -123,6 +123,11 @@ template:
         {% endif %}
       {% endif %}
       {{ soc }}
+  - name: easee_basic_schedule_start
+    state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStartTime') }}"
+  - name: easee_basic_schedule_stop
+    state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStopTime') }}"
+
 
   binary_sensor:
   - name: wants_to_charge
