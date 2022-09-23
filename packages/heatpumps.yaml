@@ -100,3 +100,22 @@ automation:
           - sensor.vp_oppe_air_temperature
           - sensor.vp_nede_air_temperature
 
+  - id: '1663912913996'
+    alias: Analyzer-adjust heat-pump temperature 
+    trigger:
+      - platform: state
+        entity_id: 
+        - sensor.analyzer_updown
+        -  input_number.stue_temp
+    condition:
+      - condition: template
+        value_template: >
+          {{ states('sensor.analyzer_updown') in ['-1', '0', '1'] }}
+    action:
+      - service: climate.set_temperature
+        data: 
+          hvac_mode: heat
+          temperature: >
+            {{ states('input_number.stue_temp')|float + states('sensor.analyzer_updown')|int }}
+        target:
+          entity_id: climate.vp_oppe
