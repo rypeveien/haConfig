@@ -43,6 +43,10 @@ input_datetime:
   holiday_until:
     has_date: true
     has_time: false
+
+input_text: 
+  known_soc: 
+    max: 50
   
   
 sensor: 
@@ -108,7 +112,12 @@ template:
         {% else %}
           {% if states.sensor.evnotify_soc.last_updated < 
            states.sensor.easee_home_63089_session_energy.last_updated %}
-            {% set soc = soc + states('sensor.easee_home_63089_session_energy')|float * states('input_number.ev_charge_efficiency')|float * 1000  / states('input_number.ev_battery_pack')|int %}
+            {% set known = states('sensor.known_soc')|from_json %}
+            {% set soc = known.soc|float %}
+            {% set energy = known.energy|float %}
+            {% set energy = states('sensor.easee_home_63089_session_energy')|float - energy %}
+
+            {% set soc = soc + energy * states('input_number.ev_charge_efficiency')|float * 1000  / states('input_number.ev_battery_pack')|int %}
             {% set soc = 95 if soc > 95 else soc %}
           {% endif %}  
         {% endif %}
@@ -220,6 +229,10 @@ automation:
     condition:
     - condition: template
       value_template: "{{ states('sensor.charge_hours')|from_json|length > 0 }}"
+    - condition: template
+      value_template: >
+        {{ states('sensor.charge_hours')|from_json|min > now().hour 
+           or states('sensor.easee_home_63089_status') != 'charging' }}
     action:
       - service: easee.set_basic_charge_plan
         data:
@@ -437,3 +450,22 @@ automation:
             target:
               entity_id: input_select.why_charge
 
+  - id: '1663885991498'
+    alias: cache evnotify_soc and session_energy at start of charging session
+    trigger: 
+      - platform: state
+        entity_id: sensor.evnotify_soc
+    condition: 
+      - condition: template
+        value_template: "{{ states('sensor.evnotify_soc') not in ['unavailable'] }}"
+    action: 
+      - service: input_text.set_value
+        data: 
+          value: >
+            {% set energy = states('sensor.easee_home_63089_session_energy')| int 
+                            if states('sensor.easee_home_63089_status') == 'charging' else 0 %}
+            {{ {'energy': energy, 
+                'soc': states('sensor.evnotify_soc'), 
+                'ts': state_attr('sensor.evnotify_soc', 'last_soc') }|to_json }}
+        target: 
+          entity_id: input_text.known_soc
