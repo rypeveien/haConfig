@@ -11,7 +11,7 @@ automation:
     - platform: template
       value_template: >
         {% set hour = now().hour %}
-        {% set switch = states('switch.plugg_kompressor') %}
+        {% set switch = states('switch.pluggkompressor') %}
         {{ (hour >= 10 and hour < 22 and  switch == 'off') 
             or (hour >= 22 and  switch == 'on') }}
       id: daily_schedule
