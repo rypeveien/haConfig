@@ -98,10 +98,11 @@ template:
   - name: soc_estimate
     unit_of_measurement: "%"
     state: >
+      {% set known = states('input_text.known_soc')|from_json %}
       {% if is_state('sensor.easee_home_63089_status', 'completed') %}
         {{ 100 }}
       {% elif is_state('sensor.easee_home_63089_status',  'disconnected') %}
-        {{ (states('input_text.known_soc')|from_json).soc }}
+        {{ known.soc }}
       {% else %}
         {% set soc = known.soc|float %}
         {% set energy = known.energy|float %}
