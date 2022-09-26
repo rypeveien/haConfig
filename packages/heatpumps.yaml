@@ -111,6 +111,10 @@ automation:
       - condition: template
         value_template: >
           {{ states('sensor.analyzer_updown') in ['-1', '0', '1'] }}
+      - condition: template
+        value_template: >
+          {{ trigger.entity_id != 'sensor.analyzer_updown' or 
+             trigger.from_state.state in ['-1', '0', '1'] }}
     action:
       - service: climate.set_temperature
         data: 
