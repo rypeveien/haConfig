@@ -24,10 +24,6 @@ sensor:
 binary_sensor:
   - name: winter_tires_check
     state: '{{ states.input_boolean.winter_tyres.state == states.binary_sensor.snowtire.state }}'
-  - name: vvtank_on
-    state: '{{ states(''sensor.vv_tank_electric_consumption_w'')|float(default=0) > 0 }}'
-  - name: vvkjeller_on
-    state: '{{ states(''sensor.vv_kjeller_power'')|float(default=0) > 0 }}'
   - name: vaskemaskin_on
     state: '{{ states(''sensor.stikk_vaskemaskin_power'')|float(default=0) > 2 }}'
     delay_off: 
