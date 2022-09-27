@@ -93,7 +93,7 @@ template:
     device_class: power
     state: >
       {{ states('sensor.vv_tank_electric_consumption_w')|int(default=0)
-         + states('sensor.vv_kjeller_power')|int(default=0)
+         + states('sensor.stikk_vv_kjeller_power')|int(default=0)
          + states('sensor.stikk_vaskemaskin_power')|int(default=0)
          + states('sensor.stikk_torketrommel_power')|int(default=0)
          + states('sensor.shellyhvitevare_channel_1_power')|int(default=0)
@@ -110,7 +110,7 @@ template:
     device_class: power
     state: >
       {{ states('sensor.stikk_vp_oppe_power')|int(default=0)
-       + states('sensor.vpnede_power')|int(default=0)
+       + states('sensor.stikk_vp_nede_power')|int(default=0)
        + states('sensor.kjoleskap_electric_consumption_w')|int(default=0)
        + states('sensor.inngangstikk_power')|int(default=0)
        + states('sensor.server_power')|int(default=0)
