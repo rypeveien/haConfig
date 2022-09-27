@@ -18,7 +18,15 @@ sensor:
   - platform: derivative
     name: Main bath humidity change
     source: sensor.lumi_bad_humidity
+    round: 0
     unit: '%'
+    time_window: "01:00:00"
+  - platform: derivative
+    name: Downstairs bath humidity change
+    source: sensor.lumi_bad_nede_humidity
+    round: 0
+    unit: '%'
+    time_window: "01:00:00"
 
 template:
   - sensor: 
