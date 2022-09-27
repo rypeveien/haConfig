@@ -1,8 +1,3 @@
-timer: 
-  compressor_auto_off:
-    duration: 00:30:00
-    restore: true
-
 automation: 
   - id: '1637565436384'
     alias: Compressor
@@ -11,12 +6,13 @@ automation:
     - platform: template
       value_template: >
         {% set hour = now().hour %}
+        {% set last = states.switch.pluggkompressor.last_updated.timestamp() %}
         {% set switch = states('switch.pluggkompressor') %}
-        {{ (hour >= 10 and hour < 22 and  switch == 'off') 
-            or (hour >= 22 and  switch == 'on') }}
+        { % set wants = 'on' if hour >= 10 and hour < 22 else 'off') 
+        {{ now().timestamp() - last > 1800 and switch != wants }}
       id: daily_schedule
     action:
       - service: switch.toggle
         target:
-          device_id: 211bf8bc4c53b243d144322c49dcec6c
+          entity_id: switch.pluggkompressor
     mode: single
