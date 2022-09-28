@@ -8,7 +8,7 @@ automation:
         {% set hour = now().hour %}
         {% set last = states.switch.pluggkompressor.last_updated.timestamp() %}
         {% set switch = states('switch.pluggkompressor') %}
-        { % set wants = 'on' if hour >= 10 and hour < 22 else 'off') 
+        {% set wants = 'on' if hour >= 10 and hour < 22 else 'off' %}
         {{ now().timestamp() - last > 1800 and switch != wants }}
       id: daily_schedule
     action:
