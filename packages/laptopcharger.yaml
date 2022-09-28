@@ -31,13 +31,13 @@ automation:
     description: ''
     trigger:
     - platform: template
-      value_template: '{{ states(''sensor.fajlat2_battery'')|int(default=50) > 80 }}'
+      value_template: "{{ states('sensor.fajlat2_battery')|int(default=50) > 80 }}"
     - platform: template
-      value_template: '{{ states(''sensor.fajlat2_battery'')|int(default=50) < 20 }}'
+      value_template: "{{ states('sensor.fajlat2_battery')|int(default=50) < 20 }}"
     - platform: template
-      value_template: '{{ states(''sensor.laptoplader_electric_consumption_w'')|float(default=0) <= 5}}'
+      value_template: "{{ states('sensor.laptoplader_electric_consumption_w')|float(default=0) <= 5}}"
     - platform: template
-      value_template: '{{ now().timestamp() - states.switch.laptoplader.last_updated.timestamp() > (8 * 3600) }}'
+      value_template: "{{ now().timestamp() - states.switch.laptoplader.last_updated.timestamp() > (8 * 3600) }}"
       id: 8hour
     - platform: template
       value_template: >
@@ -79,7 +79,7 @@ automation:
       - conditions:
         - condition: template
           value_template: >
-            {{ now().timestamp() - as_timestamp(states.sensor.fajlat2_battery.last_changed) > 600 }}
+            {{ now().timestamp() - states.sensor.fajlat2_battery.last_updated.timestamp() > 600 }}
         sequence:
           - choose:
             - conditions:
