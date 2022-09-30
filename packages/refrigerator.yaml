@@ -1,0 +1,8 @@
+sensor:
+  - platform: derivative
+    name: Kjøleskap temp change
+    source: sensor.kjoleskap_temperatur_temperature
+    round: 0
+    unit: '%'
+    time_window: "00:02:00"
+
