@@ -58,6 +58,14 @@ sensor:
   unit_prefix: k
   unit_time: h
 
+utility_meter:
+  easee_usage_hourly:
+    source: sensor.easee_energy
+    cycle: hourly
+  easee_usage_monthly:
+    source: sensor.easee_energy
+    cycle: monthly
+
 template:
   sensor:
   - name: easee_current_limit

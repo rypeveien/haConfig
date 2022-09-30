@@ -48,7 +48,13 @@ utility_meter:
   uncontrolled_hourly:
     source: sensor.power_uncontrolled
     cycle: hourly
-    
+  energy_usage_month:
+    source: sensor.energiforbruk
+    cycle: monthly
+  energy_production_month:
+    source: sensor.energiproduksjon
+    cycle: monthly
+
 template:
   sensor:
   - name: rest_of_month_energy_limit

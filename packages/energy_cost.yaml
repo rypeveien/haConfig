@@ -41,8 +41,46 @@ rest:
           - "today"
           - "tomorrow"
 
+utility_meter:
+  easee_cost_monthly:
+    source: sensor.easee_cost_hourly
+    cycle: monthly
+  energy_cost_monthly:
+    source: sensor.energy_cost_hourly
+    cycle: monthly
+  energy_sold_monthly: 
+    source: sensor.energy_sold_hourly
+    cycle: monthly
+  grid_cost_monthly:
+    source: sensor.grid_cost_hourly
+    cycle: monthly
+  grid_reward_monthly:
+    source: sensor.grid_reward_hourly
+    cycle: monthly
+
 template:
   sensor:
+    - name: easee_cost_hourly
+      state: >
+        {{ (states('sensor.energy_raw_nok_kwh')|float * 
+           states('sensor.easee_usage_hourly')|float(0))|round(4) }}
+    - name: sensor.energy_cost_hourly
+      state: >
+        {{ (states('sensor.energy_raw_nok_kwh')|float * 
+           states('sensor.energiforbruk')|float(0))|round(4) }}
+    - name: sensor.energy_sold_hourly
+      state: >
+        {{ (states('sensor.energy_raw_nok_kwh')|float * 
+           states('sensor.energiproduksjon')|float(0))|round(4) }}
+    - name: sensor.grid_cost_hourly
+      state: >
+        {{ (states('sensor.template_grid_charge')|float * 
+           states('sensor.energiforbruk')|float(0))|round(4) }}
+    - name: sensor.grid_reward_hourly
+      state: >
+        {{ (states('sensor.template_grid_charge')|float * 
+           states('sensor.energiproduksjon')|float(0))|round(4) }}
+
     - name: energy_subsides
       unit_of_measurement: 'NOK/kWh'
       state: >
