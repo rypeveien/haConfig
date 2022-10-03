@@ -80,6 +80,11 @@ template:
             + states('sensor.grid_cost_monthly')|float
             - states('sensor.grid_reward_monthly')|float
             - states('sensor.energy_subsides') |float * all_usage)|round(2) }}
+    - name: monthly_subsides
+      unit_of_measurement: "NOK"
+      state: >
+        {% set all_usage = states('sensor.energy_usage_month')|float %}
+        {{ (states('sensor.energy_subsides') |float * all_usage)|round(2) }}
     - name: kapasitetstrinn
       unit_of_measurement: "NOK"
       state: >
