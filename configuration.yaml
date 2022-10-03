@@ -31,6 +31,10 @@ rest: !include rest.yaml
 
 python_script:
 
+device_tracker: 
+  - platform: bluetooth_le_tracker
+    track_new_devices: true
+
 recorder:
   purge_keep_days: 30
   commit_interval: 20
