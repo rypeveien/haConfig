@@ -1,0 +1,25 @@
+automation:
+  - id: '1664793966388'
+    alias: Notify if refrigerator door seems to be left open
+    description: ''
+    trigger:
+    - platform: numeric_state
+      entity_id: sensor.kjoleskap_temp_change
+      for:
+        hours: 0
+        minutes: 2
+        seconds: 0
+      above: 15
+    condition: []
+    action:
+    - service: media_player.volume_set
+      data:
+        volume_level: 0.2
+      target:
+        entity_id: media_player.stue
+    - service: tts.google_translate_say
+      data:
+        entity_id: media_player.stue
+        message: 'Unnskyld, men har dere glemt kjøleskapsdøren ? '
+        language: 'no'
+    mode: single
