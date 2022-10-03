@@ -10,12 +10,6 @@ input_text:
     max: 255
 
 input_number:
-  tibber_day_average_month_sum:
-    name: Tibber day average month sum
-    max: 99
-    min: 0
-    step: 0.001
-    unit_of_measurement: "NOK"
   energy_raw_month_average:
     name: Cached calculated average cost NOK/kWh
     max: 100
@@ -54,39 +48,77 @@ utility_meter:
   grid_cost_monthly:
     source: sensor.grid_cost_hourly
     cycle: monthly
-  grid_reward_monthly:
-    source: sensor.grid_reward_hourly
-    cycle: monthly
 
 template:
   sensor:
+    - name: tibber_cost
+      unit_of_measurement: "NOK"
+      state: >
+        {% set easee_usage = states('sensor.easee_usage_monthly')|float %}
+        {% set all_usage = states('sensor.energy_usage_month')|float %}
+        {% set non_easee_usage = all_usage - easee_usage %}
+        {% set easee_cost = states('sensor.easee_cost_monthly')|float * 1.25 + 0.01 * all_usage %}
+        {% set all_cost = states('sensor.energy_cost_monthly')|float * 1.25 + 0.01 * easee_usage %}
+        {% set non_easee_cost = all_cost - easee_cost %}
+        {% set non_easee_nok_kwh = non_easee_cost / non_easee_usage %}
+        {% set easee_nok_kwh = easee_cost / easee_usage %}
+        {% set easee_nok_kwh = easee_nok_kwh if easee_nok_kwh <= non_easee_nok_kwh * 0.8
+                          else non_easee_nok_kwh * 0.8 %}
+        {% set all_energy_cost = non_easee_cost + easee_usage * easee_nok_kwh %}
+        {{ (39 + all_energy_cost - states('sensor.energy_sold_monthly')|float)|round(2) }}
+    - name: los_cost
+      unit_of_measurement: "NOK"
+      state: >
+        {% set all_usage = states('sensor.energy_usage_month')|float %}
+         {{ (9 + (states('sensor.energy_cost_monthly')|float * 1.25 + 0.0345 * all_usage) * 0.98
+                - states('sensor.energy_sold_monthly')|float)|round(2) }}
+    - name: grid_cost
+      unit_of_measurement: "NOK"
+      state: >
+        {% set all_usage = states('sensor.energy_usage_month')|float %}
+        {{ (states('sensor.kapasitetstrinn')|float
+            + states('sensor.grid_cost_monthly')|float
+            - states('sensor.grid_reward_monthly')|float
+            - states('sensor.energy_subsides') |float * all_usage)|round(2) }}
+    - name: kapasitetstrinn
+      unit_of_measurement: "NOK"
+      state: >
+        {% set limit = states('input_select.energy_month_limit')|int %}
+        {{ 245 if limit <= 2000 else
+           315 if limit <= 5000 else
+           440 if limit <= 10000 else
+           815 if limit <= 15000 else
+           1500 }}
     - name: easee_cost_hourly
+      unit_of_measurement: "NOK"
       state: >
         {{ (states('sensor.energy_raw_nok_kwh')|float * 
            states('sensor.easee_usage_hourly')|float(0))|round(4) }}
-    - name: sensor.energy_cost_hourly
+    - name: energy_cost_hourly
+      unit_of_measurement: "NOK"
       state: >
         {{ (states('sensor.energy_raw_nok_kwh')|float * 
-           states('sensor.energiforbruk')|float(0))|round(4) }}
-    - name: sensor.energy_sold_hourly
+           states('sensor.energiforbruk_time')|float(0))|round(2) }}
+    - name: energy_sold_hourly
+      unit_of_measurement: "NOK"
       state: >
         {{ (states('sensor.energy_raw_nok_kwh')|float * 
-           states('sensor.energiproduksjon')|float(0))|round(4) }}
-    - name: sensor.grid_cost_hourly
+           states('sensor.energiproduksjon_time')|float(0))|round(2) }}
+    - name: grid_cost_hourly
+      unit_of_measurement: "NOK"
       state: >
         {{ (states('sensor.template_grid_charge')|float * 
-           states('sensor.energiforbruk')|float(0))|round(4) }}
-    - name: sensor.grid_reward_hourly
+           states('sensor.energiforbruk_time')|float(0))|round(2) }}
+    - name: grid_reward_monthly
+      unit_of_measurement: "NOK"
       state: >
-        {{ (states('sensor.template_grid_charge')|float * 
-           states('sensor.energiproduksjon')|float(0))|round(4) }}
-
+        {{ (0.04 * states('sensor.energy_production_month')|float(0))|round(2) }}
     - name: energy_subsides
       unit_of_measurement: 'NOK/kWh'
       state: >
-        {% set percent = 0.80 if now().month < 9 else 0.90 %}
-        {% set raw = states('input_number.energy_raw_month_average')|float %}
-        {{ ((raw - 0.7)* percent *1.25)|round(4) if raw > 0.7 else 0 }}
+        {% set percent = 0.90 %}
+        {% set raw = states('input_text.tibber_month_average')|from_json|average %}
+        {{ ((raw - 0.7)* percent * 1.25)|round(4) if raw > 0.7 else 0 }}
     - unique_id: energy_by_subsides_and_production
       unit_of_measurement: 'NOK/kWh'
       state: >
@@ -415,31 +447,17 @@ automation:
     condition: []
     variables:
       new_list: >
-        {% set today = states.input_text.tibber_today.state|from_json %}
-        {% set month = states.input_text.tibber_month_average.state|from_json if now().day > 1 else [] %}
-        {{ month + [ (today|average)|round(4) ] }}
-      new_average: >
-        {% set input = states.input_text.tibber_today.state|from_json %}
-        {% set sum = states.input_number.energy_raw_month_average.state|float * (now().day - 1) if now().day > 1 else 0 %}
-        {{ ((input|average + sum) / now().day)|round(5) }}
-      new_sum: >
-        {% set last = states.input_number.tibber_day_average_month_sum.state|float if now().day > 1 else 0 %}
-        {% set input = states.input_text.tibber_today.state|from_json %}
-        {{ input|average + last }}
+        {% set today = states('input_text.tibber_today')|from_json %}
+        {% set avg  = [today|average|round(4)] +  states('input_text.tibber_month_average')|from_json %}
+        {% set month = now().month %}
+        {% set length = 31 if month in [1, 3, 5, 7, 8, 10, 12] else
+                        30 if month in [4, 6, 9, 11] else
+                        29 if now().year % 4 == 0 else 28 %}
+        {{ month[:length] }}
     action:
     - condition: template
       value_template: >
-        {{ now().day != as_local(states.input_number.energy_raw_month_average.last_updated).day }}
-    - service: input_number.set_value
-      data:
-        value: '{{ new_average }}'
-      target: 
-        entity_id: input_number.energy_raw_month_average
-    - service: input_number.set_value
-      data:
-        value: '{{ new_sum }}'
-      target: 
-        entity_id: input_number.tibber_day_average_month_sum
+        {{ now().day != as_local(states.input_text.tibber_month_average.last_updated).day }}
     - service: input_text.set_value
       data:
         value: '{{ new_list }}'
