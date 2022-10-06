@@ -71,14 +71,12 @@ automation:
         seconds: 0
       below: '50'
     condition:
-    - condition: not
-      conditions:
-      - condition: device
-        device_id: c26046a34e1fac9463da2e9fe2b62a84
-        domain: climate
-        entity_id: climate.vp_oppe
-        type: is_hvac_mode
-        hvac_mode: 'off'
+    - condition: device
+      device_id: c26046a34e1fac9463da2e9fe2b62a84
+      domain: climate
+      entity_id: climate.vp_oppe
+      type: is_hvac_mode
+      hvac_mode: 'cool'
     action:
     - device_id: c26046a34e1fac9463da2e9fe2b62a84
       domain: climate
