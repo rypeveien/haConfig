@@ -33,7 +33,7 @@ python_script:
 
 device_tracker: 
   - platform: bluetooth_le_tracker
-    track_new_devices: true
+    track_new_devices: false
 
 recorder:
   purge_keep_days: 30
