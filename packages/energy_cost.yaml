@@ -186,9 +186,14 @@ template:
           {% endfor %}
           {{ var.price|to_json }}
         analyzer: >
-          {% set v = namespace(priceanalyze = []) %}
+          {% set v = namespace(priceanalyze = [], prices_with_floor = []) %}
           {% set prices =
              state_attr('sensor.template_energy_by_subsides_and_production','prices') %}
+          {% set floor = prices|min + 0.00001 if prices|min <= 0 else 0 %}
+          {% for hour in range(prices|length) %}
+          {% set v.prices_with_floor = v.prices_with_floor + [prices[hour] - floor ] %}
+          {% endfor %}
+          {% set prices = v.prices_with_floor %}
           {% set diff = (prices|min / prices|max) - 1 %}
           {% set p_threshold = (diff / 4) * -1 %}
           {% set gp_threshold = 1 - p_threshold %}
@@ -198,6 +203,7 @@ template:
           {% set falling = prices[hour]/min(prices[hour:hour+4]) > fp_threshold %}
           {% set ret = -1 if hour > (prices|length - 1) and (prices[hour + 1] / prices[hour]) < 0.8
                       else -1 if prices[hour] >= max(prices)
+                      else 1 if prices[hour] <= min(prices)
                       else -1 if hour < prices|length - 1 and prices[hour+1] / prices[hour] < 0.60
                       else 1 if gaining and prices[hour] < (prices|sort(1))[4]
                       else -1 if falling and prices[hour] > average(prices)
