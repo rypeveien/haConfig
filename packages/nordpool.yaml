@@ -31,18 +31,6 @@ template:
         {% endif %}
         {% endfor %}
         {{ l.prices|to_json }}
-    - name: nordpool_month_average
-      unit_of_measurement: 'NOK/kWh'
-      state: >
-        {% set month = states('input_text.nordpool_month')|from_json %}
-        {% set tomorrow = states('input_text.nordpool_tomorrow')|from_json %}
-        {% if tomorrow|length > 0 %}
-          {% if now().month == (now() + timedelta(hours = 24)).month %}
-            {% set month = month + [ tomorrow|average ] %}
-          {% endif %}
-        {% endif %}
-        {{ month |average|round(4) }}
-
 
 automation:  
   - id: '1654892652238'
