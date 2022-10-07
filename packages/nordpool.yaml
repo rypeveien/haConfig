@@ -1,14 +1,3 @@
-input_text:
-  nordpool_today:
-    name: Nordpool spot price today
-    max: 200
-  nordpool_tomorrow:
-    name: Nordpool spot price tomorrow
-    max: 200
-  nordpool_month:
-    name: Nordpool spot price month daily average
-    max: 255
-
 rest:
   - resource: "https://www.nordpoolgroup.com/api/marketdata/page/23?currency=,NOK,NOK,EUR"
     scan_interval: 129600
@@ -22,15 +11,47 @@ rest:
 
 template:
   - sensor:
-    - name: nordpool_prices
-      state: >
-        {% set l = namespace(prices=[]) %}
-        {% for row in states.sensor.nordpool_api.attributes.Rows %}
-        {% if (as_datetime(row.EndTime).timestamp() - as_datetime(row.StartTime).timestamp() == 3600) %}
-        {% set l.prices = l.prices + [(row.Columns[1].Value|replace(" ", "")|replace(",", ".")|float/1000)|round(4)] %}
-        {% endif %}
-        {% endfor %}
-        {{ l.prices|to_json }}
+      - name: nordpool_tomorrow
+        state: >
+          {% set v = namespace(tomorrow=[]) %}
+          {% set rows = state_attr('sensor.nordpool_api', 'Rows') %}
+          {% if rows|length > 0 and 
+            as_datetime(rows[0].StartTime).day == (now() + timedelta(days=1)).day %}
+            {% for row in rows %}
+            {% for col in row.Columns %}
+            {% if col.Name == 'Kr.sand' %}
+            {% set v.tomorrow = v.tomorrow + [ (col.Value|replace(',', '.')|float/1000)|round(4) ] 
+               if v.tomorrow|length == as_datetime(row.StartTime).hour else v.tomorrow %}
+            {% endif %}
+            {% endfor %}
+            {% endfor %}
+          {% endif %}
+          {{ v.tomorrow }}
+#          To list names for the different sones. Use template in Developer tools to list them
+#          {% for cols in state_attr('sensor.nordpool_api', 'Rows')[0].Columns %} {{ cols.Name }} {% endfor %}
+
+  - trigger:
+      - platform: state
+        entity_id: sensor.nordpool_tomorrow
+    sensor:
+      - name: nordpool_today
+        state: >
+          {% set last = states('sensor.nordpool_today') %}
+          {% set new = trigger.from_state.state %}
+          {{ new if trigger.to_state.state == '[]' else last }}
+  - trigger:
+      - platform: state
+        entity_id: sensor.nordpool_today
+    sensor:
+      - name: nordpool_month
+        state: >
+          {% set last = states('sensor.nordpool_month')|from_json %}
+          {% set month = now().month %}
+          {% set length = 31 if month in [1, 3, 5, 7, 8, 10, 12]
+                     else 30 if month in [4, 6, 9, 11 ]
+                     else 29 if now().year % 4 == 0
+                     else 28 %}
+          {{ ([ states('sensor.nordpool_today')|from_json|average|round(4) ] + last)[:length] }}
 
 automation:  
   - id: '1654892652238'
@@ -38,15 +59,15 @@ automation:
     trigger: 
     - platform: template
       value_template: >
-        {{ as_datetime(states.sensor.nordpool_api.state).day != now().day and
+        {{ as_datetime(states('sensor.nordpool_api')).day != now().day and
           (now().minute % 30) == 18 and now().hour >= 13 and 
-          states.automation.nordpool_price_update.attributes.current == 0 }}
+          state_attr('automation.nordpool_price_update', 'current') == 0 }}
     condition: []
     action: 
     - choose:
       - conditions: 
         - condition: template
-          value_template: '{{ states.input_text.tibber_tomorrow.state == ''[]'' }}'
+          value_template: "{{ states('input_text.tibber_tomorrow') == '[]' }}"
         sequence:
         - delay: 
             seconds: '{{ range(1,1740)|random|int }}'
@@ -56,66 +77,4 @@ automation:
     - service: homeassistant.update_entity
       target:
         entity_id: sensor.nordpool_api
-    - delay: 
-        seconds: '10'
-    - service: input_text.set_value
-      data:
-        value: >
-          {% set l = namespace(prices=[]) %}
-          {% for row in states.sensor.nordpool_api.attributes.Rows %}
-            {% if (as_datetime(row.EndTime).timestamp() - as_datetime(row.StartTime).timestamp() == 3600) %}
-              {% for column in row.Columns %}
-                {% if column.Name  == 'Kr.sand' %}
-                  {% set l.prices = l.prices +
-                    [(column.Value|replace(" ", "")|replace(",",".")|float/1000)|round(4)] %}
-                {% endif %}
-              {% endfor %}
-            {% endif %}
-          {% endfor %}
-          {{ l.prices|to_json }}
-#          To list names for the different sones. Use template in Developer tools to list them
-#          {% for cols in state_attr('sensor.nordpool_api', 'Rows')[0].Columns %} {{ cols.Name }} {% endfor %}
-      target: 
-        entity_id: input_text.nordpool_tomorrow
-    - delay: 
-        seconds: '10'
-    - condition: template
-      value_template: '{{ states.input_text.tibber_tomorrow.state == ''[]'' }}'
-    - condition: template
-      value_template: '{{ as_datetime(states.sensor.nordpool_api.state).day == now().day }}'
-    - service: input_text.set_value
-      data:
-        value: "{{ states('input_text.nordpool_tomorrow') }}"
-      target: 
-        entity_id: input_text.tibber_tomorrow
 
-  - id: '1662150028981'
-    alias: Calculate monthly spot price average price
-    description: ''
-    trigger: 
-    - platform: template
-      value_template: "{{ as_local(states.input_text.nordpool_today.last_updated).day != now().day }}"
-    action:
-    - service: input_text.set_value
-      data:
-        value: "{{ states('input_text.nordpool_tomorrow') }}"
-      target: 
-        entity_id: input_text.nordpool_today
-    - service: input_text.set_value
-      data:
-        value: '[]'
-      target: 
-        entity_id: input_text.nordpool_tomorrow
-    - delay: 
-        seconds: '10'
-    - service: input_text.set_value
-      data:
-        value: >
-          {% set length = 31 if month in [1, 3, 5, 7, 8, 10, 12] else
-                  30 if month in [4, 6, 9, 11] else
-                  29 if now().year % 4 == 0 else 28 %}
-          {% set today = states.input_text.nordpool_today.state|from_json %}
-          {% set month = states.input_text.nordpool_month.state|from_json %}
-          {{ ([(today|average)|round(4) ] + month)[:length]|to_json }}
-      target: 
-        entity_id: input_text.nordpool_month
