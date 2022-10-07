@@ -6,3 +6,45 @@ sensor:
     unit: '%'
     time_window: "00:02:00"
 
+automation:
+  - id: '1664793966388'
+    alias: Notify if refrigerator door seems to be left open
+    description: ''
+    trigger:
+    - platform: numeric_state
+      entity_id: sensor.kjoleskap_temp_change
+      for:
+        hours: 0
+        minutes: 2
+        seconds: 0
+      above: 15
+    condition: []
+    action:
+    - service: sonos.snapshot
+      data:
+        entity_id: media_player.stue
+        with_group: true
+    - service: media_player.volume_set
+      data:
+        volume_level: 0.3
+      target:
+        entity_id: media_player.stue
+    - service: tts.google_translate_say
+      data:
+        entity_id: media_player.stue
+        message: 'Unnskyld, men har dere glemt kjøleskapsdøren ? '
+        language: 'no'
+    - delay: 1
+    - wait_template: "{{ is_state('media_player.stue', 'paused') }}"
+    - service: media_player.volume_set
+      data:
+        volume_level: "{{ mediaplayer_volume_level }}"
+      target:
+        entity_id: media_player.stue
+    - service: sonos.restore
+      data:
+        entity_id: media_player.stue
+        with_group: true
+    variables: 
+      mediaplayer_volume_level: "{{ state_attr('media_player.stue', 'volume_level') }}"
+    mode: single

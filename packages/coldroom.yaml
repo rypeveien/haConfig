@@ -85,6 +85,10 @@ automation:
       entity_id: binary_sensor.anyone_home
       state: 'on'
     action:
+    - service: sonos.snapshot
+      data:
+        entity_id: media_player.stue
+        with_group: true
     - service: media_player.volume_set
       data:
         volume_level: 0.3
@@ -95,6 +99,19 @@ automation:
         entity_id: media_player.stue
         language: 'no'
         message: 'Har kjølerommet hengt seg opp ? '
+    - delay: 1
+    - wait_template: "{{ is_state('media_player.stue', 'paused') }}"
+    - service: media_player.volume_set
+      data:
+        volume_level: "{{ mediaplayer_volume_level }}"
+      target:
+        entity_id: media_player.stue
+    - service: sonos.restore
+      data:
+        entity_id: media_player.stue
+        with_group: true
+    variables: 
+      mediaplayer_volume_level: "{{ state_attr('media_player.stue', 'volume_level') }}"
     mode: single
 
   - id: '1657401474141'
