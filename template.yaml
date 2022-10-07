@@ -1,9 +1,9 @@
 sensor:
   - name: windspeed_ms
-    state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_wind_strength'')|float / 3.6)|round(1) }}'
+    state: '{{ (states(''sensor.netatmo_vindmaler_wind_strength'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
   - name: windgust_ms
-    state: '{{ (states(''sensor.netatmo_rypeveien_netatmo_vindmaler_gust_strength'')|float / 3.6)|round(1) }}'
+    state: '{{ (states(''sensor.netatmo_vindmaler_gust_strength'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
   - name: howmanyhome
     unit_of_measurement: 'stk'
@@ -12,10 +12,10 @@ sensor:
     unit_of_measurement: '°C'
     state: >
       {% set o = namespace (temp=[]) %} 
-      {% if not states('sensor.netatmo_rypeveien_netatmo_ute_temperature') in ['unavailable'] %}
-        {% set o.temp = o.temp + [ states('sensor.netatmo_rypeveien_netatmo_ute_temperature')|float ] %}
+      {% if not states('sensor.netatmo_ute_temperature') in ['unavailable', 'unknown'] %}
+        {% set o.temp = o.temp + [ states('sensor.netatmo_ute_temperature')|float ] %}
       {% endif %}
-      {% if not states('sensor.lumi_ute_temperature') in ['unavailable'] %}
+      {% if not states('sensor.lumi_ute_temperature') in ['unavailable', 'unknown'] %}
         {% set o.temp = o.temp + [ states('sensor.lumi_ute_temperature')|float ] %}
       {% endif %}
       {{ o.temp|average|round(1) if o.temp|length > 0 else 'undefined' }}
