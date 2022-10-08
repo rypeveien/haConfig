@@ -7,7 +7,7 @@
     device_id: 0da02203702a99b5cb616c8fcea949c1
     type: action
     subtype: off-press
-    discovery_id: 0x00178801020e912a action_off_press_release
+    discovery_id: 0x00178801020e912a action_off-press
     id: off_press
   condition: []
   action:
