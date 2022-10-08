@@ -79,6 +79,16 @@ template:
     - name: vvkjeller_on
       state: "{{ states('sensor.stikk_vv_kjeller_power')|float(default=0) > 0 }}"
 
+utility_meter:
+  vvtank_cycle:
+    source: sensor.vv_tank_energy
+    tariffs: 1
+# vvtank uses 4.6 kWh pr 24 hours, with no extra use of hot water
+  vvkjeller_cycle:
+    source: sensor.stikk_vv_kjeller_energy
+    tariffs: 1
+# vvkjeller uses 2.4 kWh pr 24 hours, with no extra use of hot waters
+
 automation:
   - id: '1658529461779'
     alias: VV Tank on or off by hours
@@ -182,6 +192,9 @@ automation:
             - condition: template
               value_template: "{{ states('switch.vv_tank') == 'on' }}"
             sequence:
+            - service: utility_meter.reset
+              target:
+                entity_id: select.vvtank_cycle
             - service: input_number.set_value
               data:
                 value: 2
@@ -341,6 +354,9 @@ automation:
             - condition: template
               value_template: "{{ states('switch.stikk_vv_kjeller') == 'on' }}"
             sequence:
+            - service: utility_meter.reset
+              target:
+                entity_id: select.vvkjeller_cycle
             - service: input_number.set_value
               data:
                 value: 1.6
