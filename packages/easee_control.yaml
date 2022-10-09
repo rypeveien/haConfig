@@ -113,8 +113,9 @@ template:
         {{ known.soc }}
       {% else %}
         {% set soc = known.soc|float %}
-        {% set energy = known.energy|float %}
-        {% set energy = states('sensor.easee_home_63089_session_energy')|float - energy %}
+        {% set energy = states('sensor.easee_home_63089_session_energy') %}
+        {% set energy = known.energy|float if energy in ['unknown', 'unavailable'] else 
+                        energy|float - known.energy|float %}
         {% set soc = soc + energy * states('input_number.ev_charge_efficiency')|float * 1000  / states('input_number.ev_battery_pack')|int %}
         {{ 95 if soc > 95 else soc }}
       {% endif %}
