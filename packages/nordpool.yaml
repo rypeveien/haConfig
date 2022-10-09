@@ -20,7 +20,7 @@ template:
             {% for row in rows %}
             {% for col in row.Columns %}
             {% if col.Name == 'Kr.sand' %}
-            {% set v.tomorrow = v.tomorrow + [ (col.Value|replace(',', '.')|float/1000)|round(4) ] 
+            {% set v.tomorrow = v.tomorrow + [ (col.Value|replace(',', '.')|replace(' ', '')|float/1000)|round(4) ] 
                if v.tomorrow|length == as_datetime(row.StartTime).hour else v.tomorrow %}
             {% endif %}
             {% endfor %}
@@ -64,16 +64,8 @@ automation:
           state_attr('automation.nordpool_price_update', 'current') == 0 }}
     condition: []
     action: 
-    - choose:
-      - conditions: 
-        - condition: template
-          value_template: "{{ states('input_text.tibber_tomorrow') == '[]' }}"
-        sequence:
-        - delay: 
-            seconds: '{{ range(1,1740)|random|int }}'
-      default:
-      - delay: 
-          seconds: '{{ range(1,(23 - now().hour)*3600)|random|int }}'
+    - delay: 
+        seconds: '{{ range(1,3600)|random|int }}'
     - service: homeassistant.update_entity
       target:
         entity_id: sensor.nordpool_api
