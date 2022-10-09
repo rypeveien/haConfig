@@ -82,7 +82,7 @@ template:
             {% if v.abovelimit|length < 3 %}
               {% set v.rest_of_month =  (target * 3 - average(v.abovelimit) * v.abovelimit|length) / (3 - v.abovelimit|length) %}
             {% endif %}
-            {% if v.abovelimit|length >= 3  or average(states.sensor.uncontrolled_estimate.state|from_json) + 3000 > v.rest_of_month %}
+            {% if v.abovelimit|length >= 3  or average(states('sensor.uncontrolled_estimate')|from_json) + 3000 > v.rest_of_month %}
               {% for i in range(1,limits|length) %}
                 {% if average(v.abovelimit) > limits[i - 1]|int and average(v.abovelimit) <= limits[i]|int %}
                   {% set v.rest_of_month = limits[i] %}
@@ -142,7 +142,7 @@ template:
            - states('sensor.amshan_power_export')|int(default=0) }}
     - unique_id: power_in_or_out
       unit_of_measurement: 'W'
-      state: '{{ states.sensor.amshan_power_import.state|int -  states.sensor.amshan_power_export.state|int }}'
+      state: "{{ states('sensor.amshan_power_import')|int -  states('sensor.amshan_power_export')|int }}"
       attributes:
         friendly_name: 'Kraft forbrukt fra eller levert til nettet'
     - name: last_energy_reading
@@ -162,13 +162,13 @@ template:
       unit_of_measurement: 'kWh'
       state: >
         {% set todaymax = states('input_number.today_max_usage')|float(default=0) %}
-        {% set this = states.sensor.energy_this_hour_estimate.state|float %}
+        {% set this = states('sensor.energy_this_hour_estimate')|float %}
         {{ ([todaymax, this]|sort(1))[0] }}
     - name: max_3hour_month_usage_average
       unit_of_measurement: 'kWh'
       state: >
         {% set max3 = states('input_text.max_3hour_month_usage')|from_json %}
-        {% set today = states.sensor.today_max_usage_guestimate.state|float %}
+        {% set today = states('sensor.today_max_usage_guestimate')|float %}
         {% set max3 = ((max3 + [today])|sort(1))[:3] %}
         {% set v = namespace (sum=0) %}
         {% for i in range (max3|length) %}
@@ -177,18 +177,18 @@ template:
         {{ (v.sum / max3|length)|round(3) }}
     - name: power_usage_by_subsides_and_maxpower
       state: >
-        {% set ev_battery_pack = states.input_number.ev_battery_pack.state|int %}
-        {% set ev_max_charge = states.input_number.ev_max_charge.state|int %}
-        {% set ev_min_charge = states.input_number.ev_min_charge.state|int %}
-        {% set ev_charge_steps = states.input_number.ev_charge_steps.state|int %}
-        {% set ev_charge_efficiency = states.input_number.ev_charge_efficiency.state|float %}
+        {% set ev_battery_pack = states('input_number.ev_battery_pack')|int %}
+        {% set ev_max_charge = states('input_number.ev_max_charge')|int %}
+        {% set ev_min_charge = states('input_number.ev_min_charge')|int %}
+        {% set ev_charge_steps = states('input_number.ev_charge_steps')|int %}
+        {% set ev_charge_efficiency = states('input_number.ev_charge_efficiency')|float %}
         {% set hour = now().hour %}
         {% set tank_power = 3000 %}
         {% set kjeller_power = 2000 %}
         {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
         {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
-        {% set uctrld = states.input_text.uncontrolled_estimate.state|from_json %}
-        {% set pvguess = states.sensor.pv_guess_by_factor.state|from_json %}
+        {% set uctrld = states('input_text.uncontrolled_estimate')|from_json %}
+        {% set pvguess = states('sensor.pv_guess_by_factor')|from_json %}
         {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices %}
         {% set uctrld = uctrld + uctrld %}
         {% if pvguess|length > prices|length %}
@@ -198,8 +198,8 @@ template:
         {% set v.base = v.base + [ {'hour': i, 'energy': uctrld[i] - pvguess[i], 'price': prices[i] }] %}
         {% endfor %}
         {% set v.base = v.base | sort(attribute='price') %}
-        {% set hours = states.input_number.vvtank_hours.state|float %}
-        {% set done = as_datetime(states.input_datetime.vvtank_last_on.state) %}
+        {% set hours = states('input_number.vvtank_hours')|float %}
+        {% set done = as_datetime(states('input_datetime.vvtank_last_on')) %}
         {% if hour < done.hour or now().timestamp() - done.timestamp() > 82800 %}
           {% set end = done.hour %}
           {% set done = done.hour - 24 %}
@@ -213,16 +213,16 @@ template:
         {% if v.base[i].hour < end 
               and v.tank|length < hours|round(0)
               and (v.base[i].energy + tank_power) < energy_limit %}
-        {% if states.switch.vv_tank.state == 'off' 
-           or states.binary_sensor.vvtank_on.state == 'on' 
+        {% if states('switch.vv_tank') == 'off' 
+           or states('binary_sensor.vvtank_on') == 'on' 
            or now().minute < 5 %}
         {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + tank_power, 'price': v.base[i].price}] + v.base[i+1:] %}
         {% endif %}
         {% set v.tank = v.tank + [v.base[i].hour] %}
         {% endif %}
         {% endfor %}
-        {% set hours = states.input_number.vvkjeller_hours.state|float %}
-        {% set done = as_datetime(states.input_datetime.vvkjeller_last_on.state) %}
+        {% set hours = states('input_number.vvkjeller_hours')|float %}
+        {% set done = as_datetime(states('input_datetime.vvkjeller_last_on')) %}
         {% if hour < done.hour or now().timestamp() - done.timestamp() > 82800 %}
           {% set end = done.hour %}
           {% set done = done.hour - 24 %}
@@ -236,8 +236,8 @@ template:
         {% if v.base[i].hour < end 
               and v.kjeller|length < hours|round(0) 
               and (v.base[i].energy + kjeller_power) < energy_limit %}
-        {% if states.switch.vv_kjeller.state == 'off' 
-           or states.binary_sensor.vvkjeller_on.state == 'on' 
+        {% if states('switch.stikk_vv_kjeller') == 'off' 
+           or states('binary_sensor.vvkjeller_on') == 'on' 
            or now().minute < 5 %}
         {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + kjeller_power, 'price': v.base[i].price}] + v.base[i+1:] %}
         {% endif %}
@@ -267,13 +267,13 @@ template:
     - platform: template
       value_template: "{{ states('sensor.energiforbruk_time')|float < 0.1}}"
     sensor: 
-    - name: "Last hour energy_usage"
+    - name: "Energy max today"
       unit_of_measurement: "kWh"
-      state: "{{ trigger.from_state.state }}"
-      
-      
-      
-
+      state: >
+        {% set last = states('sensor.energy_max_today') %}
+        {% set last = 0 if last in ['unknown', 'unavailible'] or now().hour == 1 else last|float  %}
+        {% set new = trigger.from_state.state | float %}
+        {{ last if last > new else new }}
 
 automation:
   - id: '1655705659488'
@@ -333,7 +333,7 @@ automation:
     - platform: template
       value_template: >
         {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
-        {{ (states.sensor.energy_this_hour_estimate.state|float * 1000) >= energy_limit and 
+        {{ (states('sensor.energy_this_hour_estimate')|float * 1000) >= energy_limit and 
             now().minute > 0 and now().minute % 15 == 0 }}
     condition: []
     action:
