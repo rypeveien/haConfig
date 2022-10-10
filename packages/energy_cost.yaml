@@ -453,8 +453,8 @@ automation:
     alias: Calculate monthly raw average price
     description: ''
     trigger: 
-    - platform: state
-      entity_id: input_text.tibber_today
+    - platform: time
+      at: "00:00"
     condition: []
     variables:
       new_list: >
