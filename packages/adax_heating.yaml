@@ -1,5 +1,14 @@
 template: 
   sensor:
+  - name: adax_faoff_analyze_temp
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.adax_faoff','current_temperature')|float - states('sensor.analyzer_updown')|int }}"
+  - name: adax_syrom_analyze_temp
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.adax_syrom','current_temperature')|float - states('sensor.analyzer_updown')|int }}"
+  - name: adax_guest_analyze_temp
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.adax_guest','current_temperature')|float - states('sensor.analyzer_updown')|int }}"
   - name: adax_faoff_temp
     unit_of_measurement: "°C"
     state: "{{ state_attr('climate.adax_faoff','current_temperature') }}"
@@ -48,55 +57,55 @@ switch:
           target:
             entity_id: climate.adax_faoff
           data: 
-            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') + 4 }}"
+            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') + 4 + states('sensor.analyzer_updown')|int }}"
         turn_off:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_faoff
           data: 
-            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') - 1 }}"
+            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') - 1 + states('sensor.analyzer_updown')|int }}"
       adax_syrom:
         turn_on:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_syrom
           data: 
-            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') + 4 }}"
+            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') + 4 + states('sensor.analyzer_updown')|int }}"
         turn_off:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_syrom
           data: 
-            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') - 1 }}"
+            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') - 1 + states('sensor.analyzer_updown')|int }}"
       adax_guest:
         turn_on:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_guest
           data: 
-            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') + 4 }}"
+            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') + 4 + states('sensor.analyzer_updown')|int }}"
         turn_off:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_guest
           data: 
-            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') - 1 }}"
+            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') - 1 + states('sensor.analyzer_updown')|int }}"
 
 climate:
   - platform: generic_thermostat
     name: adaxg_faoff
     heater: switch.adax_faoff
-    target_sensor: sensor.adax_faoff_temp
+    target_sensor: sensor.adax_faoff_analyze_temp
     target_temp_step: 1
   - platform: generic_thermostat
     name: adaxg_syrom
     heater: switch.adax_syrom
-    target_sensor: sensor.adax_syrom_temp
+    target_sensor: sensor.adax_syrom_analyze_temp
     target_temp_step: 1
   - platform: generic_thermostat
     name: adaxg_guest
     heater: switch.adax_guest
-    target_sensor: sensor.adax_guest_temp
+    target_sensor: sensor.adax_guest_analyze_temp
     target_temp_step: 1
         
 automation:
