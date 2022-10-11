@@ -118,7 +118,7 @@ automation:
         entity_id: input_text.nordpool_month
       data: 
         value: >
-          {% set last = states('input_text.nordpool_month')|from_json %}
+          {% set last = states('input_text.nordpool_month') %}
           {% set month = now().month %}
           {% set length = 31 if month in [1, 3, 5, 7, 8, 10, 12]
                      else 30 if month in [4, 6, 9, 11 ]
