@@ -1,19 +1,10 @@
-input_boolean:
-  bathroom_onoff:
-    name: Dummy switch for faking bathroom floor temp on/off
-
 switch: 
   - platform: template
     switches:
       bathroom_generic:
+        value_template: "{{states('sensor.baderomsgulv_electric_consumption_w')|int > 50 }}"
         turn_on:
-          service: input_boolean.turn_on
-          target:
-            entity_id: input_boolean.bathroom_onoff
         turn_off:
-          service: input_boolean.turn_off
-          target:
-            entity_id: input_boolean.bathroom_onoff
 
 climate:
   - platform: generic_thermostat
