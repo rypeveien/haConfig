@@ -8,7 +8,7 @@ climate:
   - platform: generic_thermostat
     name: cold_room
     heater: switch.shellykjol_switch_0
-    target_sensor: sensor.lumi_kjole_temperature
+    target_sensor: sensor.coldroom_temp
     min_temp: 2
     max_temp: 7
     ac_mode: true
@@ -18,6 +18,14 @@ template:
     - name: coldroom_temp_update_age
       unit_of_measurement: seconds
       state: "{{ (now().timestamp() - states.sensor.lumi_kjole_temperature.last_updated.timestamp())|int }}"
+    - name: coldroom_temp
+      unit_of_measurement: "°C"
+      state: >
+        {% set qp_temp = states('sensor.qp_kjolerom_temperature') %}
+        {% set lumi_temp = states('sensor.lumi_kjole_temperature') %}
+        {{ qp_temp if lumi_temp in ['unknown', 'unavalable'] or (qp_temp not in ['unknown', 'unavalable']  and 
+        states.sensor.qp_kjolerom_temperature.last_updated.timestamp()
+         > states.sensor.lumi_kjole_temperature.last_updated.timestamp()) else lumi_temp }}
   binary_sensor:
     - name: coldroom_hangup
       state: >
