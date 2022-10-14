@@ -3,28 +3,21 @@ template:
   - name: livingroom_temp
     unit_of_measurement: "°C"
     state: >
-      {% set l = namespace (temp=[]) %}
-      {% if not states('sensor.netatmo_stue_temperature') in ['unavailible', 'unknown'] %}
-      {% set l.temp = l.temp + [ states('sensor.netatmo_stue_temperature')|float] %}
-      {% endif %}
-      {% if not states('sensor.vp_oppe_air_temperature') in  ['unavailible', 'unknown'] and states('sensor.vp_oppe_air_temperature')|float < 50 %}
-      {% set l.temp = l.temp + [states('sensor.vp_oppe_air_temperature')|float] %}
-      {% endif %}
-      {% if not states('sensor.verandador_temperature') in  ['unavailible', 'unknown'] %}
-      {% set l.temp = l.temp + [states('sensor.verandador_temperature')|float] %}
-      {% endif %}
-      {{ l.temp|average|round(1) }}
+      {% set netatmo = states('sensor.netatmo_stue_temperature') %}
+      {% set vp_air = states('sensor.vp_oppe_air_temperature') %}
+      {% set vdor = states('sensor.verandador_temperature') %}
+      {% set netatmo = [] if netatmo in ['unavailable', 'unknown'] else [netatmo|float] %}
+      {% set vp_air = [] if vp_air in ['unavailiale', 'unknown'] or vp_air|float > 50 else [vp_air|float] %}
+      {% set vdor = [] if vdor in  ['unavailible', 'unknown'] else [vdor|float] %}
+      {{ (netatmo + vp_air + vdor)|average|round(1) }}
   - name: basement_temp
     unit_of_measurement: "°C"
     state: >
-      {% set l = namespace (temp=[]) %}
-      {% if not states('sensor.lumi_kjeller_temperature') in ['unavailible', 'unknown'] %}
-      {% set l.temp = l.temp + [ states('sensor.lumi_kjeller_temperature')|float] %}
-      {% endif %}
-      {% if not states('sensor.vp_nede_air_temperature') in  ['unavailible', 'unknown'] and states('sensor.vp_nede_air_temperature')|float < 50 %}
-      {% set l.temp = l.temp + [states('sensor.vp_nede_air_temperature')|float] %}
-      {% endif %}
-      {{ l.temp|average|round(1) }}
+      {% set lumi = states('sensor.lumi_kjeller_temperature') %}
+      {% set lumi = [] if lumi in ['unavailable', 'unknown'] else [lumi|float] %}
+      {% set vp_air = states('sensor.vp_nede_air_temperature') %}
+      {% set vp_air = [] if vp_air in ['unavailable', 'unknown'] or vp_air|float > 50 else [vp_air|float] %}
+      {{ (lumi + vp_air)|average|round(1) }}
 
   binary_sensor:
   - name: hot_outside
