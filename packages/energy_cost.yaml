@@ -120,10 +120,7 @@ template:
         {{ (0.04 * states('sensor.energy_production_month')|float(0))|round(2) }}
     - name: energy_subsides
       unit_of_measurement: 'NOK/kWh'
-      state: >
-        {% set percent = 0.90 %}
-        {% set raw = states('input_text.tibber_month_average')|from_json|average %}
-        {{ ((raw - 0.7)* percent * 1.25)|round(4) if raw > 0.7 else 0 }}
+      state: "{{ states('sensor.nordpool_subsides') }}"
     - unique_id: energy_by_subsides_and_production
       unit_of_measurement: 'NOK/kWh'
       state: >
