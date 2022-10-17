@@ -14,10 +14,20 @@ template:
     unit_of_measurement: "°C"
     state: >
       {% set lumi = states('sensor.lumi_kjeller_temperature') %}
-      {% set lumi = [] if lumi in ['unavailable', 'unknown'] else [lumi|float] %}
       {% set vp_air = states('sensor.vp_nede_air_temperature') %}
+      {% set lumi = [] if lumi in ['unavailable', 'unknown'] else [lumi|float] %}
       {% set vp_air = [] if vp_air in ['unavailable', 'unknown'] or vp_air|float > 50 else [vp_air|float] %}
       {{ (lumi + vp_air)|average|round(1) }}
+  - name: vp_nede_wanted_mode
+    state: >
+      {% set current = states('climate.vp_nede') %}
+      {% set wanted = states('climate.vp_gnede') %}
+      {% set btemp = states('sensor.basement_temp')|float %}
+      {% set atemp = state_attr('climate.vp_gnede', 'temperature') + states('sensor.analyzer_updown')|int %}
+      {% set wanted = wanted if current == 'off' or atemp > btemp else 
+         'fan_only' if atemp <= 17 and wanted == 'heat' %}
+      {{ wanted }}
+
 
   binary_sensor:
   - name: hot_outside
@@ -48,14 +58,14 @@ climate:
     heater: switch.vpoppe_onoff
     target_sensor: sensor.livingroom_temp
     target_temp_step: 1
-    min_temp: 14
+    min_temp: 17
     max_temp: 28
   - platform: generic_thermostat
     name: vp_gnede
     heater: switch.vpnede_onoff
     target_sensor: sensor.basement_temp
     target_temp_step: 1
-    min_temp: 14
+    min_temp: 17
     max_temp: 28
 
 automation: 
@@ -130,7 +140,7 @@ automation:
           - sensor.vp_nede_air_temperature
 
   - id: '1663912913996'
-    alias: Analyzer-adjust heat-pump temperature 
+    alias: Analyzer-adjust heat-pump upstairs temperature 
     trigger:
       - platform: template
         value_template: >
@@ -168,3 +178,56 @@ automation:
                 {{ state_attr('climate.vp_goppe', 'temperature') - states('sensor.analyzer_updown')|int }}
             target:
               entity_id: climate.vp_oppe
+
+  - id: '1663912913997'
+    alias: Analyzer-adjust heat-pump downstairs temperature 
+    trigger:
+      - platform: template
+        value_template: >
+          {{ now().minute < 59 and state_attr('climate.vp_gnede', 'temperature') + states('sensor.analyzer_updown')|int != 
+             state_attr('climate.vp_nede','temperature') }}
+    condition:
+      - condition: template
+        value_template: >
+          {{ states('sensor.analyzer_updown') in ['-1', '0', '1'] }}
+      - condition: template
+        value_template: >
+          {{ trigger.entity_id != 'sensor.analyzer_updown' or 
+             trigger.from_state.state in ['-1', '0', '1'] }}
+      - condition: template
+        value_template: "{{ now().minute < 59 }}"
+    action:
+      - choose:
+        - conditions: 
+          - condition: template
+            value_template: "{{ states('climate.vp_nede') == 'heat' }}"
+          sequence: 
+          - service: climate.set_temperature
+            data: 
+              temperature: >
+                {{ state_attr('climate.vp_gnede', 'temperature') + states('sensor.analyzer_updown')|int }}
+            target:
+              entity_id: climate.vp_nede
+        - conditions: 
+          - condition: template
+            value_template: "{{ states('climate.vp_nede') == 'cool' }}"
+          sequence: 
+          - service: climate.set_temperature
+            data: 
+              temperature: >
+                {{ state_attr('climate.vp_gnede', 'temperature') - states('sensor.analyzer_updown')|int }}
+            target:
+              entity_id: climate.vp_nede
+
+  - id: '1665986905409'
+    alias: Set HVAC mode for downstairs heatpump
+    trigger:
+      - platform: template
+        value_template: "{{ states('sensor.vp_nede_wanted_mode') != states('climate.vp_nede') }}"
+    action:
+      - service: climate.set_hvac_mode
+        data:
+          hvac_mode: "{{ states('sensor.vp_nede_wanted_mode') }}"
+        target:
+          entity_id: climate.vp_nede
+
