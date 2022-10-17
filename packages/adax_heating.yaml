@@ -186,5 +186,5 @@ automation:
         temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature')|float + 
                          states('sensor.analyzer_updown')|int }}"
       target:
-        entity_id: climate.adaxfaoff
+        entity_id: climate.adax_faoff
     mode: single
