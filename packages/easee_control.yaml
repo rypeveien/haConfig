@@ -107,7 +107,7 @@ template:
     unit_of_measurement: "%"
     state: >
       {% set known = states('input_text.known_soc')|from_json %}
-      {% if is_state('sensor.easee_home_63089_status', 'completed') %}
+      {% if is_state('input_select.why_charge', 'Completed') %}
         {{ 100 }}
       {% elif is_state('sensor.easee_home_63089_status',  'disconnected') %}
         {{ known.soc }}
