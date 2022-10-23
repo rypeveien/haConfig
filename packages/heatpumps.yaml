@@ -51,7 +51,17 @@ switch:
       vpnede_onoff:
         value_template: "{{states('sensor.stikk_vp_nede_power')|int > 50 }}"
         turn_on:
+          - service: climate.set_hvac_mode
+            data:
+              hvac_mode: heat
+            target:
+              entity_id: climate.vp_nede
         turn_off:
+          - service: climate.set_hvac_mode
+            data:
+              hvac_mode: fan_only
+            target:
+              entity_id: climate.vp_nede
 climate:
   - platform: generic_thermostat
     name: vp_goppe
@@ -196,6 +206,9 @@ automation:
              trigger.from_state.state in ['-1', '0', '1'] }}
       - condition: template
         value_template: "{{ now().minute < 59 }}"
+      - condition: state
+        entity_id: climate.vp_nede
+        state: 'heat'
     action:
       - choose:
         - conditions: 
