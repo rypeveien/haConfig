@@ -56,12 +56,19 @@ switch:
               hvac_mode: heat
             target:
               entity_id: climate.vp_nede
+          - service: notify.persistent_notification
+            data:
+              message: Turn on heating downstairs
         turn_off:
           - service: climate.set_preset_mode
             data:
               hvac_mode: "Fan"
             target:
               entity_id: climate.vp_nede
+          - service: notify.persistent_notification
+            data:
+              message: Turn off heating downstairs
+
 climate:
   - platform: generic_thermostat
     name: vp_goppe
