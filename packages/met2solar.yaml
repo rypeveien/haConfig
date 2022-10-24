@@ -163,7 +163,7 @@ automation:
               {% set local.cache = local.cache + [ time.location.symbol["@number"]] %}
             {% endif %}
           {%- endfor %}
-          {{ ((states.input_text.met_cache.state|from_json)[:now().hour] + local.cache)|to_json if local.cache|length > 0
-               else states.input_text.met_cache.state }}
+          {{ ((states.input_text.met_cache.state|from_json)[:now().hour] + local.cache if local.cache|length > 0
+               else states.input_text.met_cache.state)|to_json|replace('"', '') }}
       target: 
         entity_id: input_text.met_cache
