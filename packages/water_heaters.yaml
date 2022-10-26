@@ -62,7 +62,48 @@ template:
       state: >
         {% set by_subsides = states('sensor.power_usage_by_subsides_and_maxpower')|from_json %}
         {{ by_subsides.vvkjeller|sort }}
-
+    - unique_id: main_heater_target_temp
+      unit_of_measurement: '°C'
+      state: "{{ state_attr('sensor.template_main_heater_target_temp', 'hours')[0] }}"
+      attributes: 
+        friendly_name: "Target temp for main water heater"
+        hours: >
+          {% set hour = now().hour %}
+          {% set prices = state_attr('sensor.template_energy_by_subsides_and_production','prices') %}
+          {% set Pmax = prices[hour:]|max %}
+          {% set Pmin = prices[hour:]|min %}
+          {% set Pdel = Pmax - Pmin %}
+          {% set Tmax = 75 %}
+          {% set Tmin = 40 %}
+          {% set Tdel = Tmax - Tmin %}
+          {% set Pnow = prices[hour] %}
+          {% set Tnow = Tdel/Pdel * (Pmax - Pnow) + Tmin %}
+          {% set T = namespace(hours=[]) %}
+          {% for Phour in prices[hour:] %}
+          {% set Thour = Tdel/Pdel * (Pmax - Phour) + Tmin %}
+          {% set T.hours = T.hours + [ Thour|round ] %}
+          {% endfor %}
+          {{ T.hours }}
+    - name: vvtank_temp_max
+      unit_of_measurement: "°C"
+      state: >
+        {% set bunn = states('sensor.vvtank_temp_bunn') %}
+        {% set topp = states('sensor.vvtank_temp_topp') %}
+        {% set ut = states('sensor.vvtank_temp_ut') %}
+        {% set vvtank_temp = ([ bunn|float ] if bunn is defined else []) +
+                             ([ topp|float ] if topp is defined else []) + 
+                             ([ ut|float ] if ut is defined else []) %}
+        {{ vvtank_temp|max }}
+    - name: vvtank_temp_avg
+      unit_of_measurement: "°C"
+      state: >
+        {% set bunn = states('sensor.vvtank_temp_bunn') %}
+        {% set topp = states('sensor.vvtank_temp_topp') %}
+        {% set ut = states('sensor.vvtank_temp_ut') %}
+        {% set vvtank_temp = ([ bunn|float ] if bunn is defined else []) +
+                             ([ topp|float ] if topp is defined else []) + 
+                             ([ ut|float ] if ut is defined else []) %}
+        {{ vvtank_temp|average }}
   - binary_sensor:
     - name: upstairs_shower
       state: >
