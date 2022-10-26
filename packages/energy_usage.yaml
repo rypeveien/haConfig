@@ -351,13 +351,13 @@ automation:
       - conditions:
         - condition: device
           type: is_on
-          device_id: 763c89891d0a0a6a02ad92f3e1cedc45
-          entity_id: switch.vv_kjeller
+          device_id: 864126853760387fb9a41a020cd087f1
+          entity_id: switch.stikk_vv_kjeller
           domain: switch
         sequence:
         - type: turn_off
-          device_id: 763c89891d0a0a6a02ad92f3e1cedc45
-          entity_id: switch.vv_kjeller
+          device_id: 864126853760387fb9a41a020cd087f1
+          entity_id: switch.stikk_vv_kjeller
           domain: switch
       - conditions:
         - condition: device
