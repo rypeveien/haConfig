@@ -103,7 +103,7 @@ template:
         {% set vvtank_temp = ([ bunn|float ] if bunn is defined else []) +
                              ([ topp|float ] if topp is defined else []) + 
                              ([ ut|float ] if ut is defined else []) %}
-        {{ vvtank_temp|average }}
+        {{ vvtank_temp|average|round(1) }}
   - binary_sensor:
     - name: upstairs_shower
       state: >
