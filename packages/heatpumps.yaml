@@ -18,15 +18,6 @@ template:
       {% set lumi = [] if lumi in ['unavailable', 'unknown'] else [lumi|float] %}
       {% set vp_air = [] if vp_air in ['unavailable', 'unknown'] or vp_air|float >= 50 else [vp_air|float] %}
       {{ (lumi + vp_air)|average|round(1) }}
-  - name: vp_nede_wanted_mode
-    state: >
-      {% set current = states('climate.vp_nede') %}
-      {% set wanted = states('climate.vp_gnede') %}
-      {% set btemp = states('sensor.basement_temp')|float %}
-      {% set atemp = state_attr('climate.vp_gnede', 'temperature') + states('sensor.analyzer_updown')|int %}
-      {% set wanted = wanted if current == 'off' or atemp > btemp else 
-         'Fan' if atemp <= 17 and wanted == 'heat' else 'heat' %}
-      {{ wanted }}
 
 
   binary_sensor:
