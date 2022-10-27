@@ -303,6 +303,7 @@ template:
         {% endfor %}
         {{ (prices.sum / priceInfo|length)|round(3) }}
     - name: energy_all_nok_kwh
+      unit_of_measurement: "NOK/kWh"
       state: '{{ (states.sensor.energy_today_nok_kwh.state|from_json)[now().hour] }}'
       attributes:
         prices: >
