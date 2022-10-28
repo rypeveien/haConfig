@@ -309,6 +309,9 @@ automation:
             - service: utility_meter.reset
               target:
                 entity_id: select.vvtank_cycle
+            - service: counter.reset
+              target:
+                entity_id: counter.vvtank_usage
             - service: input_number.set_value
               data:
                 value: 2
@@ -471,6 +474,9 @@ automation:
             - service: utility_meter.reset
               target:
                 entity_id: select.vvkjeller_cycle
+            - service: counter.reset
+              target:
+                entity_id: counter.vvkjeller_usage
             - service: input_number.set_value
               data:
                 value: 1.6
