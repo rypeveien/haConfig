@@ -61,7 +61,7 @@ logger:
   default: info
   logs:
     charset_normalizer: warning
-    custom_components.tibber_custom: debug
-    custom_components.tibber_custom.camera: debug
-    custom_components.camera: debug
+#    custom_components.tibber_custom: debug
+#    custom_components.tibber_custom.camera: debug
+#    custom_components.camera: debug
 
