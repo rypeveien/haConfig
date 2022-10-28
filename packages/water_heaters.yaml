@@ -14,6 +14,13 @@ input_number:
     unit_of_measurement: "Hours"
     mode: box
 
+
+counter: 
+  vvtank_usage:
+    name: "Minutes of hot water usage from main tank"
+  vvkjeller_usage:
+    name: "minutes of hot water usage from aux tank"
+
 sensor:
   - platform: derivative
     name: Main bath humidity change
@@ -65,9 +72,33 @@ sensor:
       hours: 5
     sampling_size: 50
     precision: 1
+  - platform: integration
+    name: vv_tank_energy
+    source: sensor.vv_tank_power
+    method: left
+    round: 2
+    unit_prefix: k
+    unit_time: h
+    
 
 template:
   - sensor: 
+    - name: vvtank_soc
+      unit_of_measurement: "kWh"
+      state: >
+        {% set full = 300 * 4.18 * (75 - 5)/3600 %}
+        {% set cycle = states('sensor.vvtank_cycle_1')|float %}
+        {% set last = as_datetime(state_attr('sensor.vvtank_cycle_1', 'last_reset')) %}
+        {% set diff = now().timestamp() - last.timestamp() %}
+        {{ (full - diff / 3600 * 0.16)|round(1) + cycle }}
+    - name: vvkjeller_soc
+      unit_of_measurement: "kWh"
+      state: >
+        {% set full = 120 * 4.18 * (75 - 5)/3600 %}
+        {% set cycle = states('sensor.vvkjeller_cycle_1')|float %}
+        {% set last = as_datetime(state_attr('sensor.vvkjeller_cycle_1', 'last_reset')) %}
+        {% set diff = now().timestamp() - last.timestamp() %}
+        {{ (full - diff / 3600 * 0.15)|round(1) + cycle }}
     - name: hours24_vvtank
       unit_of_measurement: "Hours"
       state: >
@@ -154,19 +185,23 @@ template:
         {% set humidity = states('sensor.lumi_bad_nede_humidity')|int(default=50) %}
         {{ last_15 != 'unknown' and humidity > last_15|int(default=50) + 15 }}
     - name: vvtank_on
-      state: "{{ states('sensor.vv_tank_electric_consumption_w')|float(default=0) > 0 }}"
+      state: "{{ states('sensor.vv_tank_power')|float(default=0) > 0 }}"
     - name: vvkjeller_on
       state: "{{ states('sensor.stikk_vv_kjeller_power')|float(default=0) > 0 }}"
+    - name: vvtank_usage
+      state: "{{ states('sensor.vvtank_temp_ut_change_over_5_minutes')|int >= 10 }}"
+    - name: vvkjeller_usage
+      state: "{{ states('sensor.vvaux_temp_ut_change_over_5_minutes')|int >= 10 }}"
 
 utility_meter:
   vvtank_cycle:
     source: sensor.vv_tank_energy
     tariffs: 1
-# vvtank uses 4.6 kWh pr 24 hours, with no extra use of hot water
+# vvtank emits 160 watts , that is 3.8 kWh during 24 hours of no use
   vvkjeller_cycle:
     source: sensor.stikk_vv_kjeller_energy
     tariffs: 1
-# vvkjeller uses 2.4 kWh pr 24 hours, with no extra use of hot waters
+# vvkjeller emits 150 watts, that is 3.6 kWh during 24 hours of no use
 
 automation:
   - id: '1658529461779'
@@ -316,7 +351,7 @@ automation:
     - service: homeassistant.update_entity
       data: {}
       target:
-        entity_id: sensor.vv_tank_electric_consumption_w
+        entity_id: sensor.vv_tank_power
     - delay:
         hours: 0
         minutes: 1
@@ -460,3 +495,30 @@ automation:
       default: []
     mode: single
 
+  - id: '1666974171362'
+    alias: 'Count minutes off water usage from vvtank'
+    trigger:
+      - platform: time_pattern
+        minutes: /1
+    condition:
+      - condition: state
+        entity_id: sensor.vvtank_usage
+        state: "on"
+    action:
+      - service: counter.increment
+        target: 
+          entity_id: counter.vvtank_usage
+
+  - id: '1666974171462'
+    alias: 'Count minutes off water usage from vvkjeller'
+    trigger:
+      - platform: time_pattern
+        minutes: /1
+    condition:
+      - condition: state
+        entity_id: sensor.vvkjeller_usage
+        state: "on"
+    action:
+      - service: counter.increment
+        target: 
+          entity_id: counter.vvkjeller_usage
