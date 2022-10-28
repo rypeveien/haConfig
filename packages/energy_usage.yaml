@@ -98,7 +98,7 @@ template:
       unit_of_measurement: W
       device_class: power
       state: >
-        {{ states('sensor.vv_tank_electric_consumption_w')|int(default=0)
+        {{ states('sensor.vv_tank_power')|int(default=0)
            + states('sensor.stikk_vv_kjeller_power')|int(default=0)
            + states('sensor.stikk_vaskemaskin_power')|int(default=0)
            + states('sensor.stikk_torketrommel_power')|int(default=0)
