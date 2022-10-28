@@ -27,6 +27,44 @@ sensor:
     round: 0
     unit: '%'
     time_window: "01:00:00"
+  - platform: derivative
+    name: vvtank_temp_ut_derivative
+    source: sensor.vvtank_temp_ut
+    round: 1
+    time_window: "01:00:00"
+  - platform: derivative
+    name: vvaux temp ut derivative
+    source: sensor.vvaux_temp_ut
+    round: 1
+    time_window: "01:00:00"
+  - platform: statistics
+    name: "vvtank_temp_ut_mean over 2 hours"
+    entity_id: sensor.vvtank_temp_ut
+    state_characteristic: mean
+    max_age:
+      hours: 2
+  - platform: statistics
+    name: "vvaux_temp_ut_mean over 2 hours"
+    entity_id: sensor.vvaux_temp_ut
+    state_characteristic: mean
+    max_age:
+      hours: 2
+  - platform: statistics
+    name: "vvtank_temp_ut_change over 5 minutes"
+    entity_id: sensor.vvtank_temp_ut
+    state_characteristic: change
+    max_age:
+      hours: 5
+    sampling_size: 50
+    precision: 1
+  - platform: statistics
+    name: "vvaux_temp_ut_change over 5 minutes"
+    entity_id: sensor.vvaux_temp_ut
+    state_characteristic: change
+    max_age:
+      hours: 5
+    sampling_size: 50
+    precision: 1
 
 template:
   - sensor: 
