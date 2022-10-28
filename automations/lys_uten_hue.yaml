@@ -151,3 +151,40 @@
       target:
         entity_id: light.paere_toalett
   mode: single
+
+- id: '1666866158112'
+  alias: taklys av paa kjokken og spisestue
+  mode: single
+  trigger:
+    - type: no_motion
+      platform: device
+      device_id: 31f5236faab8ab70132e1e5bb341a5d8
+      entity_id: binary_sensor.bevegelse_kjokken_occupancy
+      domain: binary_sensor
+      for:
+        hours: 0
+        minutes: 45
+        seconds: 0
+  condition:
+    - condition: device
+      type: is_on
+      device_id: f45a5dd2a00dc6bf817724d7c2b40900
+      entity_id: light.kjokkentak
+      domain: light
+  action:
+    - type: turn_off
+      device_id: f45a5dd2a00dc6bf817724d7c2b40900
+      entity_id: light.kjokkentak
+      domain: light
+    - if:
+        - condition: device
+          type: is_on
+          device_id: 7f5850dee531a1372ee9903073152564
+          entity_id: light.spisestuetak
+          domain: light
+      then:
+        - type: turn_off
+          device_id: 7f5850dee531a1372ee9903073152564
+          entity_id: light.spisestuetak
+          domain: light
+
