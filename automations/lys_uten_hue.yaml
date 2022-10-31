@@ -171,6 +171,9 @@
       device_id: f45a5dd2a00dc6bf817724d7c2b40900
       entity_id: light.kjokkentak
       domain: light
+    - condition: time
+      after: '07:00'
+      before: '12:00'
   action:
     - type: turn_off
       device_id: f45a5dd2a00dc6bf817724d7c2b40900
