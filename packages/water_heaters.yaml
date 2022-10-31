@@ -504,12 +504,8 @@ automation:
   - id: '1666974171362'
     alias: 'Count minutes off water usage from vvtank'
     trigger:
-      - platform: time_pattern
-        minutes: /1
-    condition:
-      - condition: state
-        entity_id: sensor.vvtank_usage
-        state: "on"
+      - platform: template
+        value_template: "{{ now().second == 0 and states('binary_sensor.vvtank_usage') == 'on' }}"
     action:
       - service: counter.increment
         target: 
@@ -518,12 +514,8 @@ automation:
   - id: '1666974171462'
     alias: 'Count minutes off water usage from vvkjeller'
     trigger:
-      - platform: time_pattern
-        minutes: /1
-    condition:
-      - condition: state
-        entity_id: sensor.vvkjeller_usage
-        state: "on"
+      - platform: template
+        value_template: "{{ now().second == 0 and states('binary_sensor.vvkjeller_usage') == 'on' }}"
     action:
       - service: counter.increment
         target: 
