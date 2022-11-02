@@ -214,6 +214,27 @@ template:
           {% set average = states('sensor.vvaux_temp_ut_average')|int %}
           {% set usage = states('binary_sensor.vvkjeller_usage') %}
           {{ last if usage == 'on' else average }}
+  - trigger: 
+      platform: state
+      entity_id: sensor.vvaux_temp_ut
+    sensor:
+      - name: vvaux_temp_diff
+        unit_of_measurement: "°C"
+        state: "{{ (trigger.to_state.state|float - trigger.from_state.state|float)|round(2) }}"
+  - trigger: 
+      platform: state
+      entity_id: sensor.vvtank_temp_ut
+    sensor:
+      - name: vvtank_temp_diff
+        unit_of_measurement: "°C"
+        state: "{{ (trigger.to_state.state|float - trigger.from_state.state|float)|round(2) }}"
+  - trigger: 
+      platform: state
+      entity_id: sensor.lumi_temp_2_temperature
+    sensor:
+      - name: vvlumi_temp_diff
+        unit_of_measurement: "°C"
+        state: "{{ (trigger.to_state.state|float - trigger.from_state.state|float)|round(2) }}"
 
 utility_meter:
   vvtank_cycle:
