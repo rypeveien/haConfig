@@ -48,13 +48,14 @@ automation:
     trigger: 
     - platform: template
       value_template: >
-        {{ as_datetime(states('sensor.nordpool_api')).day != now().day and
-          (now().minute % 30) == 18 and now().hour >= 13 and 
+        {% set nordpool_time = as_datetime(states('sensor.nordpool_api')) %}
+        {{ (nordpool_time.day != now().day or nordpool_time.hour < 13) and 
+            (now().hour % 20 == 4) and now().hour >= 13 and 
           state_attr('automation.nordpool_price_update', 'current') == 0 }}
     condition: []
     action: 
     - delay: 
-        seconds: '{{ range(1,3600)|random|int }}'
+        seconds: '{{ range(1,1140)|random|int }}'
     - service: homeassistant.update_entity
       target:
         entity_id: sensor.nordpool_api
