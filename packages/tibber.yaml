@@ -1,0 +1,208 @@
+input_text:
+  tibber_today: 
+    name: Tibber price today
+    max: 200
+  tibber_tomorrow: 
+    name: Tibber price tomorrow
+    max: 200
+  tibber_month_average:
+    name: Tibber average month price
+    max: 255
+
+rest: 
+  - resource: "https://api.tibber.com/v1-beta/gql"
+    scan_interval: 86400
+    method: POST
+    payload: '{"query": "{ viewer { homes { currentSubscription { priceInfo { current { energy } today { energy startsAt } tomorrow { energy startsAt }} } } } }"}'
+    headers: 
+      Authorization: !secret tibberAuthorization
+      Content-Type: application/json 
+    sensor:
+      - name: tibber_rest
+        value_template: 'OK'
+        json_attributes_path: $.data.viewer.homes.0.currentSubscription.priceInfo
+        json_attributes: 
+          - "today"
+          - "tomorrow"
+
+template:
+  sensor:
+    - name: tibber_cost
+      unit_of_measurement: "NOK"
+      state: >
+        {% set easee_usage = states('sensor.easee_usage_monthly')|float %}
+        {% set all_usage = states('sensor.energy_usage_month')|float %}
+        {% set non_easee_usage = all_usage - easee_usage %}
+        {% set easee_cost = states('sensor.easee_cost_monthly')|float * 1.25 + 0.01 * all_usage %}
+        {% set all_cost = states('sensor.energy_cost_monthly')|float * 1.25 + 0.01 * easee_usage %}
+        {% set non_easee_cost = all_cost - easee_cost %}
+        {% set non_easee_nok_kwh = non_easee_cost / non_easee_usage %}
+        {% set easee_nok_kwh = easee_cost / easee_usage %}
+        {% set easee_nok_kwh = easee_nok_kwh if easee_nok_kwh <= non_easee_nok_kwh * 0.8
+                          else non_easee_nok_kwh * 0.8 %}
+        {% set all_energy_cost = non_easee_cost + easee_usage * easee_nok_kwh %}
+        {{ (39 + all_energy_cost - states('sensor.energy_sold_monthly')|float)|round(2) }}
+
+automation:
+  - id: '1647958426770'
+    alias: 'Update tibber price '
+    description: ''
+    trigger:
+    - platform: state
+      entity_id: sensor.tibber_rest
+      id: tibber_rest
+    - platform: template
+      value_template: >
+        {% set today = states('input_text.tibber_today') %}
+        {{ today == '[]' or today  == 'unknown' or 
+           now().day != as_local(states.input_text.tibber_today.last_updated).day }}
+    - platform: template
+      value_template: >
+        {% set five = now().minute/5 %}
+        {{ five == (five)|int and now().hour > 12 
+           and (states('input_text.tibber_tomorrow') == '[]' or states('input_text.tibber_tomorrow') == 'unknown') }}
+    condition:
+    - condition: template
+      value_template: '{{ states.automation.update_tibber_price.attributes.current == 0 }}'
+    variables:
+      update_delay: '{{ range(1,290)|random|int }}'
+    action:
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: >
+            {% set tomorrow = states('input_text.tibber_tomorrow') %}
+            {% set today = states('input_text.tibber_today') %}
+            {{ tomorrow == '[]' or tomorrow  == 'unknown' or
+               today == '[]' or today  == 'unknown' }}
+        sequence: 
+        - delay: 
+            seconds: '{{ update_delay }}'
+        - choose:
+          - conditions:
+            - condition: template
+              value_template: '{{ now().timestamp() - states.sensor.tibber_rest.last_updated.timestamp() > update_delay  }}'
+            sequence: 
+            - service: homeassistant.update_entity
+              target:
+                entity_id: sensor.tibber_rest
+              data: {}
+          default: []
+      - conditions:
+        - condition: template
+          value_template: >
+            {% set tomorrow = states('input_text.tibber_tomorrow') %}
+            {% set today = states('input_text.tibber_today') %}
+            {{ tomorrow == '[]' or tomorrow  == 'unknown' or
+               today == '[]' or today  == 'unknown' }}
+        - condition: template
+          value_template: "{{ state_attr('sensor.tibber_rest', 'today')|length > 0 }}"
+        sequence: 
+        - service: input_text.set_value
+          data:
+            value: >
+              {% set prices = namespace(list=[]) %}
+              {% set priceInfo = state_attr('sensor.tibber_rest', 'today') %}
+              {% for i in range(priceInfo|length) %}
+                {% set hour =  strptime(priceInfo[i].startsAt, '%Y-%m-%dT%H:%M:%S.%f%z').hour %}
+                {% if hour > prices.list|length %}
+                  {% set prices.list = prices.list + [prices.list[i-1]] %}
+                {% endif %}
+                {% set prices.list = prices.list + [priceInfo[i].energy] %}
+              {% endfor %}
+              {{ prices.list|to_json }}
+          target: 
+            entity_id: input_text.tibber_today
+      default: []
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: '{{ as_local(states.input_text.tibber_today.last_updated).day != now().day }}'
+        - condition: template
+          value_template: >
+            {% set tomorrow = states('input_text.tibber_tomorrow') %}
+            {{ tomorrow != '[]' and tomorrow  != 'unknown' }}
+        sequence: 
+        - service: input_text.set_value
+          data:
+            value: '{{ states.input_text.tibber_tomorrow.state }}'
+          target: 
+            entity_id: input_text.tibber_today
+        - service: input_text.set_value
+          data:
+            value: '[]'
+          target: 
+            entity_id: input_text.tibber_tomorrow
+      - conditions:
+        - condition: template
+          value_template: >
+            {% set tomorrow = states('input_text.tibber_tomorrow') %}
+            {{ tomorrow == '[]' or tomorrow  == 'unknown' }}
+        - condition: template
+          value_template: '{{ now().timestamp() - states.sensor.tibber_rest.last_updated.timestamp() < 300 }}'
+        - condition: template
+          value_template: "{{ state_attr('sensor.tibber_rest', 'tomorrow')|length > 0 }}"
+        sequence: 
+        - service: input_text.set_value
+          data:
+            value: >
+              {% set prices = namespace(list=[]) %}
+              {% set priceInfo = state_attr('sensor.tibber_rest', 'tomorrow') %}
+              {% for i in range(priceInfo|length) %}
+                {% set hour =  strptime(priceInfo[i].startsAt, '%Y-%m-%dT%H:%M:%S.%f%z').hour %}
+                {% if hour > prices.list|length %}
+                  {% set prices.list = prices.list + [prices.list[i-1]] %}
+                {% endif %}
+                {% set prices.list = prices.list + [priceInfo[i].energy] %}
+              {% endfor %}
+              {{ prices.list|to_json }}
+          target: 
+            entity_id: input_text.tibber_tomorrow
+        - condition: template
+          value_template: >
+            {% set today = states('input_text.tibber_today') %}
+            {{ today == '[]' or tomorrow  == 'unknown' }}
+        - service: input_text.set_value
+          data:
+            value: >
+              {% set prices = namespace(list=[]) %}
+              {% set priceInfo = state_attr('sensor.tibber_rest', 'today') %}
+              {% for i in range(priceInfo|length) %}
+                {% set hour =  strptime(priceInfo[i].startsAt, '%Y-%m-%dT%H:%M:%S.%f%z').hour %}
+                {% if hour > prices.list|length %}
+                  {% set prices.list = prices.list + [prices.list[i-1]] %}
+                {% endif %}
+                {% set prices.list = prices.list + [priceInfo[i].energy] %}
+              {% endfor %}
+              {{ prices.list|to_json }}
+          target: 
+            entity_id: input_text.tibber_today
+      default: []
+    mode: single
+
+  - id: '1650144839'
+    alias: Calculate monthly raw average price
+    description: ''
+    trigger: 
+    - platform: time
+      at: "00:00"
+    condition: []
+    variables:
+      new_list: >
+        {% set today = states('input_text.tibber_today')|from_json %}
+        {% set avg  = [today|average|round(4)] +  states('input_text.tibber_month_average')|from_json %}
+        {% set month = now().month %}
+        {% set length = 31 if month in [1, 3, 5, 7, 8, 10, 12] else
+                        30 if month in [4, 6, 9, 11] else
+                        29 if now().year % 4 == 0 else 28 %}
+        {{ month[:length] }}
+    action:
+    - condition: template
+      value_template: >
+        {{ now().day != as_local(states.input_text.tibber_month_average.last_updated).day }}
+    - service: input_text.set_value
+      data:
+        value: '{{ new_list }}'
+      target: 
+        entity_id: input_text.tibber_month_average
+
