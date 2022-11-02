@@ -45,33 +45,23 @@ sensor:
     round: 1
     time_window: "01:00:00"
   - platform: statistics
-    name: "vvtank_temp_ut_mean over 2 hours"
-    entity_id: sensor.vvtank_temp_ut
-    state_characteristic: mean
+    name: vvlumi average
+    entity_id: sensor.lumi_temp_2_temperature
+    state_characteristic: average_linear
     max_age:
       hours: 2
   - platform: statistics
-    name: "vvaux_temp_ut_mean over 2 hours"
-    entity_id: sensor.vvaux_temp_ut
-    state_characteristic: mean
+    name: "vvtank_temp_ut_average"
+    entity_id: sensor.vvtank_temp_ut
+    state_characteristic: average_linear
     max_age:
       hours: 2
   - platform: statistics
-    name: "vvtank_temp_ut_change over 5 minutes"
-    entity_id: sensor.vvtank_temp_ut
-    state_characteristic: change
-    max_age:
-      hours: 5
-    sampling_size: 50
-    precision: 1
-  - platform: statistics
-    name: "vvaux_temp_ut_change over 5 minutes"
+    name: "vvaux_temp_ut_average"
     entity_id: sensor.vvaux_temp_ut
-    state_characteristic: change
+    state_characteristic: average_linear
     max_age:
-      hours: 5
-    sampling_size: 50
-    precision: 1
+      hours: 2
   - platform: integration
     name: vv_tank_energy
     source: sensor.vv_tank_power
@@ -189,9 +179,41 @@ template:
     - name: vvkjeller_on
       state: "{{ states('sensor.stikk_vv_kjeller_power')|float(default=0) > 0 }}"
     - name: vvtank_usage
-      state: "{{ states('sensor.vvtank_temp_ut_change_over_5_minutes')|int >= 10 }}"
+      state: >
+        {% set limit = states('sensor.vvtank_temp_limit')|int %}
+        {% set temp_ut = states('sensor.vvtank_temp_ut')|int %}
+        {{ temp_ut > limit + 5 }}
     - name: vvkjeller_usage
-      state: "{{ states('sensor.vvaux_temp_ut_change_over_5_minutes')|int >= 10 }}"
+      state: >
+        {% set limit = states('sensor.vvkjeller_temp_limit')|int %}
+        {% set temp_ut = states('sensor.vvaux_temp_ut')|int %}
+        {{ temp_ut > limit + 5 }}
+  - trigger: 
+      - platform: state
+        entity_id: sensor.vvtank_temp_ut_average
+      - platform: state
+        entity_id: binary_sensor.vvtank_usage
+    sensor: 
+      - name: vvtank_temp_limit
+        unit_of_measurement: "°C"
+        state: >
+          {% set last = states('sensor.vvtank_temp_limit') %}
+          {% set average = states('sensor.vvtank_temp_ut_average')|int %}
+          {% set usage = states('binary_sensor.vvtank_usage') %}
+          {{ last if usage == 'on' else average }}
+  - trigger: 
+      - platform: state
+        entity_id: sensor.vvkjeller_temp_ut_average
+      - platform: state
+        entity_id: binary_sensor.vvkjeller_usage
+    sensor: 
+      - name: vvkjeller_temp_limit
+        unit_of_measurement: "°C"
+        state: >
+          {% set last = states('sensor.vvkjeller_temp_limit') %}
+          {% set average = states('sensor.vvaux_temp_ut_average')|int %}
+          {% set usage = states('binary_sensor.vvkjeller_usage') %}
+          {{ last if usage == 'on' else average }}
 
 utility_meter:
   vvtank_cycle:
@@ -504,8 +526,12 @@ automation:
   - id: '1666974171362'
     alias: 'Count minutes off water usage from vvtank'
     trigger:
-      - platform: template
-        value_template: "{{ now().second == 0 and states('binary_sensor.vvtank_usage') == 'on' }}"
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.vvtank_usage
+        state: "on"
     action:
       - service: counter.increment
         target: 
@@ -514,8 +540,12 @@ automation:
   - id: '1666974171462'
     alias: 'Count minutes off water usage from vvkjeller'
     trigger:
-      - platform: template
-        value_template: "{{ now().second == 0 and states('binary_sensor.vvkjeller_usage') == 'on' }}"
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.vvkjeller_usage
+        state: "on"
     action:
       - service: counter.increment
         target: 
