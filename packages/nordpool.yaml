@@ -25,7 +25,7 @@ template:
       {% set avg = states('sensor.nordpool_month_average') %}
       {{ 'unknown' if avg in ['unknown', 'unavailable'] else 
           0 if  avg|float <= 0.7 else 
-          (avg|float - 0.7) * 0.9 * 1.25 }}
+          ((avg|float - 0.7) * 0.9 * 1.25)|round(4) }}
   - name: nordpool_month_average
     unit_of_measurement: "NOK/kWh"
     state: >
@@ -50,7 +50,7 @@ automation:
       value_template: >
         {% set nordpool_time = as_datetime(states('sensor.nordpool_api')) %}
         {{ (nordpool_time.day != now().day or nordpool_time.hour < 13) and 
-            (now().hour % 20 == 4) and now().hour >= 13 and 
+            (now().minute % 20 == 0) and now().hour >= 13 and 
           state_attr('automation.nordpool_price_update', 'current') == 0 }}
     condition: []
     action: 
