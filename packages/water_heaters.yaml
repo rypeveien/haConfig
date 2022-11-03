@@ -237,6 +237,66 @@ template:
       - name: vvlumi_temp_diff
         unit_of_measurement: "°C"
         state: "{{ (trigger.to_state.state|float - trigger.from_state.state|float)|round(2) }}"
+  - trigger: 
+      platform: state
+      entity_id: 
+        - binary_sensor.hw_lumi_on
+        - binary_sensor.hw_lumi_off
+    binary_sensor:
+      - name: hw_lumi_trend_usage
+        state: "{{ states('binary_sensor.hw_lumi_trend_usage') if trigger.to_state.state != 'on' 
+                   else trigger.entity_id == 'binary_sensor.hw_lumi_on' }}"
+  - trigger: 
+      platform: state
+      entity_id: 
+        - binary_sensor.hw_main_on
+        - binary_sensor.hw_main_off
+    binary_sensor:
+      - name: hw_main_trend_usage
+        state: "{{ states('binary_sensor.hw_main_trend_usage') if trigger.to_state.state != 'on' 
+                   else trigger.entity_id == 'binary_sensor.hw_main_on' }}"
+  - trigger: 
+      platform: state
+      entity_id: 
+        - binary_sensor.hw_aux_on
+        - binary_sensor.hw_aux_off
+    binary_sensor:
+      - name: hw_aux_trend_usage
+        state: "{{ states('binary_sensor.hw_aux_trend_usage') if trigger.to_state.state != 'on' 
+                   else trigger.entity_id == 'binary_sensor.hw_aux_on' }}"
+
+binary_sensor:
+  - platform: trend
+    sensors: 
+      hw_lumi_on:
+        entity_id: sensor.lumi_temp_2_temperature
+        sample_duration: 600
+        min_gradient: 0.0010
+
+      hw_lumi_off: 
+        entity_id: sensor.lumi_temp_2_temperature
+        sample_duration: 600
+        min_gradient: -0.0001
+
+      hw_main_on:
+        entity_id: sensor.vvtank_temp_ut
+        sample_duration: 600
+        min_gradient: 0.0060
+
+      hw_main_off: 
+        entity_id: sensor.vvtank_temp_ut
+        sample_duration: 600
+        min_gradient: -0.0001
+
+      hw_aux_on:
+        entity_id: sensor.vvaux_temp_ut
+        sample_duration: 600
+        min_gradient: 0.0060
+
+      hw_aux_off: 
+        entity_id: sensor.vvaux_temp_ut
+        sample_duration: 600
+        min_gradient: -0.0001
 
 
 utility_meter:
