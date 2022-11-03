@@ -69,7 +69,7 @@ sensor:
     round: 2
     unit_prefix: k
     unit_time: h
-    
+
 
 template:
   - sensor: 
@@ -78,17 +78,19 @@ template:
       state: >
         {% set full = 300 * 4.18 * (75 - 5)/3600 %}
         {% set cycle = states('sensor.vvtank_cycle_1')|float %}
+        {% set counter = states('counter.vvtank_usage')|int %}
         {% set last = as_datetime(state_attr('sensor.vvtank_cycle_1', 'last_reset')) %}
         {% set diff = now().timestamp() - last.timestamp() %}
-        {{ (full - diff / 3600 * 0.16)|round(1) + cycle }}
+        {{ (full - diff / 3600 * 0.16)|round(1) + cycle - counter * 0.1 }}
     - name: vvkjeller_soc
       unit_of_measurement: "kWh"
       state: >
         {% set full = 120 * 4.18 * (75 - 5)/3600 %}
         {% set cycle = states('sensor.vvkjeller_cycle_1')|float %}
+        {% set counter = states('counter.vvkjeller_usage')|int %}
         {% set last = as_datetime(state_attr('sensor.vvkjeller_cycle_1', 'last_reset')) %}
         {% set diff = now().timestamp() - last.timestamp() %}
-        {{ (full - diff / 3600 * 0.15)|round(1) + cycle }}
+        {{ (full - diff / 3600 * 0.15)|round(1) + cycle - counter * 0.1 }}
     - name: hours24_vvtank
       unit_of_measurement: "Hours"
       state: >
@@ -235,6 +237,7 @@ template:
       - name: vvlumi_temp_diff
         unit_of_measurement: "°C"
         state: "{{ (trigger.to_state.state|float - trigger.from_state.state|float)|round(2) }}"
+
 
 utility_meter:
   vvtank_cycle:
