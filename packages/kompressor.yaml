@@ -6,13 +6,13 @@ automation:
     - platform: template
       value_template: >
         {% set hour = now().hour %}
-        {% set last = states.switch.pluggkompressor.last_updated.timestamp() %}
-        {% set switch = states('switch.pluggkompressor') %}
+        {% set last = states.switch.shellypluggkompressor.last_updated.timestamp() %}
+        {% set switch = states('switch.shellypluggkompressor') %}
         {% set wants = 'on' if hour >= 10 and hour < 22 else 'off' %}
         {{ now().timestamp() - last > 1800 and switch != wants }}
       id: daily_schedule
     action:
       - service: switch.toggle
         target:
-          entity_id: switch.pluggkompressor
+          entity_id: switch.shellypluggkompressor
     mode: single
