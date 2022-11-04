@@ -50,18 +50,21 @@ sensor:
     state_characteristic: average_linear
     max_age:
       hours: 2
+    sampling_size: 120
   - platform: statistics
     name: "vvtank_temp_ut_average"
     entity_id: sensor.vvtank_temp_ut
     state_characteristic: average_linear
     max_age:
       hours: 2
+    sampling_size: 120
   - platform: statistics
     name: "vvaux_temp_ut_average"
     entity_id: sensor.vvaux_temp_ut
     state_characteristic: average_linear
     max_age:
       hours: 2
+    sampling_size: 120
   - platform: integration
     name: vv_tank_energy
     source: sensor.vv_tank_power
@@ -205,7 +208,7 @@ template:
           {{ last if usage == 'on' else average }}
   - trigger: 
       - platform: state
-        entity_id: sensor.vvkjeller_temp_ut_average
+        entity_id: sensor.vvaux_temp_ut_average
       - platform: state
         entity_id: binary_sensor.vvkjeller_usage
     sensor: 
@@ -270,33 +273,39 @@ binary_sensor:
     sensors: 
       hw_lumi_on:
         entity_id: sensor.lumi_temp_2_temperature
-        sample_duration: 600
-        min_gradient: 0.0010
+        sample_duration: 1200
+        min_gradient: 0.5000
+        max_samples: 10
 
       hw_lumi_off: 
         entity_id: sensor.lumi_temp_2_temperature
-        sample_duration: 600
+        sample_duration: 1200
         min_gradient: -0.0001
+        max_samples: 10
 
       hw_main_on:
         entity_id: sensor.vvtank_temp_ut
         sample_duration: 600
         min_gradient: 0.0060
+        max_samples: 10
 
       hw_main_off: 
         entity_id: sensor.vvtank_temp_ut
         sample_duration: 600
         min_gradient: -0.0001
+        max_samples: 10
 
       hw_aux_on:
         entity_id: sensor.vvaux_temp_ut
         sample_duration: 600
         min_gradient: 0.0060
+        max_samples: 10
 
       hw_aux_off: 
         entity_id: sensor.vvaux_temp_ut
         sample_duration: 600
         min_gradient: -0.0001
+        max_samples: 10
 
 
 utility_meter:
