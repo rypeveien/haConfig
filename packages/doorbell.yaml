@@ -1,0 +1,18 @@
+automation:
+  - id: '1667483095972'
+    alias: someone rings the doorbell
+    trigger: 
+      - platform: state
+        entity_id: siren.doorbell_3
+        from: 'off'
+        to: 'on'
+    condition:
+      - condition: state
+        entity_id: binary_sensor.anyone_home
+        state: 'off'
+    action: 
+      - service: notify.mobile_app_xq_au52
+        data_template:
+          message: 'Noen ringte på døra'
+
+
