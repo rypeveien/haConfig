@@ -1,3 +1,9 @@
+template:
+  sensor:
+    - name: evnotify_12v
+      unit_of_measurement: "V"
+      state: "{{ state_attr('sensor.evnotify_ext', 'aux_battery_voltage') }}"
+
 sensor:
   - platform: rest
     scan_interval: 300
