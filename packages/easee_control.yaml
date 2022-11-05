@@ -324,7 +324,7 @@ automation:
         entity_id: sensor.evnotify_soc
     condition: 
       - condition: template
-        value_template: "{{ states('sensor.evnotify_soc') not in ['unavailable'] }}"
+        value_template: "{{ states('sensor.evnotify_soc') not in ['unavailable', 'None'] }}"
     action: 
       - service: input_text.set_value
         data: 
