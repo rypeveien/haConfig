@@ -437,6 +437,10 @@ automation:
                 timestamp: '{{ now().timestamp() }}'
               target:
                 entity_id: input_datetime.vvtank_last_on
+            - type: turn_off
+              device_id: ced3fc17b42719e3af505c552f41c16a
+              entity_id: switch.vv_tank
+              domain: switch
           default:
           - service: input_number.set_value
             data:
