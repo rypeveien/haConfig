@@ -49,7 +49,8 @@ automation:
     - platform: template
       value_template: >
         {% set nordpool_time = as_datetime(states('sensor.nordpool_api')) %}
-        {{ (nordpool_time.day != now().day or nordpool_time.hour < 13) and 
+        {{ (nordpool_time.day != now().day or 
+              (nordpool_time.hour < 13 and now().hour == 13)) and 
             (now().minute % 20 == 0) and now().hour >= 13 and 
           state_attr('automation.nordpool_price_update', 'current') == 0 }}
     condition: []
