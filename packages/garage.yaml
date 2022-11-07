@@ -1,0 +1,9 @@
+
+climate:
+  - platform: generic_thermostat
+    name: garage_heating
+    heater: switch.shellyplugggarasjevarme
+    target_sensor: sensor.garasjen_temperature
+    target_temp_step: 1
+    min_temp: 5
+    max_temp: 17
