@@ -40,6 +40,9 @@ template:
                        29 if now().year % 4 == 0 else 28 %}
       {{ 'unknown' if month|length == 0 else
          ((month[:mlength]|average + month[:daymon]|average)/2)|round(4) }}
+  binary_sensor:
+  - name: nordpool_official
+    state: "{{ states.sensor.nordpool_api.attributes.Rows[0].Columns[0].IsOfficial }}"
 
 
 automation:  
