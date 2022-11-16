@@ -27,7 +27,15 @@
     id: easee_connected
     from: disconnected
   - platform: state
-    entity_id: sensor.howmanyhome
+    entity_id: 
+      - person.amalie_johansen
+      - person.vibeke_johansen
+      - person.thomas_johansen
+      - person.fredrik_johansen
+      - person.finn_arne_johansen_johansen
+      - person.torkel_hamre
+    from: not_home
+    to: home
     id: Arriving_home
   - platform: device
     device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
