@@ -76,6 +76,9 @@ sensor:
 
 template:
   - sensor: 
+    - name: vvmain_temp_out
+      unit_of_measurement: "°C"
+      state: "{{ states('sensor.lumi_temp_2_temperature') }}"
     - name: vvtank_soc
       unit_of_measurement: "kWh"
       state: >
@@ -243,6 +246,15 @@ template:
   - trigger: 
       platform: state
       entity_id: 
+        - binary_sensor.vvmain_on
+        - binary_sensor.vvmain_off
+    binary_sensor:
+      - name: vvmain_trend_usage
+        state: "{{ states('binary_sensor.vvmain_trend_usage') if trigger.to_state.state != 'on' 
+                   else trigger.entity_id == 'binary_sensor.vvmain_on' }}"
+  - trigger: 
+      platform: state
+      entity_id: 
         - binary_sensor.hw_lumi_on
         - binary_sensor.hw_lumi_off
     binary_sensor:
@@ -271,6 +283,16 @@ template:
 binary_sensor:
   - platform: trend
     sensors: 
+      vvmain_on:
+        entity_id: sensor.vvmain_temp_out
+        sample_duration: 240
+        min_gradient: 0.003
+        max_samples: 10
+      vvmain_off: 
+        entity_id: sensor.vvmain_temp_out
+        sample_duration: 240
+        min_gradient: -0.0001
+        max_samples: 10
       hw_lumi_on:
         entity_id: sensor.lumi_temp_2_temperature
         sample_duration: 1200
