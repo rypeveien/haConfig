@@ -46,7 +46,7 @@ sensor:
     time_window: "01:00:00"
   - platform: statistics
     name: vvlumi average
-    entity_id: sensor.lumi_temp_2_temperature
+    entity_id: sensor.vvmain_temp_out
     state_characteristic: average_linear
     max_age:
       hours: 2
@@ -78,7 +78,7 @@ template:
   - sensor: 
     - name: vvmain_temp_out
       unit_of_measurement: "°C"
-      state: "{{ states('sensor.lumi_temp_2_temperature') }}"
+      state: "{{ states('sensor.lumi_vvmain_temperature') }}"
     - name: vvtank_soc
       unit_of_measurement: "kWh"
       state: >
@@ -238,7 +238,7 @@ template:
         state: "{{ (trigger.to_state.state|float - trigger.from_state.state|float)|round(2) }}"
   - trigger: 
       platform: state
-      entity_id: sensor.lumi_temp_2_temperature
+      entity_id: sensor.vvmain_temp_out
     sensor:
       - name: vvlumi_temp_diff
         unit_of_measurement: "°C"
@@ -294,13 +294,13 @@ binary_sensor:
         min_gradient: -0.0001
         max_samples: 10
       hw_lumi_on:
-        entity_id: sensor.lumi_temp_2_temperature
+        entity_id: sensor.vvmain_temp_out
         sample_duration: 1200
         min_gradient: 0.5000
         max_samples: 10
 
       hw_lumi_off: 
-        entity_id: sensor.lumi_temp_2_temperature
+        entity_id: sensor.vvmain_temp_out
         sample_duration: 1200
         min_gradient: -0.0001
         max_samples: 10
