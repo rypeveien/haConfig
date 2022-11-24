@@ -38,6 +38,9 @@ input_select:
       - Completed
       - Disconnected
       - Charging scheduled
+input_boolean: 
+  charge_now:
+    name: Override schedule and charge now
 
 input_datetime:
   holiday_until:
@@ -136,17 +139,6 @@ template:
     state: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
     delay_off: 
       minutes: 2
-  - name: charge_hours_override
-    state: >
-      {% set l = namespace (prices=[]) %}
-      {% set now_price = states('sensor.template_energy_by_subsides_and_production')|float %}
-      {% set prices = state_attr('sensor.template_energy_by_subsides_and_production','prices') %}
-      {% set hours = states.sensor.charge_hours.state|from_json %}
-      {% for hour in hours %}
-      {% set l.prices = l.prices + [ prices[hour] ] %}
-      {% endfor %}
-      {{ states.sensor.easee_current_limit.state|int > 0 
-         and l.prices|length > 0 and l.prices|max >= now_price|float }}
 
 automation:
   - id: '1657578526896'
@@ -223,10 +215,12 @@ automation:
         current: "{{ states('sensor.easee_current_limit') }}"
 
   - id: '1663097253593'
-    alias: Easee set schedule
+    alias: Easee set schedule or start charging now
     trigger: 
     - platform: state
       entity_id: sensor.charge_hours
+    - platform: state
+      entity_id: input_boolean.charge_now
     condition:
     - condition: template
       value_template: "{{ states('sensor.charge_hours')|from_json|length > 0 }}"
@@ -235,19 +229,33 @@ automation:
         {{ states('sensor.charge_hours')|from_json|min > now().hour 
            or states('sensor.easee_home_63089_status') != 'charging' }}
     action:
-      - service: easee.set_basic_charge_plan
-        data:
-          charger_id: EH630897
-          start_datetime: >
-            {% set start_hour = states('sensor.charge_hours')|from_json|min %}
-            {% set start = now() + timedelta (hours=start_hour - now().hour, minutes=2-now().minute, seconds=-now().second) %}
-            {{ (start|string)[:16] }}
-          stop_datetime: >
-            {% set done_hour = state_attr('input_datetime.car_ready_charged', 'hour') %}
-            {% set done_hour = done_hour if  done_hour > now().hour else  done_hour + 24 %}
-            {% set done = now() + timedelta (hours = done_hour - now().hour, minutes=-now().minute, seconds=-now().second) %}
-            {{ (done|string)[:16] }}
-          repeat: true
+    - if: 
+      - condition: state
+        entity_id: input_boolean.charge_now
+        state: "off"
+      then: 
+        - service: easee.set_basic_charge_plan
+          data:
+            charger_id: EH630897
+            start_datetime: >
+              {% set start_hour = states('sensor.charge_hours')|from_json|min %}
+              {% set start = now() + timedelta (hours=start_hour - now().hour, minutes=2-now().minute, seconds=-now().second) %}
+              {{ (start|string)[:16] }}
+            stop_datetime: >
+              {% set done_hour = state_attr('input_datetime.car_ready_charged', 'hour') %}
+              {% set done_hour = done_hour if  done_hour > now().hour else  done_hour + 24 %}
+              {% set done = now() + timedelta (hours = done_hour - now().hour, minutes=-now().minute, seconds=-now().second) %}
+              {{ (done|string)[:16] }}
+            repeat: true
+#      else: 
+#        - service: easee.delete_basic_charge_plan
+#          data:
+#            charger_id: EH630897
+#        - delay:
+#            seconds: 5
+#        - service: easee.resume
+#          data:
+#            charger_id: EH630897
 
   - id: '1663156755035'
     alias: Easee charger status change (schedule usage)
@@ -293,15 +301,22 @@ automation:
           data:
             charger_id: EH630897
             current: 16
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.charge_now
       - conditions:
         - condition: trigger
           id: connected
         sequence:
         - choose:
           - conditions:
-            - condition: numeric_state
-              entity_id: sensor.ev_soc
-              below: 20
+            - condition: 
+              - condition: numeric_state
+                entity_id: sensor.soc_estimate
+                below: 20
+              - condition: state
+                entity_id: input_boolean.charge_now
+                state: "on"
             sequence:
             - service: easee.resume
               data:
