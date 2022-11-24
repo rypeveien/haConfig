@@ -57,39 +57,39 @@ switch:
           target:
             entity_id: climate.adax_faoff
           data: 
-            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') + 4 + states('sensor.analyzer_updown')|int }}"
+            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') + 5 }}"
         turn_off:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_faoff
           data: 
-            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') - 1 + states('sensor.analyzer_updown')|int }}"
+            temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature') - 2 }}"
       adax_syrom:
         turn_on:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_syrom
           data: 
-            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') + 4 + states('sensor.analyzer_updown')|int }}"
+            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') + 5 }}"
         turn_off:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_syrom
           data: 
-            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') - 1 + states('sensor.analyzer_updown')|int }}"
+            temperature: "{{ state_attr('climate.adaxg_syrom', 'temperature') - 2 }}"
       adax_guest:
         turn_on:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_guest
           data: 
-            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') + 4 + states('sensor.analyzer_updown')|int }}"
+            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') + 5 }}"
         turn_off:
           service: climate.set_temperature
           target:
             entity_id: climate.adax_guest
           data: 
-            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') - 1 + states('sensor.analyzer_updown')|int }}"
+            temperature: "{{ state_attr('climate.adaxg_guest', 'temperature') - 2 }}"
 
 climate:
   - platform: generic_thermostat
