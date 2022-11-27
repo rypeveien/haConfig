@@ -32,7 +32,7 @@
       - person.vibeke_johansen
       - person.thomas_johansen
       - person.fredrik_johansen
-      - person.finn_arne_johansen_johansen
+      - person.finn_arne_johansen
       - person.torkel_hamre
     from: not_home
     to: home
