@@ -14,6 +14,13 @@ climate:
     target_temp_step: 0.5
     min_temp: 14
     max_temp: 28
+  - platform: generic_thermostat
+    name: aux_bathroom_heat
+    heater: switch.shellyhybelbadvarme
+    target_sensor: sensor.lumi_bad_nede_temperature
+    target_temp_step: 1
+    min_temp: 14
+    max_temp: 28
 
 template:
   sensor:
