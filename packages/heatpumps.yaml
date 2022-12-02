@@ -70,6 +70,35 @@ climate:
     min_temp: 17
     max_temp: 28
 
+schedule:
+  livingroom_schedule:
+    name: "Livingroom schedule"
+    monday: 
+      - from: "14:30:00"
+        to: "21:00:00"
+    tuesday:
+      - from: "07:30:00"
+        to: "12:00:00"
+      - from: "16:00:00"
+        to: "21:00:00"
+    wednesday:
+      - from: "07:30:00"
+        to: "12:00:00"
+      - from: "16:00:00"
+        to: "21:00:00"
+    thursday: 
+      - from: "14:30:00"
+        to: "21:00:00"
+    friday: 
+      - from: "14:30:00"
+        to: "21:00:00"
+    saturday:
+      - from: "09:00:00"
+        to: "21:00:00"
+    sunday:
+      - from: "09:00:00"
+        to: "21:00:00"
+
 automation: 
   - id: '1658673475311'
     alias: 'Climate VP Oppe Start cooling '
@@ -146,7 +175,9 @@ automation:
     trigger:
       - platform: template
         value_template: >
-          {{ now().minute < 59 and state_attr('climate.vp_goppe', 'temperature') + states('sensor.analyzer_updown')|int != 
+          {{ now().minute < 59 and state_attr('climate.vp_goppe', 'temperature') + 
+             states('sensor.analyzer_updown')|int  +
+             (1 if states('schedule.livingroom_schedule') == 'on' else 0) != 
              state_attr('climate.vp_oppe','temperature') }}
     condition:
       - condition: template
@@ -167,7 +198,9 @@ automation:
           - service: climate.set_temperature
             data: 
               temperature: >
-                {{ state_attr('climate.vp_goppe', 'temperature') + states('sensor.analyzer_updown')|int }}
+                {{ state_attr('climate.vp_goppe', 'temperature') + 
+                   states('sensor.analyzer_updown')|int +
+                   (1 if states('schedule.livingroom_schedule') == 'on' else 0)  }}
             target:
               entity_id: climate.vp_oppe
         - conditions: 
