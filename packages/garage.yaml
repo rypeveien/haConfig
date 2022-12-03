@@ -1,3 +1,8 @@
+input_boolean:
+  garage_comfort: 
+    name: Turn on/off comfort temp in garage
+    icon: mdi:heat-pump-outline
+
 climate:
   - platform: generic_thermostat
     name: garage_heating
@@ -9,17 +14,49 @@ climate:
 
 automation: 
   - id: '1668631031058'
-    alias: Turn of heating when work is done
+    alias: Turn on/off heating in the garage
     trigger: 
-      - platform: template
-        value_template: >
-          {{ state_attr('climate.garage_heating', 'temperature') > 5
-             and now().hour >= 21 }}
+      - platform: state
+        entity_id: input_boolean.garage_comfort
+      - platform: time
+        at: "21:00:00"
+        id: turn_off
     action:
-    - service: climate.set_temperature
-      data:
-        temperature: 5
-      target:
-        entity_id: climate.garage_heating
-
-
+    - choose: 
+      - conditions:
+        - condition: trigger
+          id: turn_off
+        - condition: state
+          entity_id: input_boolean.garage_comfort
+          state: "on"
+        - condition: numeric_state
+          entity_id: climate.garage_heating
+          attribute: temperature
+          above: 5
+        sequence:
+        - service: climate.set_temperature
+          data:
+            temperature: 5
+          target:
+            entity_id: climate.garage_heating
+        - service: input_boolean.turn_of
+          target:
+            entity_id: input_boolean.garage_comfort
+      - conditions:
+        - condition: template
+          value_template: "{{ trigger.from_state.state == 'on' and trigger.to_state.state == 'off' }}"
+        sequence:
+        - service: climate.set_temperature
+          data:
+            temperature: 5
+          target:
+            entity_id: climate.garage_heating
+      - conditions:
+        - condition: template
+          value_template: "{{ trigger.from_state.state == 'off' and trigger.to_state.state == 'on' }}"
+        sequence:
+        - service: climate.set_temperature
+          data:
+            temperature: 12
+          target:
+            entity_id: climate.garage_heating
