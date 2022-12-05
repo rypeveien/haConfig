@@ -25,8 +25,8 @@ template:
         {% set qp_age = now().timestamp() - states.sensor.qp_kjolerom_temperature.last_updated.timestamp() %}
         {% set lumi_temp = states('sensor.lumi_kjole_temperature') %}
         {% set lumi_age = now().timestamp() - states.sensor.lumi_kjole_temperature.last_updated.timestamp() %}
-        {% set ink_temp = states('sensor.ink_kjolerom_temperature') %}
-        {% set ink_age = now().timestamp() - states.sensor.ink_kjolerom_temperature.last_updated.timestamp() %}
+        {% set ink_temp = states('sensor.ink_kjole_temperature') %}
+        {% set ink_age = now().timestamp() - states.sensor.ink_kjole_temperature.last_updated.timestamp() %}
         {% set temp = [ qp_temp|float ] if qp_temp not in ['unknown', 'unavailable'] and qp_age < 900 else [] %}
         {% set temp = temp + ([ lumi_temp|float ] if lumi_temp not in ['unknown', 'unavailable'] and lumi_age < 900 else []) %}
         {% set temp = temp + ([ ink_temp|float ] if ink_temp not in ['unknown', 'unavailable'] and ink_age < 900 else []) %}
