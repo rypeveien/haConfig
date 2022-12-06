@@ -35,6 +35,18 @@
         device_id: b6395abb2835f10fd7b0fce5b869d279
         entity_id: switch.utelys
         domain: switch
+      - if:
+          - condition: state
+            entity_id: light.hagestue
+            state: "off"
+          - condition: numeric_state
+            entity_id: sensor.pvlogger_power
+            below: 100
+        then:
+          - type: turn_on
+            device_id: d4305c6feca526b0e16cdecff1d937d6
+            entity_id: light.hagestue
+            domain: light
     - conditions:
       - condition: trigger
         id: sunrise
