@@ -42,17 +42,7 @@ switch:
       vpnede_onoff:
         value_template: "{{states('sensor.stikk_vp_nede_power')|int > 50 }}"
         turn_on:
-          - service: climate.set_hvac_mode
-            data:
-              hvac_mode: heat
-            target:
-              entity_id: climate.vp_nede
         turn_off:
-          - service: climate.set_preset_mode
-            data:
-              preset_mode: "Fan"
-            target:
-              entity_id: climate.vp_nede
 
 climate:
   - platform: generic_thermostat
@@ -243,8 +233,7 @@ automation:
           - service: climate.set_temperature
             data: 
               temperature: >
-                {% set target = state_attr('climate.vp_gnede', 'temperature') + states('sensor.analyzer_updown')|int %}
-                {{ target if target >= 17 else 17 }}
+                {{ state_attr('climate.vp_gnede', 'temperature') + states('sensor.analyzer_updown')|int }}
             target:
               entity_id: climate.vp_nede
         - conditions: 
@@ -258,33 +247,3 @@ automation:
             target:
               entity_id: climate.vp_nede
 
-  - id: '1665986905409'
-    alias: Set HVAC mode for downstairs heatpump
-    trigger:
-      - platform: state
-        entity_id: sensor.vp_nede_wanted_mode
-    action:
-      - choose:
-        - conditions:
-          - condition: state
-            entity_id: sensor.vp_nede_wanted_mode
-            state: heat
-          sequence: 
-            - service: climate.set_hvac_mode
-              data:
-                hvac_mode: "{{ states('sensor.vp_nede_wanted_mode') }}"
-              target:
-                entity_id: climate.vp_nede
-        - conditions:
-          - condition: state
-            entity_id: sensor.vp_nede_wanted_mode
-            state: Fan
-          sequence: 
-            - service: climate.set_preset_mode
-              data:
-                preset_mode: "{{ states('sensor.vp_nede_wanted_mode') }}"
-              target:
-                entity_id: climate.vp_nede
-      - service: notify.persistent_notification
-        data:
-          message: "set vp_nede mode {{states('sensor.vp_nede_wanted_mode') }}"
