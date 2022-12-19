@@ -58,10 +58,10 @@ recorder:
       - lock
 
 logger:
-  default: info
+  default: critical
   logs:
     charset_normalizer: warning
-    custom_components.smartir.climate: debug
     custom_components.smartir: debug
+    custom_components.smartir.climate: debug
     homeassistant.components.climate.smartir: debug
 
