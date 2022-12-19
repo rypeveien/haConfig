@@ -36,19 +36,24 @@ template:
     delay_on:
       minutes: 30
   - name: vpnede_onoff
-    state: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 100 }}"
+    state: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 1 }}"
   - name: vpoppe_onoff
-    state: "{{ states('sensor.stikk_vp_oppe_power')|int(default=0) > 100 }}"
+    state: "{{ states('sensor.stikk_vp_oppe_power')|int(default=0) > 1 }}"
+  - name: schedule_adjust
+    state: >
+      {% set holiday_until = as_datetime(states('input_datetime.holiday_until')).timestamp() %}
+      {% set schedule = states('schedule.livingroom_schedule') %}
+      {{ now().timestamp() > holiday_until and schedule == 'on' }}
 
 switch: 
   - platform: template
     switches: 
       vpoppe_onoff:
-        value_template: "{{ states('binary_sensor.vpoppe_onoff') }}"
+        value_template: "{{ states('sensor.stikk_vp_oppe_power')|int(default=0) > 50 }}"
         turn_on:
         turn_off:
       vpnede_onoff:
-        value_template: "{{ states('binary_sensor.vpnede_onoff') }}"
+        value_template: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 50 }}"
         turn_on:
         turn_off:
 
@@ -155,17 +160,6 @@ automation:
       hvac_mode: 'off'
     mode: single
 
-  - id: '1661848057589'
-    alias: Refresh air temp values periodically
-    trigger: 
-    - platform: time_pattern
-      minutes: '/12'
-    action: 
-    - service: zwave_js.refresh_value
-      data:
-        entity_id: 
-          - sensor.vv_tank_air_temperature
-
   - id: '1663912913996'
     alias: Analyzer-adjust heat-pump upstairs temperature 
     trigger:
@@ -173,7 +167,7 @@ automation:
         value_template: >
           {{ now().minute < 59 and state_attr('climate.vp_goppe', 'temperature') + 
              states('sensor.analyzer_updown')|int  +
-             (1 if states('schedule.livingroom_schedule') == 'on' else 0) != 
+             (1 if states('binary_sensor.schedule_adjust') == 'on' else 0) != 
              state_attr('climate.vpoppe','temperature') }}
     condition:
       - condition: template
@@ -196,7 +190,7 @@ automation:
               temperature: >
                 {{ state_attr('climate.vp_goppe', 'temperature') + 
                    states('sensor.analyzer_updown')|int +
-                   (1 if states('schedule.livingroom_schedule') == 'on' else 0)  }}
+                   (1 if states('binary_sensor.schedule_adjust') == 'on' else 0)  }}
             target:
               entity_id: climate.vpoppe
         - conditions: 
