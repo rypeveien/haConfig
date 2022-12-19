@@ -9,6 +9,7 @@ climate:
     controller_data: remote.bl_vp_nede
     temperature_sensor: sensor.basement_temp
     power_sensor: binary_sensor.vpnede_onoff
+    power_sensor_restore_state: true
   - platform: smartir
     name: VPOppe
     unique_id: vpoppe
@@ -16,5 +17,6 @@ climate:
     controller_data: remote.bl_vp_oppe
     temperature_sensor: sensor.livingroom_temp
     power_sensor: binary_sensor.vpoppe_onoff
+    power_sensor_restore_state: true
 
 
