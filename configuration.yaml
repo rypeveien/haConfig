@@ -37,7 +37,7 @@ device_tracker:
 
 recorder:
   purge_keep_days: 30
-  commit_interval: 20
+  commit_interval: 31
 #  mysqldburl: mysql://dbuser:dbpass@dbhost/dbname?charset=utf8mb4
   db_url: !secret mysqldburl
   include:
@@ -61,7 +61,7 @@ logger:
   default: info
   logs:
     charset_normalizer: warning
-#    custom_components.tibber_custom: debug
-#    custom_components.tibber_custom.camera: debug
-#    custom_components.camera: debug
+    custom_components.smartir.climate: debug
+    custom_components.smartir: debug
+    homeassistant.components.climate.smartir: debug
 
