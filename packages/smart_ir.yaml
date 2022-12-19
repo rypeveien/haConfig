@@ -1,0 +1,20 @@
+smartir:
+  check_updates: false
+  
+climate:
+  - platform: smartir
+    name: VPNede
+    unique_id: vpnede
+    device_code: 128
+    controller_data: remote.bl_vp_nede
+    temperature_sensor: sensor.basement_temp
+    power_sensor: binary_sensor.vpnede_onoff
+  - platform: smartir
+    name: VPOppe
+    unique_id: vpoppe
+    device_code: 129
+    controller_data: remote.bl_vp_oppe
+    temperature_sensor: sensor.livingroom_temp
+    power_sensor: binary_sensor.vpoppe_onoff
+
+
