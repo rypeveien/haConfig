@@ -210,7 +210,7 @@ automation:
       - platform: template
         value_template: >
           {{ now().minute < 59 and state_attr('climate.vp_gnede', 'temperature') + states('sensor.analyzer_updown')|int != 
-             state_attr('climate.vpnede','temperature') }}
+             state_attr('climate.vpnede','temperature') and state('binary_sensor.zwift_active') == 'off' }}
     condition:
       - condition: template
         value_template: >
