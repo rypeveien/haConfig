@@ -1,0 +1,55 @@
+template:
+  - trigger: 
+      - platform: state
+        entity_id: sensor.basement_humidity
+    sensor:
+      - name: zwift saved humidity 
+        unit_of_measurement: "%"
+        state: >
+          {% set active = states('binary_sensor.zwift_active') %}
+          {% set last = states('sensor.zwift_saved_humidity')|float(default=0) %}
+          {% set trainer = states('device_tracker.sykkelrulle') %}
+          {% set to_state = trigger.to_state.state|float %}
+          {{ to_state if (active == 'off' and trainer != 'home') else
+             to_state if (active == 'on' and to_state > last) else 
+             last }}
+    binary_sensor:
+      - name: zwift_active
+        state: >
+          {% set active = states('binary_sensor.zwift_active') %}
+          {% set zwift_hum = states('sensor.zwift_saved_humidity')|float %}
+          {% set trainer = states('device_tracker.sykkelrulle') %}
+          {% set to_state = trigger.to_state.state|float %}
+          {{ (to_state + 3) > zwift_hum if active == 'on' else 
+             (to_state + 1) > zwift_hum if trainer == 'home' else
+             active }}
+
+automation:
+  - id: '1671655275820'
+    alias: 'Set heatpump downstairs hvac mode when zwifting'
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.zwift_active
+    action:
+      - if:
+          - condition: state
+            entity_id: binary_sensor.zwift_active
+            state: "on"
+        then:
+          - service: climate.set_temperature
+            data:
+              hvac_mode: cool
+              temperature: 18
+            target:
+              entity_id: climate.vpnede
+          - service: climate.set_fan_mode
+            data:
+              fan_mode: high
+            target:
+              entity_id: climate.vpnede
+        else:
+          - service: climate.set_hvac_mode
+            data:
+              hvac_mode: heat
+            target:
+              entity_id: climate.vpnede
