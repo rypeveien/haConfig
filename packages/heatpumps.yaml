@@ -1,3 +1,7 @@
+input_boolean:
+  downstairs_price_adjust:
+    name: turn on/off adjustment of downstairs heatpump
+    
 template:
   sensor: 
   - name: livingroom_temp
@@ -212,6 +216,9 @@ automation:
           {{ now().minute < 59 and state_attr('climate.vp_gnede', 'temperature') + states('sensor.analyzer_updown')|int != 
              state_attr('climate.vpnede','temperature') and states('binary_sensor.zwift_active') == 'off' }}
     condition:
+      - condition: state
+        entity_id: input_boolean.downstairs_price_adjust
+        state: 'on'
       - condition: template
         value_template: >
           {{ states('sensor.analyzer_updown') in ['-1', '0', '1'] }}
