@@ -12,6 +12,7 @@ template:
           {% set to_state = trigger.to_state.state|float %}
           {{ to_state if (active == 'off' and trainer != 'home') else
              to_state if (active == 'on' and to_state > last) else 
+             to_state if (active == 'off' and trainer == 'home' and to_state < last) else 
              last }}
     binary_sensor:
       - name: zwift_active
@@ -21,7 +22,7 @@ template:
           {% set trainer = states('device_tracker.sykkelrulle') %}
           {% set to_state = trigger.to_state.state|float %}
           {{ (to_state + 3) > zwift_hum if active == 'on' else 
-             (to_state + 1) > zwift_hum if trainer == 'home' else
+             to_state > (zwift_hum + 1) if trainer == 'home' else
              active }}
 
 automation:
