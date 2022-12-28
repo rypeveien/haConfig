@@ -22,49 +22,6 @@ counter:
     name: "minutes of hot water usage from aux tank"
 
 sensor:
-  - platform: derivative
-    name: Main bath humidity change
-    source: sensor.lumi_bad_humidity
-    round: 0
-    unit: '%'
-    time_window: "01:00:00"
-  - platform: derivative
-    name: Downstairs bath humidity change
-    source: sensor.lumi_bad_nede_humidity
-    round: 0
-    unit: '%'
-    time_window: "01:00:00"
-  - platform: derivative
-    name: vvtank_temp_ut_derivative
-    source: sensor.vvtank_temp_ut
-    round: 1
-    time_window: "01:00:00"
-  - platform: derivative
-    name: vvaux temp ut derivative
-    source: sensor.vvaux_temp_ut
-    round: 1
-    time_window: "01:00:00"
-  - platform: statistics
-    name: vvlumi average
-    entity_id: sensor.vvmain_temp_out
-    state_characteristic: average_linear
-    max_age:
-      hours: 2
-    sampling_size: 120
-  - platform: statistics
-    name: "vvtank_temp_ut_average"
-    entity_id: sensor.vvtank_temp_ut
-    state_characteristic: average_linear
-    max_age:
-      hours: 2
-    sampling_size: 120
-  - platform: statistics
-    name: "vvaux_temp_ut_average"
-    entity_id: sensor.vvaux_temp_ut
-    state_characteristic: average_linear
-    max_age:
-      hours: 2
-    sampling_size: 120
   - platform: integration
     name: vv_tank_energy
     source: sensor.vv_tank_power
