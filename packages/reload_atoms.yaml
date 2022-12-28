@@ -1,0 +1,34 @@
+automation:
+  - id: '1671730925060'
+    alias: 'Reload atom fryser whenever qp_kjellerstue freezes'
+    trigger: 
+      - platform: template
+        value_template: "{{ states('sensor.qp_kjellerstue_temperature') in [ 'unavailable' ] }}"
+    action:
+      - delay:
+          minutes: 5
+      - if:
+          - condition: template
+            value_template: "{{ states('sensor.qp_kjellerstue_temperature') in [ 'unavailable' ] }}"
+        then:
+          - service: homeassistant.reload_config_entry
+            data: {}
+            target:
+              device_id: 328534fc63b3984126f636379d634d05
+
+  - id: '1671730925062'
+    alias: 'Reload atom kontor whenever soverom_temperature freezes'
+    trigger: 
+      - platform: template
+        value_template: "{{ states('sensor.soverom_temperature') in [ 'unavailable' ] }}"
+    action:
+      - delay:
+          minutes: 5
+      - if:
+          - condition: template
+            value_template: "{{ states('sensor.soverom_temperature') in [ 'unavailable' ] }}"
+        then:
+          - service: homeassistant.reload_config_entry
+            data: {}
+            target:
+              device_id: dfe23fc0c4366e5de172a306aed5ea94
