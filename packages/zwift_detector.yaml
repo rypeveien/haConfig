@@ -39,7 +39,7 @@ automation:
         then:
           - service: climate.set_temperature
             data:
-              hvac_mode: cool
+              hvac_mode: dry
               temperature: 18
             target:
               entity_id: climate.vpnede
