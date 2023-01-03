@@ -7,11 +7,13 @@ template:
   - name: livingroom_temp
     unit_of_measurement: "°C"
     state: >
+      {% set lumi = states('sensor.lumi_stue_temperature') %}
       {% set netatmo = states('sensor.netatmo_stue_temperature') %}
       {% set vdor = states('sensor.verandador_temperature') %}
+      {% set lumi = [] if lumi in ['unavailable', 'unknown'] else [lumi|float] %}
       {% set netatmo = [] if netatmo in ['unavailable', 'unknown'] else [netatmo|float] %}
       {% set vdor = [] if vdor in  ['unavailible', 'unknown'] else [vdor|float] %}
-      {{ (netatmo + vdor)|average|round(1) }}
+      {{ (lumi + netatmo + vdor)|average|round(1) }}
   - name: basement_temp
     unit_of_measurement: "°C"
     state: >
