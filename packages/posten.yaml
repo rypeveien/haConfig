@@ -1,0 +1,26 @@
+sensor:
+  - platform: rest
+    name: PostenDeliveryDays
+    resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/1?postCode=4878
+    headers:
+        x-requested-with: XMLHttpRequest
+    scan_interval: 86400
+    value_template: "{{ value_json.nextDeliveryDays|to_json }}"
+
+template:
+  binary_sensor: 
+    - name: post_today
+      state: >
+        {{ (states('sensor.postendeliverydays')|from_json)[0].split(" ")[1] == 'dag' }}
+
+automation:
+  - id: '1672825151767'
+    alias: Reload posten if more not loaded today
+    trigger:
+      - platform: template
+        value_template: >
+          {{ now().hour > 4 and states.sensor.postendeliverydays.last_updated.day != now().day }}
+    action:
+      - service: homeassistant.reload_config_entry
+        target:
+          entity_id: sensor.postendeliverydays
