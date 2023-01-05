@@ -10,8 +10,7 @@ sensor:
 template:
   binary_sensor: 
     - name: post_today
-      state: >
-        {{ (states('sensor.postendeliverydays')|from_json)[0].split(" ")[1] == 'dag' }}
+      state: '{{ (states(''sensor.postendeliverydays'')|from_json)[0].split('' '')[1] == ''dag'' }}'
 
 automation:
   - id: '1672825151767'
@@ -19,7 +18,9 @@ automation:
     trigger:
       - platform: template
         value_template: >
-          {{ now().hour > 4 and states.sensor.postendeliverydays.last_updated.day != now().day }}
+          {% set then = states.sensor.postendeliverydays.last_updated %}
+          {{ (now().hour == 4 and then.hour > 6) or 
+             (now().hour > 4 and now().timestamp() - then.timestamp() > 88200) }}
     action:
       - service: homeassistant.reload_config_entry
         target:
