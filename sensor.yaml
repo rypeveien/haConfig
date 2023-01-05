@@ -34,13 +34,10 @@
   unit_prefix: k
   round: 3
   method: left
-#- platform: zwift
-#  username: !secret my_zwift_username
-#  password: !secret my_zwift_password
-- platform: rest
-  name: PostenDeliveryDays
-  resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/1?postCode=4878
-  headers:
-      x-requested-with: XMLHttpRequest
-  scan_interval: 57600
-  value_template: "{{ value_json.nextDeliveryDays|to_json }}"
+# - platform: rest
+#   name: PostenDeliveryDays
+#   resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/1?postCode=4878
+#   headers:
+#       x-requested-with: XMLHttpRequest
+#   scan_interval: 57600
+#   value_template: "{{ value_json.nextDeliveryDays|to_json }}"
