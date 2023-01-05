@@ -26,22 +26,26 @@ automation:
       - conditions:
         - condition: trigger
           id: turn_off
-        - condition: state
-          entity_id: input_boolean.garage_comfort
-          state: "on"
-        - condition: numeric_state
-          entity_id: climate.garage_heating
-          attribute: temperature
-          above: 5
         sequence:
-        - service: climate.set_temperature
-          data:
-            temperature: 5
-          target:
+        - if: 
+          - condition: numeric_state
             entity_id: climate.garage_heating
-        - service: input_boolean.turn_off
-          target:
+            attribute: temperature
+            above: 5
+          then:
+            - service: climate.set_temperature
+              data:
+                temperature: 5
+              target:
+                entity_id: climate.garage_heating
+        - if:
+          - condition: state
             entity_id: input_boolean.garage_comfort
+            state: "on"
+          then:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.garage_comfort
       - conditions:
         - condition: template
           value_template: "{{ trigger.from_state.state == 'on' and trigger.to_state.state == 'off' }}"
