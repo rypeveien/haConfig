@@ -243,7 +243,6 @@ automation:
               {{ (start|string)[:16] }}
             stop_datetime: >
               {% set done_hour = state_attr('input_datetime.car_ready_charged', 'hour') %}
-              {% set done_hour = done_hour if (done_hour > 16 or states('sensor.easee_home_63089_status') == 'disconnected') else 17 %}
               {% set done_hour = done_hour if  done_hour > now().hour else  done_hour + 24 %}
               {% set done = now() + timedelta (hours = done_hour - now().hour, minutes=-now().minute, seconds=-now().second) %}
               {{ (done|string)[:16] }}
@@ -257,6 +256,8 @@ automation:
         - service: easee.resume
           data:
             charger_id: EH630897
+
+#              {% set done_hour = done_hour if (done_hour > 16 or states('sensor.easee_home_63089_status') == 'disconnected') else 17 %}
 
   - id: '1663156755035'
     alias: Easee charger status change (schedule usage)
