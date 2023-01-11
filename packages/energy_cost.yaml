@@ -28,8 +28,14 @@ template:
       unit_of_measurement: "NOK"
       state: >
         {% set all_usage = states('sensor.energy_usage_month')|float %}
-         {{ (9 + (states('sensor.energy_cost_monthly')|float * 1.25 + 0.0345 * all_usage) * 0.98
-                - states('sensor.energy_sold_monthly')|float)|round(2) }}
+         {{ (9 + (states('sensor.energy_cost_monthly')|float * 1.25 + 0.0345 * all_usage) - 
+             states('sensor.energy_sold_monthly')|float)|round(2) }}
+    - name: vibb_cost
+      unit_of_measurement: "NOK"
+      state: >
+        {% set all_usage = states('sensor.energy_usage_month')|float %}
+        {{ (states('sensor.energy_cost_monthly')|float * 1.25 
+            - states('sensor.energy_sold_monthly')|float)|round(2) }}
     - name: grid_cost
       unit_of_measurement: "NOK"
       state: >
@@ -212,7 +218,7 @@ template:
         {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
-          {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + 0.01 + state_attr('sensor.template_grid_charge', 'prices')[i]|float)|round(3)] %}
+          {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + state_attr('sensor.template_grid_charge', 'prices')[i]|float)|round(3)] %}
         {% endfor %}
         {{ prices.list|to_json }}
     - name: to_grid_today_nok_kwh
