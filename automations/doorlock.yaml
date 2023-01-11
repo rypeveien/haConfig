@@ -102,8 +102,6 @@
         domain: lock
         entity_id: lock.dana_oppe
         type: is_locked
-      - condition: template
-        value_template: '{{ trigger.to_state.state > trigger.from_state.state }}'
       sequence:
       - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
         domain: lock
