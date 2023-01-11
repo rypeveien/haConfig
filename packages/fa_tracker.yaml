@@ -1,0 +1,53 @@
+template:
+  - sensor: 
+    - name: fa_tracker_activity_detected
+      state: "{% set track = states('sensor.fa_tracker') %} {{ states('sensor.'+track+'_detected_activity') }}"
+    - name: fa_device_tracker
+      state: "{% set track = states('sensor.fa_tracker') %} {{ states('device_tracker.'+track) }}"
+
+  - trigger: 
+      - platform: state
+        entity_id:
+          - sensor.faa3phone_detected_activity
+          - sensor.titophone_detected_activity
+    sensor:
+      - name: fa_tracker
+        state: >
+          {% set from = trigger.from_state.state %}
+          {% set to = trigger.to_state.state %}
+          {% set last = states('sensor.fa_tracker') %}
+          {{ last if from in ['unavailable'] or to in ['unavailable'] else
+             trigger.entity_id.split (".")[1].split("_")[0] }}
+
+automation:
+  - id: '1645796029028'
+    alias: FA Hjemme eller borte
+    description: ''
+    trigger:
+    - platform: state
+      entity_id:
+      - device_tracker.faa3phone
+      - device_tracker.titophone
+      - sensor.faa3phone_wifi_connection
+      - sensor.titophone_wifi_connection
+    condition: []
+    action:
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: >
+            {{ (states('device_tracker.faa3phone') != 'home' and 
+                states('sensor.faa3phone_wifi_connection').split("_")[0] != 'BzzWare') or 
+               (states('device_tracker.titophone') != 'home' and 
+                states('sensor.titophone_wifi_connection').split("_")[0] != 'BzzWare') }}
+        sequence:
+        - service: device_tracker.see
+          data:
+            dev_id: fa_tracker
+            location_name: 'not_home'
+      default: 
+      - service: device_tracker.see
+        data:
+          dev_id: fa_tracker
+          location_name: 'home'
+    mode: single
