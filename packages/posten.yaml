@@ -10,18 +10,8 @@ sensor:
 template:
   binary_sensor: 
     - name: post_today
-      state: '{{ (states(''sensor.postendeliverydays'')|from_json)[0].split('' '')[1] == ''dag'' }}'
+      state: >
+        {% set delivery_days = states('sensor.postendeliverydays')|from_json %}
+        {% set delivery_day = delivery_days[0].split(' ')[-2] %}
+        {{ delivery_day|int == now().day }}
 
-automation:
-  - id: '1672825151767'
-    alias: Reload posten if more not loaded today
-    trigger:
-      - platform: template
-        value_template: >
-          {% set then = states.sensor.postendeliverydays.last_updated %}
-          {{ (now().hour == 4 and then.hour > 6) or 
-             (now().hour > 4 and now().timestamp() - then.timestamp() > 88200) }}
-    action:
-      - service: homeassistant.reload_config_entry
-        target:
-          entity_id: sensor.postendeliverydays
