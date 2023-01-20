@@ -101,15 +101,6 @@ template:
             {{ target }}
           {% endif %}
         {% endif %}
-    - name: power_unscheduled
-      unit_of_measurement: W
-      device_class: power
-      state: >
-        {% set usage = states('sensor.power_usage')|int(default=0) %}
-        {% set scheduled = states('sensor.vv_tank_power')|int(default=0)
-                         + states('sensor.stikk_vv_kjeller_power')|int(default=0)
-                         + states('sensor.easee_power')|int(default=0) %}
-        {{ usage - scheduled if usage > scheduled else 0 }}
     - name: power_controlled
       unit_of_measurement: W
       device_class: power
@@ -280,6 +271,24 @@ template:
         {{ {'vvtank': v.tank|sort,
             'vvkjeller': v.kjeller|sort,
             'easee': v.easee|sort}|to_json }}
+
+  - trigger:
+      - platform: time_pattern
+        minutes: "*"
+    sensor:
+    - name: power_unscheduled
+      unit_of_measurement: W
+      device_class: power
+      state: >
+        {% set usage = states('sensor.power_usage')|int(default=0) %}
+        {% set scheduled = states('sensor.vv_tank_power')|int(default=0)
+                         + states('sensor.shellyhvitevare_komfyr_power')|int(default=0)
+                         + states('sensor.stikk_vaskemaskin_power')|int(default=0)
+                         + states('sensor.stikk_torketrommel_power')|int(default=0)
+                         + states('sensor.stikk_vv_kjeller_power')|int(default=0)
+                         + states('sensor.easee_power')|int(default=0) %}
+        {{ usage - scheduled if usage > scheduled else 0 }}
+
   - trigger: 
     - platform: template
       value_template: "{{ states('sensor.energiforbruk_time')|float < 0.1}}"
