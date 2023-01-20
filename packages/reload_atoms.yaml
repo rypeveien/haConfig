@@ -1,4 +1,26 @@
 automation:
+  - id: '1673781385609'
+    alias: 'Reload esp-vvmain if temp looks stuck'
+    trigger: 
+      - platform: template
+        value_template: "{{ (now().timestamp() - states.sensor.vvtank_temp_ut.last_updated.timestamp())|int > 600 }}"
+    action:
+      - service: homeassistant.reload_config_entry
+        data: {}
+        target:
+          device_id: a4ace1a1ee9ba678904b7c6a271b988d
+
+  - id: '1673781385619'
+    alias: 'Reload esp-vvaux if temp looks stuck'
+    trigger: 
+      - platform: template
+        value_template: "{{ (now().timestamp() - states.sensor.vvaux_temp_ut.last_updated.timestamp())|int > 600 }}"
+    action:
+      - service: homeassistant.reload_config_entry
+        data: {}
+        target:
+          device_id: 6d7753a46cca98618811e81423bc4334
+
   - id: '1671730925060'
     alias: 'Reload atom fryser whenever qp_kjellerstue freezes'
     trigger: 
