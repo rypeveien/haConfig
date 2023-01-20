@@ -21,7 +21,7 @@ template:
           {% set zwift_hum = states('sensor.zwift_saved_humidity')|float %}
           {% set trainer = states('device_tracker.sykkelrulle') %}
           {% set to_state = trigger.to_state.state|float %}
-          {{ (to_state + 3) > zwift_hum if active == 'on' else 
+          {{ (to_state + 2) > zwift_hum if active == 'on' else 
              to_state > (zwift_hum + 1) if trainer == 'home' else
              active }}
 
