@@ -15,6 +15,8 @@ automation:
       topic: frigate/events
     variables:
       ext_address: !secret ext_address
+      last_frigate: "{{ states('input_text.frigate_last')|from_json }}"
+      trigger_payload: "{{trigger.payload_json['after'] }}"
     condition:
       - condition: state
         entity_id: binary_sensor.anyone_home
@@ -25,6 +27,8 @@ automation:
           - condition: state
             entity_id: timer.frigate_silencer
             state: idle
+          - condition: template
+            value_template: "{{ last_frigate.msg != trigger_payload.id }}"
           sequence:
           - service: timer.start
             entity_id: timer.frigate_silencer
