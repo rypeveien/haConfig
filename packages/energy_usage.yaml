@@ -37,6 +37,13 @@ sensor:
   round: 2
   unit_prefix: k
   unit_time: h
+- platform: statistics
+  name: average unscheduled power usage
+  entity_id: sensor.power_unscheduled
+  state_characteristic: average_linear
+  max_age:
+    hours: 24
+  sampling_size: 1440
 
 utility_meter:
   energiforbruk_time:
@@ -94,6 +101,15 @@ template:
             {{ target }}
           {% endif %}
         {% endif %}
+    - name: power_unscheduled
+      unit_of_measurement: W
+      device_class: power
+      state: >
+        {% set usage = states('sensor.power_usage')|int(default=0) %}
+        {% set scheduled = states('sensor.vv_tank_power')|int(default=0)
+                         + states('sensor.stikk_vv_kjeller_power')|int(default=0)
+                         + states('sensor.easee_power')|int(default=0) %}
+        {{ usage - scheduled if usage > scheduled else 0 }}
     - name: power_controlled
       unit_of_measurement: W
       device_class: power
