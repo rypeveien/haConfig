@@ -185,92 +185,106 @@ template:
         {{ (v.sum / max3|length)|round(3) }}
     - name: power_usage_by_subsides_and_maxpower
       state: >
-        {% set ev_battery_pack = states('input_number.ev_battery_pack')|int %}
-        {% set ev_max_charge = states('input_number.ev_max_charge')|int %}
-        {% set ev_min_charge = states('input_number.ev_min_charge')|int %}
-        {% set ev_charge_steps = states('input_number.ev_charge_steps')|int %}
-        {% set ev_charge_efficiency = states('input_number.ev_charge_efficiency')|float %}
-        {% set hour = now().hour %}
-        {% set tank_power = 3000 %}
-        {% set kjeller_power = 2000 %}
-        {% set energy_limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
-        {% set v = namespace (base=[], tank = [], kjeller = [], needed_charge = 0, easee = [], usage=[]) %}
-        {% set uctrld = states('input_text.uncontrolled_estimate')|from_json %}
-        {% set pvguess = states('sensor.pv_guess_by_factor')|from_json %}
-        {% set prices = states.sensor.template_energy_by_subsides_and_production.attributes.prices %}
-        {% set uctrld = uctrld + uctrld %}
-        {% if pvguess|length > prices|length %}
-        {% set pvguess = pvguess[:prices|length] %}
-        {% endif %}
-        {% for i in range (hour,pvguess|length) %}
-        {% set v.base = v.base + [ {'hour': i, 'energy': uctrld[i] - pvguess[i], 'price': prices[i] }] %}
+        {% set car_ready = state_attr('input_datetime.car_ready_charged','hour') %}
+        {% set car_ready = car_ready if car_ready > now().hour else car_ready + 24 %}
+        {% set car_full = states('input_number.ev_battery_pack')|int %}
+        {% set car_soc = states('sensor.soc_estimate')|float %}
+        {% set car_needs = ((100-car_soc) * car_full / 100)|int %}
+        {% set var = namespace(prices=[], loop_done=0, used=0, main=[], aux=[], car=[]) %}
+        {% set uctrld = states('input_text.uncontrolled_estimate')|from_json|average|int %}
+        {% set limit = states('sensor.rest_of_month_energy_limit') |int - 100 %}
+        {% set avail = limit - uctrld %}
+        {% set main_time = as_local(as_datetime(state_attr('sensor.vvtank_cycle_1', 'last_reset'))) %}
+        {% set main_usage = states('counter.vvtank_usage')|int * 200 %}
+        {% set aux_time = as_local(as_datetime(state_attr('sensor.vvkjeller_cycle_1', 'last_reset'))) %}
+        {% set aux_usage = states('counter.vvkjeller_usage')|int * 200 %}
+        {% set prices = state_attr('sensor.template_energy_by_subsides_and_production', 'prices') %}
+        {% for hour in range(now().hour,prices|length) %}
+        {% set var.prices = var.prices + [ { "hour": hour, "price": prices[hour], "avail": avail}] %}
         {% endfor %}
-        {% set v.base = v.base | sort(attribute='price') %}
-        {% set hours = states('input_number.vvtank_hours')|float %}
-        {% set done = as_datetime(states('input_datetime.vvtank_last_on')) %}
-        {% if hour < done.hour or now().timestamp() - done.timestamp() > 82800 %}
-          {% set end = done.hour %}
-          {% set done = done.hour - 24 %}
-        {% else %}
-          {% set end = done.hour + 24 %}
-          {% set done = done.hour %}
-        {% endif %}
-        {% set end = 6 if end <= 6 else 16 if end <= 16 else end if end < 24 else 30 if end <= 30 else 40 if end <= 40 else end %}
-        {% set end = pvguess|length if end > pvguess|length else end %}
-        {% for i in range (v.base|length) %}
-        {% if v.base[i].hour < end 
-              and v.tank|length < hours|round(0)
-              and (v.base[i].energy + tank_power) < energy_limit %}
-        {% if states('switch.vv_tank') == 'off' 
-           or states('binary_sensor.vvtank_on') == 'on' 
-           or now().minute < 5 %}
-        {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + tank_power, 'price': v.base[i].price}] + v.base[i+1:] %}
-        {% endif %}
-        {% set v.tank = v.tank + [v.base[i].hour] %}
-        {% endif %}
+        {% set var.prices = var.prices|sort(attribute="price") %}
+        {% set limit = main_time.hour + 24 if main_time.day == now().day else 
+                    main_time.hour if main_time.hour > now().hour else 
+                    now().hour %}
+        {% set limit = 7 if (limit <= 7 and now().weekday() > 4) else
+                      6 if limit <= 6 else 
+                      15 if limit <= 15 else 
+                      limit if limit <= 23 else 
+                      31 if (limit <= 31 and now().weekday()  in [ 4, 5]) else
+                      30 if limit <= 30 else 
+                      39 if limit <= 39 else 
+                      limit %}
+        {% set limit = prices|length -1 if limit >= prices|length else 
+                            limit %}
+        {% set var.used = 0 %}
+        {% set var.loop_done = 0 %}
+        {% for i in range(var.prices|length) %}
+          {% if var.prices[i].hour <= limit  and var.prices[i].avail > 500 and var.loop_done == 0 %}
+            {% set uses = var.prices[i].avail if var.prices[i].avail < 3000 else 3000 %}
+            {% set needs = (var.prices[i].hour - main_time.hour) * 140 + main_usage - var.used %}
+            {% set var.loop_done = 1 if uses > needs else 0 %}
+            {% set uses = uses if uses < needs else needs %}
+            {% set var.main = var.main + [var.prices[i].hour] if uses > 0 else var.main %}
+            {% set var.used = var.used + uses %}
+            {% set var.prices = var.prices[:i] + 
+                                [ { "hour": var.prices[i].hour, 
+                                    "price": var.prices[i].price, 
+                                    "avail": var.prices[i].avail-uses} ] +
+                                var.prices[i+1:] %} 
+          {% endif %}
         {% endfor %}
-        {% set hours = states('input_number.vvkjeller_hours')|float %}
-        {% set done = as_datetime(states('input_datetime.vvkjeller_last_on')) %}
-        {% if hour < done.hour or now().timestamp() - done.timestamp() > 82800 %}
-          {% set end = done.hour %}
-          {% set done = done.hour - 24 %}
-        {% else %}
-          {% set end = done.hour + 24 %}
-          {% set done = done.hour %}
-        {% endif %}
-        {% set end = 6 if end <= 6 else 16 if end <= 16 else end if end < 24 else 30 if end <= 30 else 40 if end <= 40 else end %}
-        {% set end = pvguess|length if end > pvguess|length else end %}
-        {% for i in range (v.base|length) %}
-        {% if v.base[i].hour < end 
-              and v.kjeller|length < hours|round(0) 
-              and (v.base[i].energy + kjeller_power) < energy_limit %}
-        {% if states('switch.stikk_vv_kjeller') == 'off' 
-           or states('binary_sensor.vvkjeller_on') == 'on' 
-           or now().minute < 5 %}
-        {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + kjeller_power, 'price': v.base[i].price}] + v.base[i+1:] %}
-        {% endif %}
-        {% set v.kjeller = v.kjeller + [v.base[i].hour] %}
-        {% endif %}
+        {% set limit = aux_time.hour + 24 if aux_time.day == now().day else 
+                    aux_time.hour if aux_time.hour > now().hour else 
+                    now().hour %}
+        {% set limit = 7 if (limit <= 7 and now().weekday() > 4) else
+                      6 if limit <= 6 else 
+                      15 if limit <= 15 else 
+                      limit if limit <= 23 else 
+                      31 if (limit <= 31 and now().weekday()  in [ 4, 5]) else
+                      30 if limit <= 30 else 
+                      39 if limit <= 39 else 
+                      limit %}
+        {% set limit = prices|length -1 if limit >= prices|length else 
+                            limit %}
+        {% set var.used = 0 %}
+        {% set var.loop_done = 0 %}
+        {% for i in range(var.prices|length) %}
+          {% if var.prices[i].hour <= limit  and var.prices[i].avail > 500 and var.loop_done == 0 %}
+            {% set uses = var.prices[i].avail if var.prices[i].avail < 2000 else 2000 %}
+            {% set needs = (var.prices[i].hour - aux_time.hour) * 90 + aux_usage - var.used %}
+            {% set var.loop_done = 1 if uses > needs else 0 %}
+            {% set uses = uses if uses < needs else needs %}
+            {% set var.aux = var.aux + [var.prices[i].hour] if uses > 0 else var.aux %}
+            {% set var.used = var.used + uses %}
+            {% set var.prices = var.prices[:i] + 
+                                [ { "hour": var.prices[i].hour, 
+                                    "price": var.prices[i].price, 
+                                    "avail": var.prices[i].avail-uses} ] +
+                                var.prices[i+1:] %} 
+          {% endif %}
         {% endfor %}
-        {% set v.needed_charge = ev_battery_pack * (1 - states('sensor.soc_estimate')|float/100) %}
-        {% set done = states.input_datetime.car_ready_charged.attributes.hour %}
-        {% set done = done + 24 if done < hour else done %}
-        {% set done = pvguess|length if done > pvguess|length else done %}
-        {% for i in range (v.base|length) %}
-        {% if v.base[i].hour < done and v.needed_charge > 0 %}
-        {% if  (v.base[i].energy + ev_min_charge ) < energy_limit %}
-        {% set availible = ((energy_limit - v.base[i].energy) / ev_charge_steps)|int * ev_charge_steps -%}
-        {% set availible = ev_max_charge if availible > ev_max_charge else availible %}
-        {% set v.needed_charge = v.needed_charge - (availible * ev_charge_efficiency/100)|int %}
-        {% set v.base = v.base[:i] + [{'hour': v.base[i].hour, 'energy': v.base[i].energy + availible, 'price': v.base[i].price}] + v.base[i+1:] %}
-        {% endif %}
-        {% set v.easee = v.easee + [ v.base[i].hour ] %}
-        {% endif %}
+        {% set limit = prices|length -1 if car_ready >= prices|length else 
+                            car_ready %}
+        {% set var.used = 0 %}
+        {% set var.loop_done = 0 %}
+        {% for i in range(var.prices|length) %}
+          {% if var.prices[i].hour <= limit  and var.prices[i].avail > 500 and var.loop_done == 0%}
+            {% set uses = var.prices[i].avail if var.prices[i].avail < 3500 else 3500 %}
+            {% set needs = car_needs - (var.used * 0.875)|int %}
+            {% set var.loop_done = 1 if uses > needs else 0 %}
+            {% set uses = uses if uses < needs else needs %}
+            {% set var.car = var.car + [var.prices[i].hour] if uses > 0 else var.car %}
+            {% set var.used = var.used + uses %}
+            {% set var.prices = var.prices[:i] + 
+                                [ { "hour": var.prices[i].hour, 
+                                    "price": var.prices[i].price, 
+                                    "avail": var.prices[i].avail-uses} ] +
+                                var.prices[i+1:] %} 
+          {% endif %}
         {% endfor %}
-
-        {{ {'vvtank': v.tank|sort,
-            'vvkjeller': v.kjeller|sort,
-            'easee': v.easee|sort}|to_json }}
+        {{ {'vvtank': var.main|sort, 
+            'vvkjeller': var.aux|sort,
+            'easee': var.car|sort }|to_json  }}
 
   - trigger:
       - platform: time_pattern
