@@ -17,8 +17,9 @@ template:
       state: "{{ (states('sensor.energy_next_hour')|float)*1000|int }}"
     - name: pv_guess_by_factor
       state: >
-        {% set numbers = states.input_text.met_cache.state|from_json %}
-        {% set factors = states.sensor.pvlogger_factor.state|from_json %}
+        {% set numbers = states('input_text.met_cache')|from_json %}
+        {% set factors = states('sensor.pvlogger_factor') %}
+        {% set factors = [] if factors in ['unknown'] else factors|from_json %}
         {% set potentials = states.input_text.met2_potential_max.state|from_json %}
         {% set potentials = potentials + potentials %}
         {% set local = namespace(guess=[]) %}
