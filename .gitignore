@@ -8,7 +8,7 @@
 
 # include some folders
 !packages
-!automations
+!dautomations
 
 #Ignore some files
 ip_bans.yaml
