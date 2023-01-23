@@ -58,7 +58,7 @@ recorder:
       - lock
 
 logger:
-  default: critical
+  default: warning
   logs:
     charset_normalizer: warning
     custom_components.smartir: debug
