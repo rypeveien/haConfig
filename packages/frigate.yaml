@@ -3,19 +3,35 @@ timer:
     duration: 00:05:00
     restore: true
 
-input_text: 
-  frigate_last: 
-    max: 255
+template:
+  - trigger: 
+      platform: mqtt
+      topic: frigate/events
+    sensor:
+      - unique_id: last_frigate_event
+        state: >
+          {% set lastid = states('sensor.last_frigate_event') %}
+          {% set lastts = state_attr('sensor.last_frigate_event', 'ts')|int(default=0) %}
+          {% set after = trigger.payload_json['after'] %}
+          {% set ts = after["start_time"]|int(default=0) %}
+          {{ after['id'] if lastid in ['unknown'] or ts > lastts else lastid }}
+        attributes:
+          ts: >
+            {% set lastts = state_attr('sensor.last_frigate_event', 'ts')|int(default=0) %}
+            {% set after = trigger.payload_json['after'] %}
+            {% set ts = after["start_time"]|int(default=0) %}
+            {{ ts if lastid in ['unknown'] or ts > lastts else lastts }}
+
+
 
 automation:
   - id: '1660990404933'
     alias: Frigate notify
     trigger:
-      platform: mqtt
-      topic: frigate/events
+      platform: state
+      entity_id: sensor.template_last_frigate_event
     variables:
       ext_address: !secret ext_address
-      last_frigate: "{{ states('input_text.frigate_last')|from_json }}"
       trigger_payload: "{{trigger.payload_json['after'] }}"
     condition:
       - condition: state
@@ -27,30 +43,16 @@ automation:
           - condition: state
             entity_id: timer.frigate_silencer
             state: idle
-          - condition: template
-            value_template: "{{ last_frigate.msg != trigger_payload.id }}"
           sequence:
           - service: timer.start
             entity_id: timer.frigate_silencer
           - service: notify.mobile_app_xq_au52
             data_template:
-              message: 'A {{trigger.payload_json["after"]["label"]}} was detected.'
+              message: 'A {{trigger_payload["label"]}} was detected.'
               data:
-                image: '{{ ext_address }}/api/frigate/notifications/{{trigger.payload_json["after"]["id"]}}/thumbnail.jpg?format=android'
-                tag: '{{trigger.payload_json["after"]["id"]}}'
-                when: '{{trigger.payload_json["after"]["start_time"]|int}}'
-        default:
-        - service: input_text.set_value
-          target:
-            entity_id: input_text.frigate_last
-          data:
-            value: >
-              {% set last = states('input_text.frigate_last')|from_json %}
-              {% set count = last.count + 1 if last.count is defined else 1 %}
-              {% set msg = trigger.payload_json["after"]["label"] %}
-              {% set id = trigger.payload_json["after"]["id"] %}
-              {% set ts = trigger.payload_json["after"]["start_time"]|int %}
-              {{ { 'msg': msg, 'id': id, 'count': count, 'ts': ts }|to_json }}
+                image: '{{ ext_address }}/api/frigate/notifications/{{trigger_payload["id"]}}/thumbnail.jpg?format=android'
+                tag: '{{trigger_payload["id"]}}'
+                when: '{{trigger_payload["start_time"]|int}}'
 
   - id: '1660990404934'
     alias: Frigate timer
