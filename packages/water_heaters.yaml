@@ -1,11 +1,4 @@
 input_number:
-  vvtank_hours: 
-    name: Hours needed to get vvtank fully heated in 24 hours
-    min: 0
-    max: 10
-    step: 0.1
-    unit_of_measurement: "Hours"
-    mode: box
   vvkjeller_hours: 
     name: Hours needed to get vvkjeller fully heated in 24 hours
     min: 0
@@ -54,17 +47,6 @@ template:
         {% set last = as_datetime(state_attr('sensor.vvkjeller_cycle_1', 'last_reset')) %}
         {% set diff = now().timestamp() - last.timestamp() %}
         {{ (full - diff / 3600 * 0.15)|round(1) + cycle - counter * 0.1 }}
-    - name: hours24_vvtank
-      unit_of_measurement: "Hours"
-      state: >
-        {% set hours = states('input_number.vvtank_hours')|float %}
-        {% if states('binary_sensor.vvtank_on') == 'on' %}
-        {% set vvtank_on = states.binary_sensor.vvtank_on.last_updated.timestamp() %}
-        {% set vvtank_hours = states.input_number.vvtank_hours.last_updated.timestamp() %}
-        {% set now = (now().timestamp() - vvtank_on if vvtank_on > vvtank_hours else vvtank_hours)/3600 %}
-        {% set hours = (hours - now)|round(1) if hours > now else 0.1 %}
-        {% endif %}
-        {{ hours|round(2) }}
     - name: hours24_vvkjeller
       unit_of_measurement: "Hours"
       state: >
@@ -75,9 +57,9 @@ template:
         {% endif %}
         {{ hours|round(2) }}
     - name: vvtank_last_on
-      state: "{{ states('input_datetime.vvtank_last_on')[:16] }}"
+      state: "{{ (state_attr('sensor.vvtank_cycle_1', 'last_reset')|as_datetime|as_local|string)[:16] }}"
     - name: vvkjeller_last_on
-      state: "{{ states('input_datetime.vvkjeller_last_on')[:16] }}"
+      state: "{{ (state_attr('sensor.vvkjeller_cycle_1', 'last_reset')|as_datetime|as_local|string)[:16] }}"
     - name: vvtank_hours
       state: >
         {% set by_subsides = states('sensor.power_usage_by_subsides_and_maxpower')|from_json %}
@@ -91,6 +73,16 @@ template:
       state: "{{ states('sensor.vv_tank_power')|float(default=0) > 0 }}"
     - name: vvkjeller_on
       state: "{{ states('sensor.stikk_vv_kjeller_power')|float(default=0) > 0 }}"
+  - trigger:
+      - platform: state
+        entity_id: sensor.vv_tank_power
+    sensor:
+      - name: vvtank_power_when_on
+        unit_of_measurement: "W"
+        state: >
+          {% set last = states('sensor.vvtank_power_when_on') %}
+          {% set current = states('sensor.vv_tank_power')|int(default=0) %}
+          {{ last if current < 500 else current }}
   - trigger: 
       - platform: state
         entity_id: sensor.vvtank_temp_ut
@@ -149,139 +141,72 @@ utility_meter:
 automation:
   - id: '1658529461779'
     alias: VV Tank on or off by hours
+    trace:
+      stored_traces: 15
     trigger: 
+    - platform: state
+      entity_id: 
+        - sensor.vvtank_hours
     - platform: template
       value_template: >
-        {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvtank %}
-        {% set last =  as_local(states.binary_sensor.vvtank_on.last_updated) %}
-        {{ false if (last.hour == now().hour and last.day == now().day) or now().minute == 59
-           else hours|length == 0 or hours[0] == now().hour or (hours|length > 1 and hours[1] == now().hour)
-        }}
-      id: turnon
-    - platform: template
-      value_template: >
-        {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvtank %}
-        {% set last = as_datetime(states('input_datetime.vvtank_last_on')) %}
-        {{ true if (last.hour == now().hour and last.day == now().day) 
-           else hours|length != 0 and hours[0] != now().hour and (hours|length <= 1 or hours[1] != now().hour)
-        }}
-      id: turnoff
+        {% set hours = states('sensor.vvtank_hours')|from_json %}
+        {{ hours|length > 0 and hours[0] == now().hour }}
     action:
-    - choose: 
-      - conditions:
-        - condition: trigger
-          id: turnon
-        sequence: 
-        - type: turn_on
-          device_id: ced3fc17b42719e3af505c552f41c16a
-          entity_id: switch.vv_tank
-          domain: switch
-      default:
-      - type: turn_off
-        device_id: ced3fc17b42719e3af505c552f41c16a
-        entity_id: switch.vv_tank
-        domain: switch
+      - if:
+          - condition: template
+            value_template: >-
+              {% set hours = states('sensor.vvtank_hours')|from_json %}
+              {% set hour = now().hour %}
+              {{ hours|length == 0 or hours[0] == hour or (hours|length > 1 and hours[1] == hour) }}
+        then:
+          - if:
+              - condition: device
+                type: is_off
+                device_id: ced3fc17b42719e3af505c552f41c16a
+                entity_id: switch.vv_tank
+                domain: switch
+            then:
+              - type: turn_on
+                device_id: ced3fc17b42719e3af505c552f41c16a
+                entity_id: switch.vv_tank
+                domain: switch
+        else:
+          - if:
+              - condition: device
+                type: is_on
+                device_id: ced3fc17b42719e3af505c552f41c16a
+                entity_id: switch.vv_tank
+                domain: switch
+            then:
+              - type: turn_off
+                device_id: ced3fc17b42719e3af505c552f41c16a
+                entity_id: switch.vv_tank
+                domain: switch
 
   - id: '1658955764652'
     alias: VV Tank hours update
-    description: ''
-    trigger:
-    - platform: state
-      entity_id: sensor.vvtank_hours
-    - platform: template
-      value_template: >
-        {{ states('sensor.lowest_humidity_at_bathrom_last_15_minutes') != 'unknown'
-           and states('sensor.lumi_bad_humidity')|int(default=50) > 
-           states('sensor.lowest_humidity_at_bathrom_last_15_minutes')|int(default=50) + 15 }}
-      id: humidity_high
-    - platform: state
-      entity_id: binary_sensor.vvtank_on
-      from: 'on'
-      to: 'off'
-      id: vvtank_off
-    - platform: template
-      value_template: >
-        {{ states('switch.vv_tank') == 'on' 
-           and states('binary_sensor.vvtank_on') == 'off' 
-           and now().timestamp() - states.switch.vv_tank.last_updated.timestamp() > 300 }}
-      id: vvtank_not_starting
-    condition: 
-    - condition: template
-      value_template: "{{ state_attr('automation.vv_tank_hours_update', 'current') == 0}}"
-    action:
-    - choose:
-      - conditions:
-        - condition: template
-          value_template: >
-            {{ states('binary_sensor.vvtank_on') == 'on' 
-              and states('sensor.hours24_vvtank')|float > 1
-              and as_local(states.binary_sensor.vvtank_on.last_updated).hour != now().hour }}
-        sequence:
-        - service: input_number.set_value
-          data: 
-            value: >
-              {% set on = states.binary_sensor.vvtank_on.last_updated.timestamp() %}
-              {% set hour = states.input_number.vvtank_hours.last_updated.timestamp() %}
-              {% set last =  on if on > hour else hour %}
-              {{ (states('input_number.vvtank_hours')|float - 
-                (now().timestamp() - last)/3600)|round(1) }}
-          target:
-            entity_id: input_number.vvtank_hours
-    - choose:
-      - conditions:
-        - condition: trigger
-          id: humidity_high
-        sequence:
-        - service: input_number.set_value
-          data:
-            value: "{{ (states('input_number.vvtank_hours')|float + 0.8)|round(2) }}"
-          target:
-            entity_id: input_number.vvtank_hours
-      - conditions:
-        - or: 
-            - condition: trigger
-              id: vvtank_off
-            - condition: trigger
-              id: vvtank_not_starting
-        sequence:
-        - choose:
-          - conditions:
-            - condition: template
-              value_template: "{{ states('switch.vv_tank') == 'on' }}"
-            sequence:
-            - service: utility_meter.reset
-              target:
-                entity_id: select.vvtank_cycle
-            - service: counter.reset
-              target:
-                entity_id: counter.vvtank_usage
-            - service: input_number.set_value
-              data:
-                value: 2
-              target:
-                entity_id: input_number.vvtank_hours
-            - service: input_datetime.set_datetime
-              data:
-                timestamp: '{{ now().timestamp() }}'
-              target:
-                entity_id: input_datetime.vvtank_last_on
-            - type: turn_off
-              device_id: ced3fc17b42719e3af505c552f41c16a
-              entity_id: switch.vv_tank
-              domain: switch
-          default:
-          - service: input_number.set_value
-            data:
-              value: >
-                {% set trigger_from = trigger.from_state.last_updated.timestamp() %}
-                {% set hour = states.input_number.vvtank_hours.last_updated.timestamp() %}
-                {% set last = trigger_from if trigger_from > hour else hour %}
-                {% set new = states('input_number.vvtank_hours')|float - (trigger.to_state.last_updated.timestamp() - last)/3600 %}
-                {{ 0.6 if new < 0.6 and states('binary_sensor.vvtank_on') == 'on' else new }}
-            target:
-              entity_id: input_number.vvtank_hours
-      default: []
     mode: single
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.vvtank_on
+        from: "on"
+        to: "off"
+    condition:
+      - condition: device
+        type: is_on
+        device_id: ced3fc17b42719e3af505c552f41c16a
+        entity_id: switch.vv_tank
+        domain: switch
+    action:
+      - service: utility_meter.reset
+        data: {}
+        target:
+          entity_id: select.vvtank_cycle
+      - service: counter.reset
+        data: {}
+        target:
+          entity_id: counter.vvtank_usage
 
   - id: '1652881309414'
     alias: vvtank_on update
@@ -294,26 +219,28 @@ automation:
           and now().timestamp() - states.switch.vv_tank.last_updated.timestamp() > 30 }}
     condition: []
     action:
-    - service: notify.persistent_notification
-      data:
-        message: vvtank_on ser ut til å henge
-        title: 'vvtank debug '
-    - service: homeassistant.update_entity
-      data: {}
-      target:
-        entity_id: sensor.vv_tank_power
+    - type: turn_on
+      device_id: ced3fc17b42719e3af505c552f41c16a
+      entity_id: switch.vv_tank
+      domain: switch
     - delay:
         hours: 0
         minutes: 1
         seconds: 0
         milliseconds: 0
-    - condition: template
-      value_template: >
-        {{ states('switch.vv_tank') == 'off' and states('binary_sensor.vvtank_on') == 'on' }}
-    - service: notify.persistent_notification
-      data:
-        message: vvtank_on ser fortsatt ut til å henge litt
-        title: 'vvtank debug '
+    - type: turn_off
+      device_id: ced3fc17b42719e3af505c552f41c16a
+      entity_id: switch.vv_tank
+      domain: switch
+    - if:
+        - condition: state
+          entity_id: binary_sensor.vvtank_on
+          state: "on"
+      then:
+        - service: notify.persistent_notification
+          data:
+            message: vvtank_on ser ut til å henge
+            title: 'vvtank debug '
     mode: single
 
   - id: '1658959948857'
