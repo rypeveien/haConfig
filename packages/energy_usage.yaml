@@ -195,7 +195,7 @@ template:
         {% set limit = states('sensor.rest_of_month_energy_limit') |int - 100 %}
         {% set avail = limit - uctrld %}
         {% set main_time = as_local(as_datetime(state_attr('sensor.vvtank_cycle_1', 'last_reset'))) %}
-        {% set main_usage = states('counter.vvtank_usage')|int * 200 %}
+        {% set main_usage = (states('counter.vvtank_usage')|int * 200 - states('sensor.vvtank_cycle_1')|float(default=0) * 1000)|int %}
         {% set aux_time = as_local(as_datetime(state_attr('sensor.vvkjeller_cycle_1', 'last_reset'))) %}
         {% set aux_usage = states('counter.vvkjeller_usage')|int * 200 %}
         {% set prices = state_attr('sensor.template_energy_by_subsides_and_production', 'prices') %}
