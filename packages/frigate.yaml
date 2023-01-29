@@ -21,8 +21,13 @@ template:
             {% set after = trigger.payload_json['after'] %}
             {% set ts = after["start_time"]|int(default=0) %}
             {{ ts if lastid in ['unknown'] or ts > lastts else lastts }}
-
-
+          label: >
+            {% set lastlabel = state_attr('sensor.last_frigate_event','label') %}
+            {% set lastts = state_attr('sensor.last_frigate_event', 'ts')|int(default=0) %}
+            {% set after = trigger.payload_json['after'] %}
+            {% set ts = after["start_time"]|int(default=0) %}
+            {% set label = after["label"] %}
+            {{ label if lastid in ['unknown'] or ts > lastts else lastlabel }}
 
 automation:
   - id: '1660990404933'
@@ -32,7 +37,6 @@ automation:
       entity_id: sensor.template_last_frigate_event
     variables:
       ext_address: !secret ext_address
-      trigger_payload: "{{trigger.payload_json['after'] }}"
     condition:
       - condition: state
         entity_id: binary_sensor.anyone_home
@@ -48,11 +52,11 @@ automation:
             entity_id: timer.frigate_silencer
           - service: notify.mobile_app_xq_au52
             data_template:
-              message: 'A {{trigger_payload["label"]}} was detected.'
+              message: "A {{state_attr('sensor.template_last_frigate_event', 'label')}} was detected."
               data:
-                image: '{{ ext_address }}/api/frigate/notifications/{{trigger_payload["id"]}}/thumbnail.jpg?format=android'
-                tag: '{{trigger_payload["id"]}}'
-                when: '{{trigger_payload["start_time"]|int}}'
+                image: "{{ ext_address }}/api/frigate/notifications/{{states('sensor.template_last_frigate_event')}}/thumbnail.jpg?format=android"
+                tag: "{{states('sensor.template_last_frigate_event')}}"
+                when: "{{state_attr('sensor.template_last_frigate_event', 'ts')}}"
 
   - id: '1660990404934'
     alias: Frigate timer
