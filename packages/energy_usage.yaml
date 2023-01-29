@@ -196,6 +196,7 @@ template:
         {% set avail = limit - uctrld %}
         {% set main_time = as_local(as_datetime(state_attr('sensor.vvtank_cycle_1', 'last_reset'))) %}
         {% set main_usage = (states('counter.vvtank_usage')|int * 200 - states('sensor.vvtank_cycle_1')|float(default=0) * 1000)|int %}
+        {% set main_power = states('sensor.vvtank_power_when_on')|int(default=3000) %}
         {% set aux_time = as_local(as_datetime(state_attr('sensor.vvkjeller_cycle_1', 'last_reset'))) %}
         {% set aux_usage = states('counter.vvkjeller_usage')|int * 200 %}
         {% set prices = state_attr('sensor.template_energy_by_subsides_and_production', 'prices') %}
@@ -220,8 +221,9 @@ template:
         {% set var.loop_done = 0 %}
         {% for i in range(var.prices|length) %}
           {% if var.prices[i].hour <= limit  and var.prices[i].avail > 500 and var.loop_done == 0 %}
-            {% set uses = var.prices[i].avail if var.prices[i].avail < 3000 else 3000 %}
+            {% set uses = var.prices[i].avail if var.prices[i].avail < main_power else main_power %}
             {% set needs = (var.prices[i].hour - main_time.hour) * 140 + main_usage - var.used %}
+            {% set needs = needs if main_time.day == now().day else needs + 140 * 24 %}
             {% set var.loop_done = 1 if uses > needs else 0 %}
             {% set uses = uses if uses < needs else needs %}
             {% set var.main = var.main + [var.prices[i].hour] if uses > 0 else var.main %}
@@ -252,6 +254,7 @@ template:
           {% if var.prices[i].hour <= limit  and var.prices[i].avail > 500 and var.loop_done == 0 %}
             {% set uses = var.prices[i].avail if var.prices[i].avail < 2000 else 2000 %}
             {% set needs = (var.prices[i].hour - aux_time.hour) * 90 + aux_usage - var.used %}
+            {% set needs = needs if aux_time.day == now().day else needs + 140 * 24 %}
             {% set var.loop_done = 1 if uses > needs else 0 %}
             {% set uses = uses if uses < needs else needs %}
             {% set var.aux = var.aux + [var.prices[i].hour] if uses > 0 else var.aux %}
