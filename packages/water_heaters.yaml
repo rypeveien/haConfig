@@ -26,9 +26,6 @@ sensor:
 
 template:
   - sensor: 
-    - name: vvmain_temp_out
-      unit_of_measurement: "°C"
-      state: "{{ states('sensor.lumi_vvmain_temperature') }}"
     - name: vvtank_soc
       unit_of_measurement: "kWh"
       state: >
@@ -105,6 +102,16 @@ template:
           {{ last if (from in ['unavailable'] or to in ['unavailable']) else
              "off" if (to|float + 0.2) < from|float else
              "on" if to|float > (from|float + 1) else last }}
+  - trigger:
+      - platform: state
+        entity_id: sensor.stikk_vv_kjeller_power
+    sensor:
+      - name: vvkjeller_power_when_on
+        unit_of_measurement: "W"
+        state: >
+          {% set last = states('sensor.vvkjeller_power_when_on') %}
+          {% set current = states('sensor.stikk_vv_kjeller_power')|int(default=0) %}
+          {{ last if current < 500 else current }}
   - trigger: 
       platform: state
       entity_id: sensor.vvaux_temp

@@ -198,7 +198,8 @@ template:
         {% set main_usage = (states('counter.vvtank_usage')|int * 200 - states('sensor.vvtank_cycle_1')|float(default=0) * 1000)|int %}
         {% set main_power = states('sensor.vvtank_power_when_on')|int(default=3000) %}
         {% set aux_time = as_local(as_datetime(state_attr('sensor.vvkjeller_cycle_1', 'last_reset'))) %}
-        {% set aux_usage = states('counter.vvkjeller_usage')|int * 200 %}
+        {% set aux_usage = (states('counter.vvkjeller_usage')|int * 200 - states('sensor.vvkjeller_cycle_1')|float(default=0) * 1000)|int %}
+        {% set aux_power = states('sensor.vvkjeller_power_when_on')|int(default=2000) %}
         {% set prices = state_attr('sensor.template_energy_by_subsides_and_production', 'prices') %}
         {% for hour in range(now().hour,prices|length) %}
         {% set var.prices = var.prices + [ { "hour": hour, "price": prices[hour], "avail": avail}] %}
@@ -252,7 +253,7 @@ template:
         {% set var.loop_done = 0 %}
         {% for i in range(var.prices|length) %}
           {% if var.prices[i].hour <= limit  and var.prices[i].avail > 500 and var.loop_done == 0 %}
-            {% set uses = var.prices[i].avail if var.prices[i].avail < 2000 else 2000 %}
+            {% set uses = var.prices[i].avail if var.prices[i].avail < aux_power else aux_power %}
             {% set needs = (var.prices[i].hour - aux_time.hour) * 90 + aux_usage - var.used %}
             {% set needs = needs if aux_time.day == now().day else needs + 140 * 24 %}
             {% set var.loop_done = 1 if uses > needs else 0 %}
