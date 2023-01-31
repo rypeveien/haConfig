@@ -14,12 +14,12 @@ automation:
     alias: 'Reload esp-vvaux if temp looks stuck'
     trigger: 
       - platform: template
-        value_template: "{{ (now().timestamp() - states.sensor.vvaux_temp_ut.last_updated.timestamp())|int > 600 }}"
+        value_template: "{{ (now().timestamp() - states.sensor.vvaux_temp.last_updated.timestamp())|int > 600 }}"
     action:
       - service: homeassistant.reload_config_entry
         data: {}
         target:
-          device_id: 6d7753a46cca98618811e81423bc4334
+          device_id: ecd58fc6843650fe416f6c1ea0bd1b30
 
   - id: '1671730925060'
     alias: 'Reload atom fryser whenever qp_kjellerstue freezes'
