@@ -107,7 +107,7 @@ template:
              "on" if to|float > (from|float + 1) else last }}
   - trigger: 
       platform: state
-      entity_id: sensor.vvaux_temp_ut
+      entity_id: sensor.vvaux_temp
     sensor:
       - name: vvaux_ut_reference
         unit_of_measurement: "°C"
