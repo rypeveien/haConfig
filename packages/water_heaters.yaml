@@ -70,6 +70,35 @@ template:
       state: "{{ states('sensor.vv_tank_power')|float(default=0) > 0 }}"
     - name: vvkjeller_on
       state: "{{ states('sensor.stikk_vv_kjeller_power')|float(default=0) > 0 }}"
+    - name: under_limit_if_vvtank_on
+      state: >
+        {% set last = states('binary_sensor.under_limit_if_vvtank_on') %}
+        {% set last = 'off' if last in ['unavailable', 'unknown'] else last %}
+        {% set limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
+        {% set used =  states('sensor.energiforbruk_time')|float * 1000 %}
+        {% set rest =  states('sensor.amshan_power_import')|int * (60 - now().minute) / 60 %}
+        {% set vvpower = states('sensor.vv_tank_power')|int %}
+        {% set power_if_on = states('sensor.vvtank_power_when_on')|int(default=3000) %}
+        {% set min = now().minute %}
+        {% set vvdiff = (60 - min) * power_if_on / 60 if vvpower < 5
+                        else 50 - (60 - min) * vvpower / 60  if min < 55
+                        else 20 - (60 - min) * vvpower / 60  %}
+        {{ last if min == 0 and vvpower > 5 else used + rest + vvdiff < limit }}
+    - name: under_limit_if_vvkjeller_on
+      state: >
+        {% set last = states('binary_sensor.under_limit_if_vvkjeller_on') %}
+        {% set last = 'off' if last in ['unavailable', 'unknown'] else last %}
+        {% set limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
+        {% set used =  states('sensor.energiforbruk_time')|float * 1000 %}
+        {% set rest =  states('sensor.amshan_power_import')|int * (60 - now().minute) / 60 %}
+        {% set vvpower = states('sensor.stikk_vv_kjeller_power')|int %}
+        {% set power_if_on = states('sensor.vvkjeller_power_when_on')|int(default=2000) %}
+        {% set min = now().minute %}
+        {% set vvdiff = (60 - min) * power_if_on / 60 if vvpower < 5
+                        else 50 - (60 - min) * vvpower / 60  if min < 55
+                        else 20 - (60 - min) * vvpower / 60  %}
+        {{ last if min == 0 and vvpower > 5 else used + rest + vvdiff < limit }}
+      
   - trigger:
       - platform: state
         entity_id: sensor.vv_tank_power
@@ -154,6 +183,9 @@ automation:
     - platform: state
       entity_id: 
         - sensor.vvtank_hours
+    - platform: state
+      entity_id: 
+        - binary_sensor.under_limit_if_vvtank_on
     - platform: template
       value_template: >
         {% set hours = states('sensor.vvtank_hours')|from_json %}
@@ -172,6 +204,9 @@ automation:
                 device_id: ced3fc17b42719e3af505c552f41c16a
                 entity_id: switch.vv_tank
                 domain: switch
+              - condition: state
+                entity_id: binary_sensor.under_limit_if_vvtank_on
+                state: 'on'
             then:
               - type: turn_on
                 device_id: ced3fc17b42719e3af505c552f41c16a
@@ -189,6 +224,57 @@ automation:
                 device_id: ced3fc17b42719e3af505c552f41c16a
                 entity_id: switch.vv_tank
                 domain: switch
+
+  - id: '1658959948857'
+    alias: VV Kjeller on or off by hours
+    trace:
+      stored_traces: 15
+    trigger: 
+    - platform: state
+      entity_id: 
+        - sensor.vvkjeller_hours
+    - platform: state
+      entity_id: 
+        - binary_sensor.under_limit_if_vvkjeller_on
+    - platform: template
+      value_template: >
+        {% set hours = states('sensor.vvkjeller_hours')|from_json %}
+        {{ hours|length > 0 and hours[0] == now().hour }}
+    action:
+      - if:
+          - condition: template
+            value_template: >-
+              {% set hours = states('sensor.vvkjeller_hours')|from_json %}
+              {% set hour = now().hour %}
+              {{ hours|length == 0 or hours[0] == hour or (hours|length > 1 and hours[1] == hour) }}
+        then:
+          - if:
+              - condition: device
+                type: is_off
+                device_id: 864126853760387fb9a41a020cd087f1
+                entity_id: switch.stikk_vv_kjeller
+                domain: switch
+              - condition: state
+                entity_id: binary_sensor.under_limit_if_vvkjeller_on
+                state: 'on'
+            then:
+              - type: turn_on
+                device_id: 864126853760387fb9a41a020cd087f1
+                entity_id: switch.stikk_vv_kjeller
+                domain: switch
+        else:
+          - if:
+              - condition: device
+                type: is_on
+                device_id: 864126853760387fb9a41a020cd087f1
+                entity_id: switch.stikk_vv_kjeller
+                domain: switch
+            then:
+              - type: turn_off
+                device_id: 864126853760387fb9a41a020cd087f1
+                entity_id: switch.stikk_vv_kjeller
+                domain: switch
+
 
   - id: '1658955764652'
     alias: VV Tank hours update
@@ -249,41 +335,6 @@ automation:
             message: vvtank_on ser ut til å henge
             title: 'vvtank debug '
     mode: single
-
-  - id: '1658959948857'
-    alias: VV Kjeller on or off by hours
-    trigger: 
-    - platform: template
-      value_template: >
-        {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvkjeller %}
-        {% set last =  as_local(states.binary_sensor.vvkjeller_on.last_updated) %}
-        {{ false if (last.hour == now().hour and last.day == now().day) or now().minute == 59 or (now().minute == 0 and now().second < 30)
-           else hours|length == 0 or hours[0] == now().hour or (hours|length > 1 and hours[1] == now().hour)
-        }}
-      id: turnon
-    - platform: template
-      value_template: >
-        {% set hours = (states('sensor.power_usage_by_subsides_and_maxpower')|from_json).vvkjeller %}
-        {% set last = as_datetime(states('input_datetime.vvkjeller_last_on')) %}
-        {{ true if (last.hour == now().hour and last.day == now().day) 
-           else hours|length != 0 and hours[0] != now().hour and (hours|length <= 1 or hours[1] != now().hour)
-        }}
-      id: turnoff
-    action:
-    - choose: 
-      - conditions:
-        - condition: trigger
-          id: turnon
-        sequence: 
-        - type: turn_on
-          device_id: 864126853760387fb9a41a020cd087f1
-          entity_id: switch.stikk_vv_kjeller
-          domain: switch
-      default:
-      - type: turn_off
-        device_id: 864126853760387fb9a41a020cd087f1
-        entity_id: switch.stikk_vv_kjeller
-        domain: switch
 
   - id: '1658960346745'
     alias: VV Kjeller hours update
