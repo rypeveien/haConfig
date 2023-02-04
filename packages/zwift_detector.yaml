@@ -34,6 +34,12 @@ automation:
       - platform: state
         entity_id: switch.shellyrulle
         to: "off"
+      - platform: numeric_state
+        entity_id: sensor.shellyrulle_power
+        below: 1.5
+        for: 
+          minutes: 45
+        id: long_time
     action:
       - if:
           - condition: state
@@ -42,6 +48,10 @@ automation:
           - condition: state
             entity_id: switch.shellyrulle
             state: "on"
+          - condition: not
+            conditions:
+              - condition: trigger
+                id: long_time
         then:
           - service: climate.set_temperature
             data:
