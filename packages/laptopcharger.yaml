@@ -32,77 +32,46 @@ automation:
     trigger:
     - platform: template
       value_template: "{{ states('sensor.fajlat2_battery')|int(default=50) > 80 }}"
+      id: high
     - platform: template
       value_template: "{{ states('sensor.fajlat2_battery')|int(default=50) < 20 }}"
+      id: low
     - platform: template
       value_template: "{{ states('sensor.laptoplader_electric_consumption_w')|float(default=0) <= 5}}"
-    - platform: template
-      value_template: "{{ now().timestamp() - states.switch.laptoplader.last_updated.timestamp() > (8 * 3600) }}"
-      id: 8hour
+      id: charged
     - platform: template
       value_template: >
-        {% set sensor = states.sensor.fajlat2_battery %}
-        {{ now().timestamp() - sensor.last_updated.timestamp() > 600 
-           if sensor.state is defined else false }}
-      id: lost_connection
+        {% set low = states('sensor.fajlat2_battery')|int(default=50) < 60 %}
+        {% set old = (now().timestamp() - as_timestamp(states.sensor.fajlat2_battery.last_updated)) > 900 %}
+        {{ low and old }}
+      id: offline
     condition: []
     action:
     - choose:
       - conditions:
-        - condition: template
-          value_template: '{{ states(''sensor.fajlat2_battery'')|int(default=50) < 20 }}'
-        - condition: device
-          type: is_off
-          device_id: 381b70ad0b92687d94def574c24d0812
-          entity_id: switch.laptoplader
-          domain: switch
-        sequence:
-        - type: turn_on
-          device_id: 381b70ad0b92687d94def574c24d0812
-          entity_id: switch.laptoplader
-          domain: switch
-      - conditions:
-        - condition: template
-          value_template: '{{ states(''sensor.fajlat2_battery'')|int(default=50) > 80 }}'
-        - condition: template
-          value_template: '{{ state_attr(''sensor.fajlat2_battery'', ''status'') != ''Discharging'' }}'
-        - condition: device
-          type: is_on
-          device_id: 381b70ad0b92687d94def574c24d0812
-          entity_id: switch.laptoplader
-          domain: switch
+        - condition: or 
+          conditions:
+            - condition: trigger
+              id: high
+            - condition: trigger
+              id: charged
         sequence:
         - type: turn_off
           device_id: 381b70ad0b92687d94def574c24d0812
           entity_id: switch.laptoplader
           domain: switch
       - conditions:
-        - condition: template
-          value_template: >
-            {{ now().timestamp() - states.sensor.fajlat2_battery.last_updated.timestamp() > 600 }}
+        - condition: or
+          conditions:
+            - condition: trigger
+              id: low
+            - condition: trigger
+              id: offline
         sequence:
-          - choose:
-            - conditions:
-              - condition: device
-                type: is_off
-                device_id: 381b70ad0b92687d94def574c24d0812
-                entity_id: switch.laptoplader
-                domain: switch
-              sequence:
-              - type: turn_on
-                device_id: 381b70ad0b92687d94def574c24d0812
-                entity_id: switch.laptoplader
-                domain: switch
-            - conditions:
-              - condition: template
-                value_template: '{{ states(''sensor.laptoplader_electric_consumption_w'')|float(default=0) <= 5 }}'
-              sequence:
-              - type: turn_off
-                device_id: 381b70ad0b92687d94def574c24d0812
-                entity_id: switch.laptoplader
-                domain: switch
-            default: []
-      default: []
+        - type: turn_on
+          device_id: 381b70ad0b92687d94def574c24d0812
+          entity_id: switch.laptoplader
+          domain: switch
     mode: single
 
 
