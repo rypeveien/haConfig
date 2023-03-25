@@ -43,6 +43,9 @@
             value_template: >
               {{ states('binary_sensor.anyone_home') == 'off' 
                  and now().timestamp() - as_timestamp(states.binary_sensor.anyone_home.last_changed) > 1800 }}
+          - condition: template
+            value_template: >
+                {{ now().timestamp() - as_timestamp(states('input_datetime.vacuum_last_on')) > 86400 }}
       - condition: or
         conditions:
         - condition: time
