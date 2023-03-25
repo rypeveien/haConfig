@@ -1,5 +1,6 @@
 input_number:
   cold_room_target:
+    unit_of_measurement: "°C"
     max: 6.5
     min: 4.5
     step: 0.1
@@ -12,6 +13,8 @@ climate:
     min_temp: 2
     max_temp: 7
     ac_mode: true
+    min_cycle_duration:
+      minutes: 5
 
 template:
   sensor:
