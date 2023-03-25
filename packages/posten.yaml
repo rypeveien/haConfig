@@ -1,7 +1,7 @@
 sensor:
   - platform: rest
     name: PostenDeliveryDays
-    resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/1?postCode=4878
+    resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/11?postCode=4878
     headers:
         x-requested-with: XMLHttpRequest
     scan_interval: 86400
