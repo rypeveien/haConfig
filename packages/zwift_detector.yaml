@@ -1,28 +1,35 @@
 template:
+  - binary_sensor:
+    - name: trainer_over_3_watt
+      state: "{{ states('sensor.shellyrulle_power')|float(default=0) > 3 }}"
+      delay_off:
+        minutes: 15
   - trigger: 
       - platform: state
-        entity_id: sensor.basement_humidity
+        entity_id: sensor.qp_kjellerstue_humidity
     sensor:
       - name: zwift saved humidity 
         unit_of_measurement: "%"
         state: >
           {% set active = states('binary_sensor.zwift_active') %}
           {% set last = states('sensor.zwift_saved_humidity')|float(default=0) %}
-          {% set trainer = states('device_tracker.sykkelrulle') %}
+          {% set trainer = states('switch.shellyrulle') %}
           {% set to_state = trigger.to_state.state|float %}
-          {{ to_state if (active == 'off' and trainer != 'home') else
+          {{ to_state if (active == 'off' and trainer != 'on') else
              to_state if (active == 'on' and to_state > last) else 
-             to_state if (active == 'off' and trainer == 'home' and to_state < last) else 
+             to_state if (active == 'off' and trainer == 'on' and to_state < last) else 
              last }}
     binary_sensor:
       - name: zwift_active
         state: >
           {% set active = states('binary_sensor.zwift_active') %}
+          {% set trainer3watt = states('binary_sensor.trainer_over_3_watt') %}
           {% set zwift_hum = states('sensor.zwift_saved_humidity')|float %}
-          {% set trainer = states('device_tracker.sykkelrulle') %}
+          {% set trainer = states('switch.shellyrulle') %}
           {% set to_state = trigger.to_state.state|float %}
-          {{ (to_state + 2) > zwift_hum if active == 'on' else 
-             to_state > (zwift_hum + 1) if trainer == 'home' else
+          {{ 'on' if trainer3watt == 'on' else
+             (to_state + 5) > zwift_hum if active == 'on' else 
+             to_state > (zwift_hum + 1) if trainer == 'on' else
              active }}
 
 automation:
@@ -39,7 +46,11 @@ automation:
         below: 1.5
         for: 
           minutes: 45
-        id: long_time
+        id: idle
+      - platform: state
+        entity_id: light.kjellerstuetak
+        to: "off"
+        id: lights_off
     action:
       - if:
           - condition: state
@@ -51,7 +62,9 @@ automation:
           - condition: not
             conditions:
               - condition: trigger
-                id: long_time
+                id: 
+                  - idle
+                  - lights_off
         then:
           - service: climate.set_temperature
             data:
@@ -65,11 +78,16 @@ automation:
             target:
               entity_id: climate.vpnede
         else:
-          - service: climate.set_hvac_mode
-            data:
-              hvac_mode: heat
-            target:
-              entity_id: climate.vpnede
+          - if:
+              - condition: state
+                entity_id: climate.vpnede
+                state: "dry"
+            then:
+              - service: climate.set_hvac_mode
+                data:
+                  hvac_mode: heat
+                target:
+                  entity_id: climate.vpnede
           - if:
               - condition: state
                 entity_id: switch.shellyrulle
@@ -78,3 +96,11 @@ automation:
               - service: switch.turn_off
                 target:
                   entity_id: switch.shellyrulle
+          - if:
+              - condition: state
+                entity_id: light.kjellerstuetak
+                state: "on"
+            then:
+              - service: light.turn_off
+                target:
+                  entity_id: light.kjellerstuetak
