@@ -286,6 +286,10 @@ template:
                                 var.prices[i+1:] %} 
           {% endif %}
         {% endfor %}
+        {% set charge_now = is_state('input_boolean.charge_now', 'on') %}
+        {% if (charge_now or car_soc < 20)  and (var.car|sort)[0] != now().hour %}
+          {% set  var.car = [ now().hour ] + var.car %}
+        {% endif %}
         {{ {'vvtank': var.main|sort, 
             'vvkjeller': var.aux|sort,
             'easee': var.car|sort }|to_json  }}
