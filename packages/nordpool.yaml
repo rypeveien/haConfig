@@ -51,11 +51,12 @@ automation:
     trigger: 
     - platform: template
       value_template: >
-        {% set nordpool_time = as_datetime(states('sensor.nordpool_api')) %}
-        {{ (nordpool_time.day != now().day or 
-              (nordpool_time.hour < 13 and now().hour == 13)) and 
-            (now().minute % 20 == 0) and now().hour >= 13 and 
-          state_attr('automation.nordpool_price_update', 'current') == 0 }}
+        {% set last = states('sensor.nordpool_api') %}
+        {% set last = as_datetime(last) if last not in ['unknown', 'unavailable'] else (now() - timedelta(days=1)) %}
+        {{ (last.day != now().day or last.hour < 13
+            or states('input_text.nordpool_tomorrow') in  ['', 'unknown', '[]']) 
+            and (now().minute % 15) == 8 and now().hour >= 13 
+            and state_attr('automation.nordpool_price_update', 'current') == 0 }}
     condition: []
     action: 
     - delay: 
@@ -76,28 +77,18 @@ automation:
         entity_id: input_text.nordpool_tomorrow
       data: 
         value: >
-          {% set last = states('sensor.nordpool_tomorrow') %}
-          {% set v = namespace(tomorrow=[]) %}
-          {% set rows = state_attr('sensor.nordpool_api', 'Rows') %}
-          {% if rows|length > 0 %}
-            {% if as_datetime(rows[0].StartTime).day == (now() + timedelta(days=1)).day %}
-              {% for row in rows %}
-                {% for col in row.Columns %}
-                  {% if col.Name == 'Kr.sand' %}
-                    {% set v.tomorrow = v.tomorrow + [ (col.Value|replace(',', '.')|replace(' ', '')|float/1000)|round(4) ] 
-                       if v.tomorrow|length == as_datetime(row.StartTime).hour else v.tomorrow %}
-                  {% endif %}
-                {% endfor %}
+          {% set l = namespace(prices=[]) %}
+          {% for row in states.sensor.nordpool_api.attributes.Rows %}
+            {% if (as_datetime(row.EndTime).timestamp() - as_datetime(row.StartTime).timestamp() == 3600) %}
+              {% for column in row.Columns %}
+                {% if column.Name  == 'Kr.sand' %}
+                  {% set l.prices = l.prices +
+                    [(column.Value|replace(" ", "")|replace(",",".")|float/1000)|round(4)] %}
+                {% endif %}
               {% endfor %}
-            {% else %}
-              {% set v.tomorrow = [] %}
             {% endif %}
-          {% else %}
-            {% set v.tomorrow = last %}
-          {% endif %}
-          {{ v.tomorrow|to_json }}
-
-
+          {% endfor %}
+          {{ l.prices|to_json }}
 #          To list names for the different sones. Use template in Developer tools to list them
 #          {% for cols in state_attr('sensor.nordpool_api', 'Rows')[0].Columns %} {{ cols.Name }} {% endfor %}
 
