@@ -7,8 +7,28 @@ automation:
       entity_id: binary_sensor.vaskemaskin_on
       from: 'on'
       to: 'off'
-    condition: []
+    condition: 
+    - condition: device
+      type: is_on
+      device_id: 20cc6302b62d10aed8b47f36582763e1
+      entity_id: switch.stikk_vaskemaskin
+      domain: switch
     action:
+    - if:
+        - condition: state
+          entity_id: binary_sensor.anyone_home
+          state: "off"
+      then:
+        - wait_for_trigger:
+            - platform: state
+              entity_id:
+                - binary_sensor.anyone_home
+              to: "on"
+        - delay:
+            hours: 0
+            minutes: 2
+            seconds: 0
+            milliseconds: 0
     - service: sonos.snapshot
       data:
         entity_id: media_player.stue
@@ -120,3 +140,30 @@ automation:
       mediaplayer_volume_level: "{{ state_attr('media_player.stue', 'volume_level') }}"
     mode: single
 
+  - id: '1676149315551'
+    alias: Slå på vaskemaskin
+    description: 'Ferdig klargjort vaskemaskin settes på '
+    trigger:
+    - platform: time
+      at: "07:00:00"
+    - platform: time
+      at: "08:00:00"
+    - platform: time
+      at: "15:00:00"
+    condition:
+    - condition: device
+      type: is_off
+      device_id: 20cc6302b62d10aed8b47f36582763e1
+      entity_id: switch.stikk_vaskemaskin
+      domain: switch
+    - condition: template
+      value_template: >
+        {{ now().hour == 8 if now().weekday() == 6 else
+           now().hour == 7 if now().weekday() == 5 else 
+           now().hour == 15 }}
+    action:
+    - type: turn_on
+      device_id: 20cc6302b62d10aed8b47f36582763e1
+      entity_id: switch.stikk_vaskemaskin
+      domain: switch
+    mode: single
