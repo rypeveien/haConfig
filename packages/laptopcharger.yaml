@@ -1,31 +1,4 @@
 automation:
-  - id: '1659781447148'
-    alias: update laptoplader power
-    description: ''
-    trigger:
-    - platform: state
-      entity_id: switch.laptoplader
-      id: state_trigger
-    - platform: template
-      value_template: >
-        {{ states.switch.laptoplader.state == 'on' 
-           and now().timestamp() - states.switch.laptoplader.last_updated.timestamp() > 300 and
-           now().minute % 5 == states.sensor.laptoplader_electric_consumption_w.last_updated.minute % 5 }}
-    condition: []
-    action:
-    - choose:
-      - conditions:
-        - condition: trigger
-          id: state_trigger
-        sequence: 
-        - delay: 
-            seconds: 10
-    - service: zwave_js.refresh_value
-      data:
-        entity_id: sensor.laptoplader_electric_consumption_w
-        refresh_all_values: true
-    mode: single
-
   - id: '1617914362468'
     alias: Lading av FA Laptop
     description: ''
@@ -37,7 +10,7 @@ automation:
       value_template: "{{ states('sensor.fajlat2_battery')|int(default=50) < 20 }}"
       id: low
     - platform: template
-      value_template: "{{ states('sensor.laptoplader_electric_consumption_w')|float(default=0) <= 5}}"
+      value_template: "{{ states('sensor.shellyplugglaptoplader_power')|float(default=0) <= 5}}"
       id: charged
     - platform: template
       value_template: >
@@ -57,8 +30,8 @@ automation:
               id: charged
         sequence:
         - type: turn_off
-          device_id: 381b70ad0b92687d94def574c24d0812
-          entity_id: switch.laptoplader
+          device_id: ab56794fc68ab28aa5d9d537c63b9306
+          entity_id: switch.shellyplugglaptoplader
           domain: switch
       - conditions:
         - condition: or
@@ -69,8 +42,8 @@ automation:
               id: offline
         sequence:
         - type: turn_on
-          device_id: 381b70ad0b92687d94def574c24d0812
-          entity_id: switch.laptoplader
+          device_id: ab56794fc68ab28aa5d9d537c63b9306
+          entity_id: switch.shellyplugglaptoplader
           domain: switch
     mode: single
 
