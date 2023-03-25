@@ -132,4 +132,12 @@
         entity_id: lock.dana_oppe
         type: lock
     default: []
+  - if:
+      - condition: template
+        value_template: "{{ now().timestamp() - as_timestamp(states.sensor.dana_oppe_battery_level.last_updated) > 86400 }}"
+    then:
+      - service: zwave_js.refresh_value
+        data:
+          entity_id:
+            - sensor.dana_oppe_battery_level
   mode: single
