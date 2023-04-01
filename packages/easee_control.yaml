@@ -29,6 +29,10 @@ input_number:
     mode: box
 
 input_select: 
+  which_car:
+    options:
+      - Ioniq
+      - Polestar
   why_charge:
     options:
       - Solar charging
@@ -50,7 +54,6 @@ input_datetime:
 input_text: 
   known_soc: 
     max: 50
-  
   
 sensor: 
 - platform: integration
@@ -141,6 +144,18 @@ template:
       minutes: 2
 
 automation:
+  - id: '1680109839245'
+    alias: Change battery pack from car
+    trigger:
+    - platform: state
+      entity_id: input_select.which_car
+    action:
+    - service: input_number.set_value
+      data: 
+        value: "{{ '28000' if trigger.to_state.state == 'Ioniq' else '67000' }}"
+      target: 
+        entity_id: input_number.ev_battery_pack
+
   - id: '1657578526896'
     alias: Easee daily commute schedule
     trigger:
@@ -342,6 +357,9 @@ automation:
     condition: 
       - condition: template
         value_template: "{{ states('sensor.evnotify_soc') not in ['unavailable', 'None'] }}"
+      - condition: state
+        entity_id: input_select.which_car
+        state: 'Ioniq'
     action: 
       - service: input_text.set_value
         data: 
@@ -349,7 +367,28 @@ automation:
             {% set energy = states('sensor.easee_home_63089_session_energy')| int 
                             if states('sensor.easee_home_63089_status') == 'charging' else 0 %}
             {{ {'energy': energy, 
-                'soc': states('sensor.evnotify_soc'), 
+                'soc': states('sensor.evnotify_soc'),
                 'ts': state_attr('sensor.evnotify_soc', 'last_soc') }|to_json }}
+        target: 
+          entity_id: input_text.known_soc
+
+  - id: '1680332588223'
+    alias: cache known soc and timestamp when ev_charge_state changes
+    trigger: 
+      - platform: state
+        entity_id: sensor.ev_charge_state
+    condition: 
+      - condition: state
+        entity_id: input_select.which_car
+        state: 'Polestar'
+    action: 
+      - service: input_text.set_value
+        data: 
+          value: >
+            {% set energy = states('sensor.easee_home_63089_session_energy')| int 
+                            if states('sensor.easee_home_63089_status') == 'charging' else 0 %}
+            {{ {'energy': energy, 
+                'soc': states('sensor.ev_charge_state'),
+                'ts': now().timestamp()|int }|to_json }}
         target: 
           entity_id: input_text.known_soc
