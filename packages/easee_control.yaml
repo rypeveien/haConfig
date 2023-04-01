@@ -154,7 +154,7 @@ automation:
     action:
     - service: input_number.set_value
       data: 
-        value: "{{ '28000' if trigger.to_state.state == 'Ioniq' else '67000' }}"
+        value: "{{ '28000' if trigger.to_state.state == 'Ioniq' else '69000' }}"
       target: 
         entity_id: input_number.ev_battery_pack
 
