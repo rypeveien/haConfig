@@ -112,24 +112,26 @@ template:
   - name: soc_estimate
     unit_of_measurement: "%"
     state: >
+      {% set last = states('sensor.soc_estimate') %}
       {% set known = states('input_text.known_soc')|from_json %}
+      {% set last = known.soc|float if last in ['unknown', 'unavailable'] else 
+                    last | float %}
       {% if is_state('input_select.why_charge', 'Completed') %}
-        {{ 100 }}
+        {{ 100 if state('input_select.which_car') == 'Ioniq' else 90}}
       {% elif is_state('sensor.easee_home_63089_status',  'disconnected') %}
-        {{ known.soc }}
+        {{ last }}
       {% else %}
         {% set soc = known.soc|float %}
         {% set energy = states('sensor.easee_home_63089_session_energy') %}
         {% set energy = known.energy|float if energy in ['unknown', 'unavailable'] else 
                         energy|float - known.energy|float %}
         {% set soc = soc + energy * states('input_number.ev_charge_efficiency')|float * 1000  / states('input_number.ev_battery_pack')|int %}
-        {{ 95 if soc > 95 else soc }}
+        {{ 95 if soc > 95 else soc|round(1) }}
       {% endif %}
   - name: easee_basic_schedule_start
     state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStartTime') }}"
   - name: easee_basic_schedule_stop
     state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStopTime') }}"
-
 
   binary_sensor:
   - name: wants_to_charge
