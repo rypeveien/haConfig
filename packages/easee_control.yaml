@@ -117,7 +117,7 @@ template:
       {% set last = known.soc|float if last in ['unknown', 'unavailable'] else 
                     last | float %}
       {% if is_state('input_select.why_charge', 'Completed') %}
-        {{ 100 if state('input_select.which_car') == 'Ioniq' else 90}}
+        {{ 100 if states('input_select.which_car') == 'Ioniq' else 90}}
       {% elif is_state('sensor.easee_home_63089_status',  'disconnected') %}
         {{ last }}
       {% else %}
@@ -387,8 +387,8 @@ automation:
       - service: input_text.set_value
         data: 
           value: >
-            {% set energy = states('sensor.easee_home_63089_session_energy')| int 
-                            if states('sensor.easee_home_63089_status') == 'charging' else 0 %}
+            {% set energy = 0 if states('sensor.easee_home_63089_status') == 'disconnected' else 
+                            states('sensor.easee_home_63089_session_energy')| int %}
             {{ {'energy': energy, 
                 'soc': states('sensor.ev_charge_state'),
                 'ts': now().timestamp()|int }|to_json }}
