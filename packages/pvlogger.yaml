@@ -38,6 +38,39 @@ template:
     - name: pv_guess_24h
       state: >
         {{ (states.sensor.pv_guess_by_factor.state|from_json)[now().hour+24] }}
+    - name: forecast_solar_this_hour
+      unit_of_measurement: "W"
+      state: >
+        {% set n48 = states('sensor.forecast_solar_48h') %}
+        {{ (n48|from_json)[now().hour] if n48 not in ['unknown', 'undefined', 'none','unavailable'] else 0 }}
+  - trigger:
+    - platform: time_pattern
+      minutes: 1
+    sensor: 
+    - name: forecast_solar_48h
+      state: >
+        {% set n12 = states('sensor.power_production_next_12hours')|int(default=0) %}
+        {% set n24 = states('sensor.power_production_next_24hours')|int(default=0) %}
+        {% set n48 = states('sensor.forecast_solar_48h') %}
+        {% set n48 = n48|from_json if n48 not in ['unknown', 'undefined', 'none','unavailable'] else 
+                    [ 0, 0, 0, 0, 0, 0, 
+                      0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0 ] %}
+        {% set hour = now().hour %}
+        {% set n48 = n48 if n48[hour+24:]|sum == 0 else 
+                     n48[hour+24:] + 
+                    [ 0, 0, 0, 0, 0, 0, 
+                      0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0 ] %}
+        {% set n48 = n48[:hour+12] + [ n12 ] + n48[hour+13:] %}
+        {% set n48 = n48[:hour+24] + [ n24 ] + n48[hour+25:] %}
+        {{ n48|to_json }}
 
 automation: 
   - id: '1658480557485'
