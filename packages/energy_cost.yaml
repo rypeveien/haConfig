@@ -88,7 +88,7 @@ template:
     - unique_id: energy_by_subsides_and_production
       unit_of_measurement: 'NOK/kWh'
       state: >
-        {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
+        {% set pv_guess = states.sensor.forecast_solar_48h.state|from_json %}
         {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
         {% set energy_price =  states.sensor.energy_all_nok_kwh.attributes.prices %}
         {% set price_to_grid = states.sensor.to_grid_today_nok_kwh.state|from_json  + 
@@ -101,7 +101,7 @@ template:
         friendly_name: "Energycost @ rypeveien"
         prices: >
           {% set delivered = states.input_text.delivered_grid_today.state|from_json %}
-          {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
+          {% set pv_guess = states.sensor.forecast_solar_48h.state|from_json %}
           {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
           {% set uncontrolled = uncontrolled + uncontrolled %}
           {% set energy_price =  states.sensor.energy_all_nok_kwh.attributes.prices %}
@@ -118,7 +118,7 @@ template:
           {{ var.price|to_json }}
         solar: >
           {% set delivered = states.input_text.delivered_grid_today.state|from_json %}
-          {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
+          {% set pv_guess = states.sensor.forecast_solar_48h.state|from_json %}
           {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
           {% set uncontrolled = uncontrolled + uncontrolled %}
           {% set price_to_grid = states.sensor.to_grid_today_nok_kwh.state|from_json + 
@@ -133,7 +133,7 @@ template:
           {{ var.price|to_json }}
         subsides: >
           {% set delivered = states.input_text.delivered_grid_today.state|from_json %}
-          {% set pv_guess = states.sensor.pv_guess_by_factor.state|from_json %}
+          {% set pv_guess = states.sensor.forecast_solar_48h.state|from_json %}
           {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
           {% set uncontrolled = uncontrolled + uncontrolled %}
           {% set energy_price =  states.sensor.energy_all_nok_kwh.attributes.prices %}
