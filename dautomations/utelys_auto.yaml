@@ -61,6 +61,9 @@
       - condition: state
         entity_id: sun.sun
         state: 'below_horizon'
+      - condition: state
+        entity_id: input_boolean.fenrir_pa_besok
+        state: 'off'
       sequence:
       - type: turn_on
         device_id: b6395abb2835f10fd7b0fce5b869d279
