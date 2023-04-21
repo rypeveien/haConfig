@@ -119,7 +119,7 @@ template:
       {% if is_state('input_select.why_charge', 'Completed') %}
         {{ 100 if states('input_select.which_car') == 'Ioniq' else 90}}
       {% elif is_state('sensor.easee_home_63089_status',  'disconnected') %}
-        {{ last }}
+        {{ last if states.sensor.soc_estimate.last_updated.timestamp()|int > known.ts else known.soc }}
       {% else %}
         {% set soc = known.soc|float %}
         {% set energy = states('sensor.easee_home_63089_session_energy') %}
