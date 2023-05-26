@@ -270,7 +270,7 @@ template:
           {% endif %}
         {% endfor %}
         {% set limit = prices|length -1 if car_ready >= prices|length else 
-                            car_ready %}
+                            car_ready -1 %}
         {% set var.used = 0 %}
         {% set var.loop_done = 0 %}
         {% for i in range(var.prices|length) %}
