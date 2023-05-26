@@ -44,3 +44,15 @@ binary_sensor:
     state: '{{ states(''binary_sensor.inngangsdor_door_window'') == ''on'' }}'
     delay_off: 
       minutes: 5
+  - name: dor_inngang_open
+    state: '{{ states(''binary_sensor.inngangsdor_door_window'') == ''on'' }}'
+    delay_on:
+      minutes: 2
+    delay_on:
+      minutes: 5
+  - name: verandador_open
+    state: '{{ states(''binary_sensor.verandador_contact'') == ''on'' }}'
+    delay_on:
+      minutes: 2
+    delay_off: 
+      minutes: 5
