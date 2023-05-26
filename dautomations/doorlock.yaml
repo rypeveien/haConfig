@@ -81,42 +81,38 @@
         domain: lock
         entity_id: lock.dana_oppe
         type: is_locked
-      - condition: state
-        entity_id: input_select.which_car
-        state: Polestar
       sequence:
-      - condition: template
-        value_template: "{{ states('sensor.template_rypse2_loc')|float < 0.02 }}"
-      - condition: template
-        value_template: "{{ (now().timestamp()|int - states.sensor.template_rypse2_loc.last_updated,timestamp()|int) < 120 }}"
-      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
-        domain: lock
-        entity_id: lock.dana_oppe
-        type: unlock
-    - conditions:
-      - condition: trigger
-        id: easee_connected
-      - condition: device
-        device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
-        domain: lock
-        entity_id: lock.dana_oppe
-        type: is_locked
-      - condition: state
-        entity_id: input_select.which_car
-        state: Ioniq
-      sequence:
-      - service: homeassistant.update_entity
-        target:
-          entity_id: sensor.evnotify_loc
-        data: {}
-      - condition: template
-        value_template: "{{ states('sensor.evnotify_loc')|float < 0.02 }}"
-      - condition: template
-        value_template: "{{ (now().timestamp()|int - state_attr('sensor.evnotify_loc','last_location')) < 60 }}"
-      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
-        domain: lock
-        entity_id: lock.dana_oppe
-        type: unlock
+      - choose:
+        - conditions:
+          - condition: state
+            entity_id: input_select.which_car
+            state: Polestar
+          - condition: template
+            value_template: "{{ states('sensor.template_rypse2_loc')|float < 0.02 }}"
+          - condition: template
+            value_template: "{{ (now().timestamp()|int - states.sensor.template_rypse2_loc.last_updated.timestamp()|int) < 120 }}"
+          sequence:
+          - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+            domain: lock
+            entity_id: lock.dana_oppe
+            type: unlock
+        - conditions:
+          - condition: state
+            entity_id: input_select.which_car
+            state: Ioniq
+          sequence:
+          - service: homeassistant.update_entity
+            target:
+              entity_id: sensor.evnotify_loc
+            data: {}
+          - condition: template
+            value_template: "{{ states('sensor.evnotify_loc')|float < 0.02 }}"
+          - condition: template
+            value_template: "{{ (now().timestamp()|int - state_attr('sensor.evnotify_loc','last_location')) < 60 }}"
+          - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+            domain: lock
+            entity_id: lock.dana_oppe
+            type: unlock
     - conditions:
       - condition: trigger
         id: Arriving_home
