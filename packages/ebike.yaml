@@ -1,0 +1,82 @@
+template:
+  - trigger: 
+      - platform: state
+        entity_id: sensor.titophone_wifi_connection
+    sensor:
+      - name: last_wifi
+        state: >
+          {% set last = states('sensor.last_wifi') %}
+          {{ last if trigger.to_state.state in ('<not connected>', 'unknown', 'unavailable') 
+             else trigger.to_state.state[:7] }}
+
+  - trigger: 
+      - platform: state
+        entity_id: sensor.titophone_detected_activity
+        to: 'on_bicycle'
+        for:
+          hours: 1
+          minutes: 15
+      - platform: numeric_state
+        entity_id: sensor.sykkellader_power
+        above: 10
+      - platform: state
+        entity_id: sensor.last_wifi
+    sensor:
+      - name: e_ride
+        state: >
+          {% set wifi = states('sensor.last_wifi') %}
+          {% set activity = states('sensor.titophone_detected_activity') %}
+          {% set last = states('sensor.e_ride') %}
+          {{ 'off' if (states('sensor.sykkellader_power') | int(default=0) >= 10) else
+             'to_work' if (wifi == 'ProFund' and last == 'from_home') else 
+             'charge' if (wifi == 'BzzWare' and last in ('to_work', 'from_work')) else 
+             'from_home' if (wifi == 'BzzWare' and last == 'off' and activity == 'on_bicycle') else 
+             'from_work' if (wifi == 'ProFund' and activity == 'on_bicycle') else
+             'off' if (activity != 'on_bicycle') else
+             last }}
+automation:
+  - id: '1684539693604'
+    alias: ebike bike charger trigger
+    trigger:
+    - platform: state
+      entity_id: sensor.e_ride
+      to: 'charge'
+    action:
+    - type: turn_on
+      device_id: c2cc1440ec5a45d6f56006a438eee0dc
+      entity_id: switch.sykkellader
+      domain: switch
+
+  - id: '1683654356245'
+    alias: Sykkel ferdig ladet
+    description: ''
+    trigger:
+    - type: power
+      platform: device
+      device_id: c2cc1440ec5a45d6f56006a438eee0dc
+      entity_id: sensor.sykkellader_power
+      domain: sensor
+      below: 60
+    condition:
+    - condition: device
+      type: is_on
+      device_id: c2cc1440ec5a45d6f56006a438eee0dc
+      entity_id: switch.sykkellader
+      domain: switch
+    - condition: numeric_state
+      entity_id: sensor.sykkellader_power
+      above: 2
+    action:
+    - service: notify.mobile_app_xq_au52
+      data:
+        message: Ser ut som lading nærmer seg ferdig
+        title: Sykkellader
+        data:
+          ttl: 0
+          priority: high
+    - type: turn_off
+      device_id: c2cc1440ec5a45d6f56006a438eee0dc
+      entity_id: switch.sykkellader
+      domain: switch
+      enabled: true
+    mode: single
