@@ -175,6 +175,12 @@ automation:
              states('sensor.analyzer_updown')|int  +
              (1 if states('binary_sensor.schedule_adjust') == 'on' else 0) != 
              state_attr('climate.vpoppe','temperature') }}
+      - platform: state
+        entity_id: binary_sensor.dor_inngang_open
+        id: door_open
+      - platform: state
+        entity_id: binary_sensor.verandador_open
+        id: verandador_open
     condition:
       - condition: template
         value_template: >
@@ -194,7 +200,8 @@ automation:
           - service: climate.set_temperature
             data: 
               temperature: >
-                {{ state_attr('climate.vp_goppe', 'temperature') + 
+                {{ 17 if (states('binary_sensor.dor_inngang_open') == 'on' or states('binary_sensor.verandador_open') == 'on') else 
+                   state_attr('climate.vp_goppe', 'temperature') + 
                    states('sensor.analyzer_updown')|int +
                    (1 if states('binary_sensor.schedule_adjust') == 'on' else 0)  }}
             target:
