@@ -1,0 +1,75 @@
+template:
+  - sensor: 
+      - unique_id: Rypse2_loc
+        name: Rypse2 location
+        unit_of_measurement: "km"
+        state: "{{ distance(states('sensor.rypse2_lat'), states('sensor.rypse2_lon'))|round(3) }}"
+        attributes: 
+          latitude: "{{ states('sensor.rypse2_lat') }}"
+          longitude: "{{ states('sensor.rypse2_lon') }}"
+        
+
+automation:
+  - alias: "Update known_soc when Rypse2 updates its soc"
+    id: '1681118159227'
+    trigger:
+      - platform: state
+        entity_id: sensor.rypse2_soc
+    condition: 
+      - condition: state
+        entity_id: input_select.which_car
+        state: 'Polestar'
+    action: 
+      - service: input_text.set_value
+        data: 
+          value: >
+            {% set energy = states('sensor.easee_home_63089_session_energy')| int 
+                            if states('sensor.easee_home_63089_status') == 'charging' else 0 %}
+            {{ {'energy': energy, 
+                'soc': states('sensor.rypse2_soc'),
+                'ts': states.sensor.rypse2_soc.last_updated.timestamp()|int }|to_json }}
+        target: 
+          entity_id: input_text.known_soc
+
+  - id: '1682539957676'
+    alias: Rypse2 Notify missing SOC
+    description: Sends message if it looks like CSV in Rypse2 has failed
+    trigger:
+    - platform: template
+      value_template: '{{ (now().timestamp() - states.sensor.rypse2_soc.last_updated.timestamp())|int
+        > 300 }}'
+    condition:
+    - condition: state
+      entity_id: sensor.easee_home_63089_status
+      state: disconnected
+      for:
+        hours: 0
+        minutes: 5
+        seconds: 0
+    - condition: state
+      entity_id: sensor.fa_tracker_activity_detected
+      state: in_vehicle
+      for:
+        hours: 0
+        minutes: 5
+        seconds: 0
+    - condition: template
+      value_template: '{{ (now().timestamp() - states.sensor.template_rypse2_loc.last_updated.timestamp())|int
+        > 120 }}'
+    action:
+    - choose:
+      - conditions:
+        - condition: state
+          entity_id: sensor.fa_tracker
+          state: faa3phone
+        sequence:
+        - service: notify.mobile_app_sm_a320fl
+          data:
+            message: Mangler SOC fra Rypse2
+            title: Sjekk CSV i Rypse2
+      default:
+      - service: notify.mobile_app_xq_au52
+        data:
+          message: Mangler SOC fra Rypse2
+          title: Sjekk CSV i Rypse2
+    mode: single
