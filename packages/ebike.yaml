@@ -1,4 +1,14 @@
 template:
+  - binary_sensor:
+    - name: on_bike
+      state: "{{ states('sensor.titophone_detected_activity') == 'on_bicycle' }}"
+      delay_on:
+        hours: 1
+        minutes: 15
+      delay_off:
+        hours: 1
+        minutes: 15
+
   - trigger: 
       - platform: state
         entity_id: sensor.titophone_wifi_connection
@@ -11,11 +21,7 @@ template:
 
   - trigger: 
       - platform: state
-        entity_id: sensor.titophone_detected_activity
-        to: 'on_bicycle'
-        for:
-          hours: 1
-          minutes: 15
+        entity_id: binary_sensor.on_bike
       - platform: numeric_state
         entity_id: sensor.sykkellader_power
         above: 10
@@ -25,15 +31,18 @@ template:
       - name: e_ride
         state: >
           {% set wifi = states('sensor.last_wifi') %}
-          {% set activity = states('sensor.titophone_detected_activity') %}
+          {% set on_bike = states('binary_sensor.on_bike') %}
           {% set last = states('sensor.e_ride') %}
-          {{ 'off' if (states('sensor.sykkellader_power') | int(default=0) >= 10) else
-             'to_work' if (wifi == 'ProFund' and last == 'from_home') else 
-             'charge' if (wifi == 'BzzWare' and last in ('to_work', 'from_work')) else 
-             'from_home' if (wifi == 'BzzWare' and last == 'off' and activity == 'on_bicycle') else 
-             'from_work' if (wifi == 'ProFund' and activity == 'on_bicycle') else
-             'off' if (activity != 'on_bicycle') else
+          {% set power = states('sensor.sykkellader_power') | int(default=0) %}
+          {{ 'charging' if (power >= 10) else
+             'off' if (last == 'charging') else
+             'to_work' if (wifi == 'ProFund' and last == 'from_home') else
+             'charge' if (wifi == 'BzzWare' and last in ('to_work', 'from_work')) else
+             'from_home' if (wifi == 'BzzWare' and last == 'off' and on_bike == 'on') else
+             'from_work' if (wifi == 'ProFund' and on_bike == 'on') else
+             'off' if (on_bike == 'false') else
              last }}
+
 automation:
   - id: '1684539693604'
     alias: ebike bike charger trigger
