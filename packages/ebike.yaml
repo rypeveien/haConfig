@@ -25,6 +25,9 @@ template:
       - platform: numeric_state
         entity_id: sensor.sykkellader_power
         above: 10
+      - platform: numeric_state
+        entity_id: sensor.sykkellader_power
+        below: 5
       - platform: state
         entity_id: sensor.last_wifi
     sensor:
