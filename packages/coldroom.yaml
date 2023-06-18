@@ -47,6 +47,12 @@ template:
            (action == 'cooling' and temp_cur < temp_set - 0.5) }}
       delay_on:
         minutes: 1
+    - name: coldroom_overvoltage_and_hot
+      state: >
+        {{ states('sensor.ink_kjole_temperature')|float > 7  and 
+           states('binary_sensor.shellykjol_switch_0_overvoltage') }}
+      delay_off:
+        minutes: 10
 
 sensor:
 - platform: integration
@@ -172,3 +178,24 @@ automation:
           {{ target - 0.5 * analyzer }}
       target:
         entity_id: climate.cold_room
+
+  - id: '1686517145865'
+    alias: 'Kjølerom Overspenning '
+    description: ''
+    trigger:
+    - platform: state
+      entity_id:
+      - binary_sensor.coldroom_overvoltage_and_hot
+      to: 'on'
+    condition: []
+    action:
+    - device_id: 65e4d0e17a9d7119c81824d5c4fadff0
+      domain: button
+      entity_id: button.shellykjol_reboot
+      type: press
+    - service: notify.mobile_app_xq_au52
+      data:
+        message: Overspenning oppdaget p åkjolerom. Har restartet, men sjekk selv om
+          det hjelper
+        title: Overspenning på kjølerommet
+    mode: single
