@@ -1,0 +1,82 @@
+template:
+  - binary_sensor:
+    - name: frontdoor_5min_closed
+      state: "{{ is_state('binary_sensor.inngangsdor_door_window', 'off') }}"
+      delay_on:
+        minutes: 5
+
+  - trigger: 
+      - platform: state
+        entity_id: sensor.template_rypse2_loc
+    binary_sensor:
+      - name: rypse2_arrived_home
+        state: >
+          {% set last = states('sensor.rypse_arrived_home') %}
+          {% set loc = states('sensor.template_rypse2_loc') %}
+          {{ last if loc in ('Unknown', 'Unavailable') else
+             false if (loc|float(default=0) > 0.06) else
+             true if (loc|float(default=1) < 0.05) else 
+             last }}
+
+automation:
+  - id: '1686684810301'
+    alias: 'Lock at night'
+    trigger: 
+    - platform: template
+      value_template: >
+        {{ is_state('binary_sensor.frontdoor_5min_closed', 'on') and 
+           (now() > today_at('21:30') or now() < today_at('07:00')) }}
+    condition:
+    - condition: device
+      device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+      domain: lock
+      entity_id: lock.dana_oppe
+      type: is_unlocked
+    action:
+    - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+      domain: lock
+      entity_id: lock.dana_oppe
+      type: lock
+
+  - id: '1686947191624'
+    alias: 'Unlock when rypse2 arrive and connects'
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.rypse2_chargeportconnected
+        to: "on"
+      - platform: state
+        entity_id:
+          - sensor.easee_home_63089_status
+        from: disconnected
+    condition:
+      - condition: state
+        entity_id: binary_sensor.rypse2_arrived_home
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.rypse2_chargeportconnected
+        state: "on"
+      - condition: device
+        device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: is_locked
+      - condition: not
+        conditions:
+          - condition: and
+            conditions:
+              - condition: state
+                entity_id: sensor.easee_home_63089_status
+                state: disconnected
+              - condition: state
+                entity_id: sensor.easee_home_63089_status
+                state: unavailable
+              - condition: state
+                entity_id: sensor.easee_home_63089_status
+                state: unknown
+    action:
+      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: lock.dana_oppe
+        type: unlock
+
