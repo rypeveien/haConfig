@@ -191,6 +191,9 @@ automation:
              trigger.from_state.state in ['-1', '0', '1'] }}
       - condition: template
         value_template: "{{ now().minute < 59 }}"
+      - condition: state
+        entity_id: climate.vp_goppe
+        state: 'heat'
     action:
       - choose:
         - conditions: 
