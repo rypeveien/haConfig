@@ -51,6 +51,10 @@ automation:
         entity_id: light.kjellerstuetak
         to: "off"
         id: lights_off
+    condition:
+      - condition: state
+        entity_id: climate.vp_gnede
+        state: 'heat'
     action:
       - if:
           - condition: state
