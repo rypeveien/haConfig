@@ -27,6 +27,10 @@
         device_id: b6395abb2835f10fd7b0fce5b869d279
         entity_id: switch.utelys
         domain: switch
+      - type: turn_off
+        device_id: 1691a1629c7c36dc97c0a99fc170920f
+        entity_id: light.utelys_nede
+        domain: light
     - conditions:
       - condition: trigger
         id: sunset
@@ -35,6 +39,10 @@
         device_id: b6395abb2835f10fd7b0fce5b869d279
         entity_id: switch.utelys
         domain: switch
+      - type: turn_on
+        device_id: 1691a1629c7c36dc97c0a99fc170920f
+        entity_id: light.utelys_nede
+        domain: light
       - if:
           - condition: state
             entity_id: light.hagestue
@@ -55,6 +63,10 @@
         device_id: b6395abb2835f10fd7b0fce5b869d279
         entity_id: switch.utelys
         domain: switch
+      - type: turn_off
+        device_id: 1691a1629c7c36dc97c0a99fc170920f
+        entity_id: light.utelys_nede
+        domain: light
     - conditions:
       - condition: trigger
         id: night_on
@@ -69,5 +81,9 @@
         device_id: b6395abb2835f10fd7b0fce5b869d279
         entity_id: switch.utelys
         domain: switch
+      - type: turn_on
+        device_id: 1691a1629c7c36dc97c0a99fc170920f
+        entity_id: light.utelys_nede
+        domain: light
     default: []
   mode: single
