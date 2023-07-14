@@ -1,0 +1,11 @@
+template:
+  sensor:
+  - name: eos_main_voltage
+    unit_of_measurement: V
+    state: "{{ state_attr('sensor.rpieos_battery', 'main_voltage') | float }}"
+  - name: eos_start_voltage
+    unit_of_measurement: V
+    state: "{{ state_attr('sensor.rpieos_battery', 'start_voltage') | float }}"
+  - name: eos_main_current
+    unit_of_measurement: A
+    state: "{{ state_attr('sensor.rpieos_battery', 'main_current') | float }}"
