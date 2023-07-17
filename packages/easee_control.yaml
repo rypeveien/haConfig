@@ -399,3 +399,16 @@ automation:
                 'ts': now().timestamp()|int }|to_json }}
         target: 
           entity_id: input_text.known_soc
+
+  - id: '1689617707052'
+    alias: reset charge target when disconnects
+    trigger: 
+      - platform: state
+        entity_id: sensor.easee_home_63089_status
+        to: disconnected
+    action: 
+      - service: input_number.set_value
+        data: 
+          value: 85
+        target: 
+          entity_id: input_number.ev_charge_target
