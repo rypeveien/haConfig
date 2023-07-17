@@ -274,7 +274,7 @@ template:
         {% set var.used = 0 %}
         {% set var.loop_done = 0 %}
         {% for i in range(var.prices|length) %}
-          {% if var.prices[i].hour <= limit  and var.prices[i].avail > 500 and var.loop_done == 0%}
+          {% if var.prices[i].hour <= limit  and var.prices[i].avail > 500 and var.loop_done == 0 %}
             {% set uses = var.prices[i].avail if var.prices[i].avail < 3500 else 3500 %}
             {% set needs = car_needs - (var.used * 0.875)|int %}
             {% set var.loop_done = 1 if uses > needs else 0 %}
