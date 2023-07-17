@@ -27,6 +27,11 @@ input_number:
     min: 50
     step: 0.1
     mode: box
+  ev_charge_target:
+    unit_of_measurement: '%'
+    max: 100
+    min: 70
+    step: 5
 
 input_select: 
   which_car:

@@ -189,7 +189,7 @@ template:
         {% set car_ready = car_ready if car_ready > now().hour else car_ready + 24 %}
         {% set car_full = states('input_number.ev_battery_pack')|int %}
         {% set car_soc = states('sensor.soc_estimate')|float %}
-        {% set car_target = state_attr('sensor.ev_charge_state','targetSoc')|int(default=90) %}
+        {% set car_target = states('input_number.ev_charge_target')|int(default=90) %}
         {% set car_target = car_soc if car_target < car_soc else car_target %}
         {% set car_needs = ((car_target-car_soc) * car_full / 100)|int %}
         {% set var = namespace(prices=[], loop_done=0, used=0, main=[], aux=[], car=[]) %}
