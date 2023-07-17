@@ -15,10 +15,6 @@ automation:
     trigger:
       - platform: state
         entity_id: sensor.rypse2_soc
-    condition: 
-      - condition: state
-        entity_id: input_select.which_car
-        state: 'Polestar'
     action: 
       - service: input_text.set_value
         data: 

@@ -34,10 +34,6 @@ input_number:
     step: 5
 
 input_select: 
-  which_car:
-    options:
-      - Ioniq
-      - Polestar
   why_charge:
     options:
       - Solar charging
@@ -122,7 +118,7 @@ template:
       {% set last = known.soc|float if last in ['unknown', 'unavailable'] else 
                     last | float %}
       {% if is_state('input_select.why_charge', 'Completed') %}
-        {{ 100 if states('input_select.which_car') == 'Ioniq' else 90}}
+        {{ 100 }}
       {% elif is_state('sensor.easee_home_63089_status',  'disconnected') %}
         {{ last if states.sensor.soc_estimate.last_updated.timestamp()|int > known.ts else known.soc }}
       {% else %}
@@ -159,7 +155,7 @@ automation:
     action:
     - service: input_number.set_value
       data: 
-        value: "{{ '28000' if trigger.to_state.state == 'Ioniq' else '69000' }}"
+        value: "69000"
       target: 
         entity_id: input_number.ev_battery_pack
 
@@ -356,38 +352,11 @@ automation:
             target:
               entity_id: input_select.why_charge
 
-  - id: '1663885991498'
-    alias: cache evnotify_soc and session_energy at start of charging session
-    trigger: 
-      - platform: state
-        entity_id: sensor.evnotify_soc
-    condition: 
-      - condition: template
-        value_template: "{{ states('sensor.evnotify_soc') not in ['unavailable', 'None'] }}"
-      - condition: state
-        entity_id: input_select.which_car
-        state: 'Ioniq'
-    action: 
-      - service: input_text.set_value
-        data: 
-          value: >
-            {% set energy = states('sensor.easee_home_63089_session_energy')| int 
-                            if states('sensor.easee_home_63089_status') == 'charging' else 0 %}
-            {{ {'energy': energy, 
-                'soc': states('sensor.evnotify_soc'),
-                'ts': state_attr('sensor.evnotify_soc', 'last_soc') }|to_json }}
-        target: 
-          entity_id: input_text.known_soc
-
   - id: '1680332588223'
     alias: cache known soc and timestamp when ev_charge_state changes
     trigger: 
       - platform: state
         entity_id: sensor.ev_charge_state
-    condition: 
-      - condition: state
-        entity_id: input_select.which_car
-        state: 'Polestar'
     action: 
       - service: input_text.set_value
         data: 
