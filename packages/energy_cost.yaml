@@ -176,18 +176,16 @@ template:
 
     - unique_id: grid_charge_rates
       state: >
-        {{ { "flat": 0.3739, 
-             "night": 0.4251,
-             "day": 0.5251 }|to_json }}
+        {{ { "night": 0.35,
+             "day": 0.47 }|to_json }}
       attributes:
         friendly_name: "Grid charge rates"
     - unique_id: grid_charge
       unit_of_measurement: 'NOK/kWh'
       state: >
         {% set charge = states.sensor.template_grid_charge_rates.state|from_json %}
-        {{ charge.flat if now().year == 2022 and now().month < 7 else
-            charge.day if now().hour >= 6 and now().hour < 22 else
-            charge.night }}
+        {{ charge.day if now().hour >= 6 and now().hour < 22 else
+           charge.night }}
       attributes:
         friendly_name: "Grid charge by hours"
         prices: >
@@ -195,8 +193,7 @@ template:
           {% set var = namespace ( charge = [] ) %}
           {% for h in range(48) %}
             {% set check = now() + timedelta (hours=h - now().hour) %}
-            {% set var.charge = var.charge + [ charge.flat if check.year == 2022 and check.month < 7 else
-                                               charge.day if check.hour >= 6 and check.hour < 22 else
+            {% set var.charge = var.charge + [ charge.day if check.hour >= 6 and check.hour < 22 else
                                                charge.night ] %}
           {% endfor %}
           {{ var.charge|to_json }}
