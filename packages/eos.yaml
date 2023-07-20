@@ -9,3 +9,20 @@ template:
   - name: eos_main_current
     unit_of_measurement: A
     state: "{{ state_attr('sensor.rpieos_battery', 'main_current') | float }}"
+  - name: eos_main_power
+    unit_of_measurement: W
+    state: "{{ state_attr('sensor.rpieos_battery', 'main_power') | float }}"
+
+sensor:
+  - platform: integration
+    name: eos_energy
+    source: sensor.eos_main_power
+    method: left
+    round: 2
+
+sensor:
+  - platform: integration
+    name: eos_energy
+    source: sensor.eos_main_power
+    method: left
+    round: 2
