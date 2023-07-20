@@ -68,8 +68,8 @@ template:
                       0, 0, 0, 0, 0, 0,
                       0, 0, 0, 0, 0, 0,
                       0, 0, 0, 0, 0, 0 ] %}
-        {% set n48 = n48[:hour+12] + [ n12 ] + n48[hour+13:] %}
-        {% set n48 = n48[:hour+24] + [ n24 ] + n48[hour+25:] %}
+        {% set n48 = n48[:hour+11] + [ n12 ] + n48[hour+12:] %}
+        {% set n48 = n48[:hour+23] + [ n24 ] + n48[hour+24:] %}
         {{ n48|to_json }}
 
 automation: 
