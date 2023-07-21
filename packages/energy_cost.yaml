@@ -24,23 +24,36 @@ utility_meter:
 
 template:
   sensor:
-    - name: cost_and_availble_solar_or_grid
+    - name: cost_and_available_solar_or_grid
       state: >
         {% set var = namespace ( prices = [] ) %}
         {% set subsides = states('sensor.energy_subsides')|float %}
         {% set pv_guess = states('sensor.forecast_solar_48h')|from_json %}
         {% set energy_price =  state_attr('sensor.energy_all_nok_kwh', 'prices') %}
-        {% set price_to_grid = states('sensor.to_grid_today_nok_kwh')|from_json  + 
+        {% set price_to_grid = states('sensor.to_grid_today_nok_kwh')|from_json  +
                                states('sensor.to_grid_tomorrow_nok_kwh')|from_json %}
         {% set limit = states('sensor.rest_of_month_energy_limit')|int(default=4000) %}
-        {% for i in range(energy_price|count) %}
-        {% set var.prices = var.prices + [ { "gridorsolar": "s", "hour": i, "avail": pv_guess[i], "price": price_to_grid[i]|round(3) } ] %}
-        {% endfor %}
-        {% for i in range(energy_price|count) %}
-        {% set var.prices = var.prices + [ { "gridorsolar": "g", "hour": i, "avail": limit|int, "price": (energy_price[i] - subsides)|round(3) } ] %}
-        {% endfor %}
-        {% set var.prices = var.prices|sort(attribute="price") %}
-        {{ var.prices|to_json }}
+        {% set i = now().hour %}
+        {% set cost_and_avail = [ { "gridorsolar": "s", "avail": pv_guess[i], "price": price_to_grid[i]|round(3) } ]  + 
+           [ { "gridorsolar": "g", "avail": limit|int, "price": (energy_price[i] - subsides)|round(3) } ] %}
+        {{ cost_and_avail }}
+      attributes:
+        all_known: >
+          {% set var = namespace ( prices = [] ) %}
+          {% set subsides = states('sensor.energy_subsides')|float %}
+          {% set pv_guess = states('sensor.forecast_solar_48h')|from_json %}
+          {% set energy_price =  state_attr('sensor.energy_all_nok_kwh', 'prices') %}
+          {% set price_to_grid = states('sensor.to_grid_today_nok_kwh')|from_json  + 
+                                 states('sensor.to_grid_tomorrow_nok_kwh')|from_json %}
+          {% set limit = states('sensor.rest_of_month_energy_limit')|int(default=4000) %}
+          {% for i in range(energy_price|count) %}
+          {% set var.prices = var.prices + [ { "gridorsolar": "s", "hour": i, "avail": pv_guess[i], "price": price_to_grid[i]|round(3) } ] %}
+          {% endfor %}
+          {% for i in range(energy_price|count) %}
+          {% set var.prices = var.prices + [ { "gridorsolar": "g", "hour": i, "avail": limit|int, "price": (energy_price[i] - subsides)|round(3) } ] %}
+          {% endfor %}
+          {% set var.prices = var.prices|sort(attribute="price") %}
+          {{ var.prices|to_json }}
     - name: los_cost
       unit_of_measurement: "NOK"
       state: >
