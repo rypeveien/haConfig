@@ -183,7 +183,159 @@ template:
         {%   set v.sum = v.sum + max3[i] %}
         {% endfor %}
         {{ (v.sum / max3|length)|round(3) }}
+
     - name: power_usage_by_subsides_and_maxpower
+      state: >
+        {# variables that needs to be declared #}
+        {% set var = namespace (available = [], price = [], main = [], aux = [], ev = [] ) %}
+        {# pv/solar production forecast, monthly grid usage limit, prices to/from grid, 
+          uncontrolled usage and calculated subsides #}
+        {% set forecast = states('sensor.forecast_solar_48h')|from_json %}
+        {% set month_limit = states('sensor.rest_of_month_energy_limit')|int %}
+        {% set energy_price = state_attr('sensor.energy_all_nok_kwh', 'prices') %}
+        {% set grid_price = states('sensor.to_grid_today_nok_kwh')|from_json + states('sensor.to_grid_tomorrow_nok_kwh')|from_json %}
+        {% set uctrld = states('input_text.uncontrolled_estimate')|from_json|average|int %}
+        {% set subsides = states('sensor.energy_subsides')|float %}
+        {# calculates how much is avalible from solar to be used #}
+        {% for i in range(forecast|length) %}
+        {% set solar = 0 if forecast[i] <= uctrld else forecast[i] - uctrld %}
+        {% set grid = month_limit if forecast[i] > uctrld else
+                      month_limit + forecast[i] - uctrld %}
+        {% set var.available = var.available + [ { "s": solar, "g": grid }] %}
+        {% endfor %}
+        {# Fetch main water heater variables #}
+        {% set main_power = states('sensor.vvtank_power_when_on')|int(default=3000) %}
+        {% set main_time = as_local(as_datetime(state_attr('sensor.vvtank_cycle_1', 'last_reset'))) %}
+        {% set main_usage = (states('counter.vvtank_usage')|int * 200 - states('sensor.vvtank_cycle_1')|float(default=0) * 1000)|int %}
+        {# limit tells when water heater should be done, and turned of by built in thermostat #}
+        {% set limit = main_time.hour + 24 if main_time.day == now().day else
+                       main_time.hour if main_time.hour > now().hour else
+                            now().hour %}
+        {% set limit = 7 if (limit <= 7 and now().weekday() > 4) else
+                      6 if limit <= 6 else
+                      15 if limit <= 15 else
+                      limit if limit <= 23 else
+                      31 if (limit <= 31 and now().weekday()  in [ 4, 5]) else
+                      30 if limit <= 30 else
+                      39 if limit <= 39 else
+                      limit %}
+        {% set limit = energy_price|length -1 if limit >= energy_price|length else
+                            limit %}
+        {# calculate cost for using main water heater based on availible solar or grid price #}
+        {% for i in range(energy_price|length) %}
+          {%- set price = grid_price[i] if var.available[i].s > main_power else 
+                         (grid_price[i] * var.available[i].s + (energy_price[i] - subsides) * (main_power - var.available[i].s))/main_power %}
+          {% set var.price = var.price + [ { "hour" : i, "price" : price|round(3) }] %}
+        {%- endfor %}
+        {% set pricemain = var.price %}
+        {% set var.price = var.price|sort(attribute="price") %}
+        {% set var.used = 0 %}
+        {% set var.done = 0 %}
+        {%- for i in range(var.price|length) %}
+          {%- if var.price[i].hour >= now().hour and
+                var.price[i].hour <= limit  and var.done == 0 -%}
+            {%- set uses = main_power %}
+            {%- set needs = (var.price[i].hour - main_time.hour) * 140 + main_usage - var.used %}
+            {%- set needs = needs if main_time.day == now().day else needs + 140 * 24 %}
+            {%- set var.done = 1 if uses > needs else var.done %}
+            {%- set uses = uses if uses < needs else  needs %}
+            {%- set var.used = var.used + uses %}
+            {%- set var.main = var.main + [ var.price[i].hour ] %}
+            {%- set solar = 0 if var.available[i].s < uses else
+                                var.available[i].s - uses %}
+            {%- set grid = var.available[i].g if var.available[i].s >= uses else
+                                var.available[i].g + var.available[i].s - uses %}
+            {%- set var.available = var.available[:var.price[i].hour] + 
+                                   [{ "s": solar, "g": grid }] +
+                                   var.available[var.price[i].hour+1:] %}
+          {%- endif %}
+        {%- endfor %}
+        {% set var.price = [] %}
+        {% set aux_power = states('sensor.vvkjeller_power_when_on')|int(default=2000) %}
+        {% set aux_time = as_local(as_datetime(state_attr('sensor.vvkjeller_cycle_1', 'last_reset'))) %}
+        {% set aux_usage = (states('counter.vvkjeller_usage')|int * 200 - states('sensor.vvkjeller_cycle_1')|float(default=0) * 1000)|int %}
+        {% set limit = aux_time.hour + 24 if aux_time.day == now().day else
+                       aux_time.hour if aux_time.hour > now().hour else
+                            now().hour %}
+        {% set limit = 7 if (limit <= 7 and now().weekday() > 4) else
+                      6 if limit <= 6 else
+                      15 if limit <= 15 else
+                      limit if limit <= 23 else
+                      31 if (limit <= 31 and now().weekday()  in [ 4, 5]) else
+                      30 if limit <= 30 else
+                      39 if limit <= 39 else
+                      limit %}
+        {% set limit = energy_price|length -1 if limit >= energy_price|length else
+                            limit %}
+        {% for i in range(energy_price|length) %}
+          {% set power = aux_power if (var.available[i].s + var.available[i].g > aux_power) else
+                          var.available[i].s + var.available[i].g %}
+          {%- set price = grid_price[i] if var.available[i].s > power else 
+                         (grid_price[i] * var.available[i].s + (energy_price[i] - subsides) * (power - var.available[i].s))/power %}
+          {% set var.price = var.price + [ { "hour" : i, "price" : price|round(3) }] %}
+        {%- endfor %}
+        {% set priceaux = var.price %}
+        {% set var.price = var.price|sort(attribute="price") %}
+        {% set var.used = 0 %}
+        {% set var.done = 0 %}
+        {%- for i in range(var.price|length) %}
+          {%- if var.price[i].hour >= now().hour and
+                var.price[i].hour <= limit  and var.done == 0 -%}
+            {%- set uses = aux_power %}
+            {%- set needs = (var.price[i].hour - aux_time.hour) * 140 + aux_usage - var.used %}
+            {%- set needs = needs if aux_time.day == now().day else needs + 140 * 24 %}
+            {%- set var.done = 1 if uses > needs else var.done %}
+            {%- set uses = uses if uses < needs else  needs %}
+            {%- set var.used = var.used + uses %}
+            {%- set var.aux = var.aux + [ var.price[i].hour ] %}
+            {%- set solar = 0 if var.available[i].s < uses else
+                                var.available[i].s - uses %}
+            {%- set grid = var.available[i].g if var.available[i].s >= uses else
+                                var.available[i].g + var.available[i].s - uses %}
+            {%- set var.available = var.available[:var.price[i].hour] + 
+                                   [{ "s": solar, "g": grid }] +
+                                   var.available[var.price[i].hour+1:] %}
+          {%- endif %}
+        {%- endfor %}
+        {% set var.price = [] %}
+        {% set ev_power = 3500 %}
+        {% set limit = state_attr('input_datetime.car_ready_charged','hour') %}
+        {% set limit = limit if limit > now().hour else limit + 24 %}
+        {% set limit = energy_price|length -1 if limit >= energy_price|length else
+                            limit %}
+        {% for i in range(energy_price|length) %}
+          {% set power = ev_power if (var.available[i].s + var.available[i].g > ev_power) else
+                          var.available[i].s + var.available[i].g %}
+          {%- set price = grid_price[i] if var.available[i].s > power else 
+                         (grid_price[i] * var.available[i].s + (energy_price[i] - subsides) * (power - var.available[i].s))/power %}
+          {% set var.price = var.price + [ { "hour" : i, "price" : price|round(3) }] %}
+        {%- endfor %}
+        {% set var.price = var.price|sort(attribute="price") %}
+        {% set ev_full = states('input_number.ev_battery_pack')|int %}
+        {% set var.ev_soc = states('sensor.soc_estimate')|float * ev_full / 100 %}
+        {% set ev_efficient = states('input_number.ev_charge_efficiency')|float / 100 %}
+        {% set ev_target = states('input_number.ev_charge_target')|int(default=90) * ev_full / 100 %}
+        {% for i in range(var.price|length) %}
+          {% if var.price[i].hour >= now().hour and
+                var.price[i].hour <= limit  and var.ev_soc < ev_target %}
+            {% set needs = (ev_target - var.ev_soc) / ev_efficient  %}
+            {% set uses = ev_power %}
+            {% set uses = uses if uses < needs else needs %}
+            {% set var.ev = var.ev + [ var.price[i].hour ] %}
+            {% set var.ev_soc = var.ev_soc + uses * ev_efficient %}
+            {% set solar = 0 if var.available[i].s < uses else
+                                var.available[i].s - uses %}
+            {% set grid = var.available[i].g if var.available[i].s >= uses else
+                                var.available[i].g + var.available[i].s - uses %}
+            {% set var.available = var.available[:var.price[i].hour] + 
+                                   [{ "s": solar, "g": grid }] +
+                                   var.available[var.price[i].hour+1:] %}
+          {% endif %}
+        {% endfor %}
+        {{ { "vvtank" : var.main|sort, 
+             "vvkjeller" : var.aux|sort, 
+             "easee" : var.ev|sort }|to_json }}
+    - name: power_usage_by_subsides_and_maxpower_temp
       state: >
         {% set var = namespace ( prices = [], uncontrolled = [], loop_done=0, used=0, main=[], aux=[], car=[] ) %}
         {% set car_ready = state_attr('input_datetime.car_ready_charged','hour') %}
