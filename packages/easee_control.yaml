@@ -74,80 +74,80 @@ utility_meter:
     cycle: monthly
 
 template:
-  sensor:
-  - name: easee_current_limit
-    unit_of_measurement: A
-    state: >
-      {% set status_ts = states.sensor.easee_home_63089_status.last_updated.timestamp() %}
-      {% if states('sensor.easee_current_limit') in ['unavailable'] %}
-        {% if states('sensor.easee_home_63089_dynamic_charger_limit') in ['unavailable'] %}
-          {{ 0 }}
+  - sensor:
+    - name: easee_current_limit
+      unit_of_measurement: A
+      state: >
+        {% set status_ts = states.sensor.easee_home_63089_status.last_updated.timestamp() %}
+        {% if states('sensor.easee_current_limit') in ['unavailable'] %}
+          {% if states('sensor.easee_home_63089_dynamic_charger_limit') in ['unavailable'] %}
+            {{ 0 }}
+          {% else %}
+            {{ states('sensor.easee_home_63089_dynamic_charger_limit') }}
+          {% endif %}
+        {% elif now().timestamp() - states.sensor.easee_current_limit.last_updated.timestamp() < 300 or now().minute == 0 
+                or (states('sensor.easee_home_63089_status') == 'charging' and now().timestamp() < status_ts + 300) %}
+          {{ states('sensor.easee_current_limit')|int(default=16) }}
         {% else %}
-          {{ states('sensor.easee_home_63089_dynamic_charger_limit') }}
+          {% set so_far = states.sensor.energiforbruk_time.state|float * 1000 %}
+          {% set power = states.sensor.amshan_power_import.state|float  %}
+          {% set seconds_left = 3600 - now().minute * 60 - now().second %}
+          {% set easee_power = states('sensor.easee_home_63089_power') | float * 1000 %}
+          {% set no_easee_power = 0 if power < easee_power else power - easee_power %}
+          {% set restofhour_energy = no_easee_power * seconds_left / 3600 %}
+          {% set limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
+          {% set availible = (limit - (so_far  + restofhour_energy)) * 3600 / seconds_left %}
+          {% set ev_max = states('input_number.ev_max_charge')|int %}
+          {% set ev_min = states('input_number.ev_min_charge')|int %}
+          {% set ev_steps = states('input_number.ev_charge_steps')|int %}
+          {{ ev_max/ ev_steps if availible > ev_max else 0 if availible < ev_min else (availible / ev_steps)|int + 1  }}
         {% endif %}
-      {% elif now().timestamp() - states.sensor.easee_current_limit.last_updated.timestamp() < 300 or now().minute == 0 
-              or (states('sensor.easee_home_63089_status') == 'charging' and now().timestamp() < status_ts + 300) %}
-        {{ states('sensor.easee_current_limit')|int(default=16) }}
-      {% else %}
-        {% set so_far = states.sensor.energiforbruk_time.state|float * 1000 %}
-        {% set power = states.sensor.amshan_power_import.state|float  %}
-        {% set seconds_left = 3600 - now().minute * 60 - now().second %}
-        {% set easee_power = states('sensor.easee_home_63089_power') | float * 1000 %}
-        {% set no_easee_power = 0 if power < easee_power else power - easee_power %}
-        {% set restofhour_energy = no_easee_power * seconds_left / 3600 %}
-        {% set limit = states('sensor.rest_of_month_energy_limit')|int - 100 %}
-        {% set availible = (limit - (so_far  + restofhour_energy)) * 3600 / seconds_left %}
-        {% set ev_max = states('input_number.ev_max_charge')|int %}
-        {% set ev_min = states('input_number.ev_min_charge')|int %}
-        {% set ev_steps = states('input_number.ev_charge_steps')|int %}
-        {{ ev_max/ ev_steps if availible > ev_max else 0 if availible < ev_min else (availible / ev_steps)|int + 1  }}
-      {% endif %}
-  - name: easee_power
-    unit_of_measurement: W
-    device_class: power
-    state: '{{ states(''sensor.easee_home_63089_power'')|float(default=0)*1000 }}'
-  - name: charge_hours
-    state: >
-      {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
-      {{ by_subsides.easee|sort }}
-  - name: soc_estimate
-    unit_of_measurement: "%"
-    state: >
-      {% set last = states('sensor.soc_estimate') %}
-      {% set known = states('input_text.known_soc')|from_json %}
-      {% set last = known.soc|float if last in ['unknown', 'unavailable'] else 
-                    last | float %}
-      {% if is_state('input_select.why_charge', 'Completed') %}
-        {{ 100 }}
-      {% elif is_state('sensor.easee_home_63089_status',  'disconnected') %}
-        {{ last if states.sensor.soc_estimate.last_updated.timestamp()|int > known.ts else known.soc }}
-      {% else %}
-        {% set soc = known.soc|float %}
-        {% set energy = states('sensor.easee_home_63089_session_energy') %}
-        {% set energy = known.energy|float if energy in ['unknown', 'unavailable'] else 
-                        energy|float - known.energy|float %}
-        {% set soc = soc + energy * states('input_number.ev_charge_efficiency')|float * 1000  / states('input_number.ev_battery_pack')|int %}
-        {{ 95 if soc > 95 else soc|round(1) }}
-      {% endif %}
-  - name: easee_basic_schedule_start
-    state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStartTime') }}"
-  - name: easee_basic_schedule_stop
-    state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStopTime') }}"
-
-  binary_sensor:
-  - name: wants_to_charge
-    state: >
-      {% set charge_hours = states('sensor.charge_hours')|from_json %}
-      {{ (charge_hours|length > 0 and charge_hours[0]|int(default=24) == now().hour) or 
-         (charge_hours|length > 1 and charge_hours[1]|int(default=24) == now().hour) or 
-         states('sensor.estimate_soc')|float < 20.0 }}
-  - name: easee_on
-    state: '{{ states(''sensor.easee_home_63089_status'') == ''charging'' }}'
-    delay_off: 
-      minutes: 2
+    - name: easee_power
+      unit_of_measurement: W
+      device_class: power
+      state: '{{ states(''sensor.easee_home_63089_power'')|float(default=0)*1000 }}'
+    - name: charge_hours
+      state: >
+        {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
+        {{ by_subsides.easee|sort }}
+    - name: easee_basic_schedule_start
+      state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStartTime') }}"
+    - name: easee_basic_schedule_stop
+      state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStopTime') }}"
+  - binary_sensor:
+    - name: wants_to_charge
+      state: >
+        {% set charge_hours = states('sensor.charge_hours')|from_json %}
+        {{ (charge_hours|length > 0 and charge_hours[0]|int(default=24) == now().hour) or 
+           (charge_hours|length > 1 and charge_hours[1]|int(default=24) == now().hour) or 
+           states('sensor.estimate_soc')|float < 20.0 }}
+    - name: easee_on
+      state: "{{ states('sensor.easee_home_63089_status') == 'charging' }}"
+      delay_off: 
+        minutes: 2
+  - trigger:
+      - platform: state
+        entity_id: 
+          - sensor.rypse2_soc
+          - sensor.easee_home_63089_session_energy
+    sensor:
+    - name: soc_estimate
+      unit_of_measurement: "%"
+      state: >
+        {% set soc = states('sensor.rypse2_soc')|float %}
+        {% set soc = (soc if soc > 1 else soc * 100)|int %}
+        {% if trigger.entity_id == 'sensor.rypse2_soc' %}
+          {{ soc }}
+        {% else %}
+          {% set session = states('sensor.easee_home_63089_session_energy') | float %}
+          {% set efficiency = states('input_number.ev_charge_efficiency') | float %}
+          {% set battery = states('input_number.ev_battery_pack') | int %}
+          {% set charged = session * 1000 * efficiency / 100 %}
+          {% set energy = soc * battery / 100 %}
+          {{ ((energy + charged) / battery  * 100) | round(1) }}
+        {% endif %}
 
 automation:
-
   - id: '1657578526896'
     alias: Easee daily commute schedule
     trigger:
