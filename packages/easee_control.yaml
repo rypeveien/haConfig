@@ -43,6 +43,12 @@ input_select:
       - Completed
       - Disconnected
       - Charging scheduled
+  which_car:
+    options:
+      - Polestar
+      - Ioniq
+      - Gjestelading
+      - Ukjent
 input_boolean: 
   charge_now:
     name: Override schedule and charge now
@@ -136,18 +142,140 @@ template:
       state: >
         {% set soc = states('sensor.rypse2_soc')|float %}
         {% set soc = (soc if soc > 1 else soc * 100)|int %}
-        {% if trigger.entity_id == 'sensor.rypse2_soc' %}
-          {{ soc }}
-        {% else %}
+        {% if (trigger.entity_id != 'sensor.rypse2_soc') and 
+              (states('sensor.easee_home_63089_status') == 'charging' ) %}
           {% set session = states('sensor.easee_home_63089_session_energy') | float %}
           {% set efficiency = states('input_number.ev_charge_efficiency') | float %}
           {% set battery = states('input_number.ev_battery_pack') | int %}
           {% set charged = session * 1000 * efficiency / 100 %}
           {% set energy = soc * battery / 100 %}
           {{ ((energy + charged) / battery  * 100) | round(1) }}
+        {% else %}
+          {{ soc }}
         {% endif %}
 
 automation:
+  - id: '1691265354404'
+    alias: Select car to charge or not
+    trigger:
+    - platform: state
+      entity_id: sensor.easee_home_63089_status
+      from: 'disconnected'
+    - platform: state
+      entity_id: person.amalie_johansen
+      to: 'home'
+    - platform: state
+      entity_id: binary_sensor.rypse2_chargeportconnected
+      to: 'on'
+    - platform: numeric_state
+      entity_id: sensor.template_rypse2_loc
+      below: 0.01
+    action:
+    - service: input_select.select_option
+      data:
+        option: >
+          {% set last = states('input_select.which_car') %}
+          {% set unconnected = is_state ('sensor.easee_home_63089_status', 'disconnected') %}
+          {% set ah_home = is_state('person.amalie_johansen', 'home') %}
+          {% set rp2_connected = is_state('binary_sensor.rypse2_chargeportconnected', 'on') %}
+          {% set rp2_home = states('sensor.template_rypse2_loc') |float(default=10) < 0.01 %}
+          {{ 'Polestar' if rp2_home and rp2_connected else
+              last if unconnected else 
+             'Ioniq' if ah_home else
+             'Ukjent'  }}
+      target:
+        entity_id: input_select.which_car
+    - if:
+      - condition: state
+        entity_id: input_select.which_car
+        state: "Ukjent"
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: sensor.easee_home_63089_status
+            state: disconnected
+      then: 
+        - service: notify.mobile_app_xq_au52
+          data:
+            message: Ser ut som ukjent bil har koblet seg til laderen.
+            title: Easeelader @ rypeveien
+
+  - id: '1691611803561'
+    alias: resume Easee charger if set to charge
+    trigger: 
+      - platform: state
+        entity_id: input_select.which_car
+      - platform: template
+        value_template: >
+          {% set hours = states('sensor.charge_hours')|from_json %}
+          {{ hours|length > 0 and hours[0] <= now().hour }}
+    condition:
+      - condition: or
+        conditions:
+          - condition: and
+            conditions:
+              - condition: state
+                entity_id: input_select.which_car
+                state: Polestar
+              - condition: or
+                conditions:
+                - condition: numeric_state
+                  entity_id: sensor.soc_estimate
+                  below: 20
+                - condition: template
+                  value_template: >
+                    {% set hours = states('sensor.charge_hours')|from_json %}
+                    {{ hours|length > 0 and hours[0] <= now().hour }}
+          - condition: state
+            entity_id: input_select.which_car
+            state: Ioniq
+          - condition: state
+            entity_id: input_select.which_car
+            state: Gjest
+    action:
+      - service: easee.resume
+        data:
+          charger_id: EH630897
+
+  - id: '1691611803661'
+    alias: Pause Easee charger if not set to charge
+    trigger: 
+      - platform: state
+        entity_id: sensor.easee_home_63089_status
+        to: charging
+      - platform: numeric_state
+        entity_id: sensor.soc_estimate
+        above: 20
+      - platform: template
+        value_template: >
+          {% set hours = states('sensor.charge_hours')|from_json %}
+          {{ hours|length == 0 or hours[0] > now().hour }}
+    condition:
+      - condition: state
+        entity_id: sensor.easee_home_63089_status
+        state: charging
+      - condition: or
+        conditions:
+          - condition: and
+            conditions:
+              - condition: state
+                entity_id: input_select.which_car
+                state: Polestar
+              - condition: numeric_state
+                entity_id: sensor.soc_estimate
+                above: 20
+              - condition: template
+                value_template: >
+                  {% set hours = states('sensor.charge_hours')|from_json %}
+                  {{ hours|length == 0 or hours[0] > now().hour }}
+          - condition: state
+            entity_id: input_select.which_car
+            state: Ukjent
+    action:
+      - service: easee.pause
+        data:
+          charger_id: EH630897
+
   - id: '1657578526896'
     alias: Easee daily commute schedule
     trigger:
