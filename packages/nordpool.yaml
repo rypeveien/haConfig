@@ -52,8 +52,9 @@ automation:
     - platform: template
       value_template: >
         {% set last = states('sensor.nordpool_api') %}
+        {% set updated = states.sensor.nordpool_api.last_updated if last not in ['unknown', 'unavailable'] else (now() - timedelta(days=1)) %}
         {% set last = as_datetime(last) if last not in ['unknown', 'unavailable'] else (now() - timedelta(days=1)) %}
-        {{ (last.day != now().day or last.hour < 13
+        {{ (last.day != now().day or (last.hour < 13 and updated.hour < 14)
             or states('input_text.nordpool_tomorrow') in  ['', 'unknown', '[]']) 
             and (now().minute % 15) == 8 and now().hour >= 13 
             and state_attr('automation.nordpool_price_update', 'current') == 0 }}
