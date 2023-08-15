@@ -45,6 +45,9 @@ input_datetime:
   holiday_until:
     has_date: true
     has_time: false
+input_boolean:
+  charge_by_clock:
+    name: Set charge target by a specific time
 
 input_text: 
   known_soc: 
