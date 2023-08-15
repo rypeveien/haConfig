@@ -40,9 +40,6 @@ input_select:
       - Ioniq
       - Gjestelading
       - Ukjent
-input_boolean: 
-  charge_now:
-    name: Override schedule and charge now
 
 input_datetime:
   holiday_until:
