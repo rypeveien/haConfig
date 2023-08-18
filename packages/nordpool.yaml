@@ -18,32 +18,82 @@ rest:
 
 
 template:
-  sensor:
-  - name: nordpool_subsides
-    unit_of_measurement: "NOK/kWh"
-    state: >
-      {% set avg = states('sensor.nordpool_month_average') %}
-      {{ 'unknown' if avg in ['unknown', 'unavailable'] else 
-          0 if  avg|float <= 0.7 else 
-          ((avg|float - 0.7) * 0.9 * 1.25)|round(4) }}
-  - name: nordpool_month_average
-    unit_of_measurement: "NOK/kWh"
-    state: >
-      {% set month = states('input_text.nordpool_month') %}
-      {% set month = [] if month in ['unknown', 'unavailable'] else month|from_json %}
-      {% set tomorrow = states('input_text.nordpool_tomorrow') %}
-      {% set daymon = now().day if now().month != (now() + timedelta(days=1)).month else now().day + 1 %}
-      {% set month = month if tomorrow in ['unknown', 'unavailable', '[]'] or daymon > now().day 
-                     else [ tomorrow|from_json|average] + month  %}
-      {% set mlength = 31 if now().month in [1, 3, 5, 7, 8, 10, 12] else
-                       30 if now().month in [4, 6, 9, 11] else
-                       29 if now().year % 4 == 0 else 28 %}
-      {{ 'unknown' if month|length == 0 else
-         ((month[:mlength]|average + month[:daymon]|average)/2)|round(4) }}
-  binary_sensor:
-  - name: nordpool_official
-    state: "{{ states.sensor.nordpool_api.attributes.Rows[0].Columns[0].IsOfficial }}"
+  - sensor:
+    - name: nordpool_subsides
+      unit_of_measurement: "NOK/kWh"
+      state: >
+        {% set avg = states('sensor.nordpool_month_average') %}
+        {{ 'unknown' if avg in ['unknown', 'unavailable'] else 
+            0 if  avg|float <= 0.7 else 
+            ((avg|float - 0.7) * 0.9 * 1.25)|round(4) }}
+    - name: nordpool_month_average
+      unit_of_measurement: "NOK/kWh"
+      state: >
+        {% set month = states('input_text.nordpool_month') %}
+        {% set month = [] if month in ['unknown', 'unavailable'] else month|from_json %}
+        {% set tomorrow = states('input_text.nordpool_tomorrow') %}
+        {% set daymon = now().day if now().month != (now() + timedelta(days=1)).month else now().day + 1 %}
+        {% set month = month if tomorrow in ['unknown', 'unavailable', '[]'] or daymon > now().day 
+                       else [ tomorrow|from_json|average] + month  %}
+        {% set mlength = 31 if now().month in [1, 3, 5, 7, 8, 10, 12] else
+                         30 if now().month in [4, 6, 9, 11] else
+                         29 if now().year % 4 == 0 else 28 %}
+        {{ 'unknown' if month|length == 0 else
+           ((month[:mlength]|average + month[:daymon]|average)/2)|round(4) }}
+  - binary_sensor:
+    - name: nordpool_official
+      state: "{{ states.sensor.nordpool_api.attributes.Rows[0].Columns[0].IsOfficial }}"
 
+  - trigger: 
+    - platform: template
+      value_template: >
+        {% set rows =  state_attr('sensor.nordpool_api', 'Rows') %}
+        {{ false if rows == None else as_datetime(rows[0].StartTime).day == now().day}}
+    sensor:
+    - name: nordpool_today
+      state: >
+        {% set var = namespace (price=[]) %}
+        {% set rows = state_attr('sensor.nordpool_api', 'Rows') %}
+        {% for row in rows -%}
+          {% set end = as_datetime(row.EndTime) %}
+          {% set start = as_datetime(row.StartTime) %}
+          {% if (end.timestamp() - start.timestamp() == 3600) %}
+            {%- for column in row.Columns -%}
+              {% if column.Name == 'Kr.sand' -%}
+                {% set price = (column.Value|replace(',', '.')|float/1000)|round(4) %}
+                {% set var.price = var.price + [ price ] %}
+              {% endif %}
+            {%- endfor %}
+          {% endif %}
+        {%- endfor %}
+        {{ var.price|to_json }}
+  - trigger: 
+    - platform: template
+      value_template: >
+        {% set rows =  state_attr('sensor.nordpool_api', 'Rows') %}
+        {{ false if rows == None else 
+           as_datetime(rows[0].StartTime).day == (now() + timedelta(days=1)).day }}
+    - platform: time
+      at: 00:00
+    sensor:
+    - name: nordpool_tomorrow
+      state: >
+        {% set var = namespace (price=[]) %}
+        {% set rows = state_attr('sensor.nordpool_api', 'Rows') %}
+        {% for row in rows %}
+          {% set end = as_datetime(row.EndTime) %}
+          {% set start = as_datetime(row.StartTime) %}
+          {% if (end.timestamp() - start.timestamp() == 3600) and 
+              (start.day != now().day) %}
+            {% for column in row.Columns %}
+              {% if column.Name == 'Kr.sand' %}
+                {% set price = (column.Value|replace(',', '.')|float/1000)|round(4) %}
+                {% set var.price = var.price + [ price ] %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+        {{ var.price|to_json }}
 
 automation:  
   - id: '1654892652238'
