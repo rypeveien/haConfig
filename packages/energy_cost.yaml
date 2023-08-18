@@ -83,11 +83,11 @@ template:
       unit_of_measurement: "NOK"
       state: >
         {% set limit = states('input_select.energy_month_limit')|int %}
-        {{ 245 if limit <= 2000 else
-           315 if limit <= 5000 else
-           440 if limit <= 10000 else
-           815 if limit <= 15000 else
-           1500 }}
+        {{ 135 if limit <= 2000 else
+           170 if limit <= 5000 else
+           290 if limit <= 10000 else
+           600 if limit <= 15000 else
+           780 }}
     - name: easee_cost_hourly
       unit_of_measurement: "NOK"
       state: >
@@ -207,7 +207,8 @@ template:
     - unique_id: grid_charge_rates
       state: >
         {{ { "night": 0.35,
-             "day": 0.47 }|to_json }}
+             "day": 0.47,
+             "delivery": -0.04}|to_json }}
       attributes:
         friendly_name: "Grid charge rates"
     - unique_id: grid_charge
