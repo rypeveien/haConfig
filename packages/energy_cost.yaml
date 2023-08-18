@@ -233,7 +233,7 @@ template:
       unit_of_measurement: 'NOK/kWh'
       state: >
         {% set tibber = states('input_text.tibber_today') %}
-        {% set nordpool = states('input_text.nordpool_today') %}
+        {% set nordpool = states('sensor.nordpool_today') %}
         {% set prices = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else 'unknown' %}  
         {{ prices[now().hour] if prices != 'unknown' else 'unknown' }}
@@ -241,7 +241,7 @@ template:
       state: >
         {% set prices = namespace(list=[]) %}
         {% set tibber = states('input_text.tibber_today') %}
-        {% set nordpool = states('input_text.nordpool_today') %}
+        {% set nordpool = states('sensor.nordpool_today') %}
         {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
@@ -252,7 +252,7 @@ template:
       state: >
         {% set prices = namespace(list=[]) %}
         {% set tibber = states('input_text.tibber_today') %}
-        {% set nordpool = states('input_text.nordpool_today') %}
+        {% set nordpool = states('sensor.nordpool_today') %}
         {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
@@ -264,7 +264,7 @@ template:
       state: >
         {% set prices = namespace(sum=0) %}
         {% set tibber = states('input_text.tibber_today') %}
-        {% set nordpool = states('input_text.nordpool_today') %}
+        {% set nordpool = states('sensor.nordpool_today') %}
         {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
@@ -278,7 +278,7 @@ template:
       state: >
         {% set prices = namespace(sum=0) %}
         {% set tibber = states('input_text.tibber_today') %}
-        {% set nordpool = states('input_text.nordpool_today') %}
+        {% set nordpool = states('sensor.nordpool_today') %}
         {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
@@ -289,7 +289,7 @@ template:
       state: >
         {% set prices = namespace(list=[]) %}
         {% set tibber = states('input_text.tibber_tomorrow') %}
-        {% set nordpool = states('input_text.nordpool_tomorrow') %}
+        {% set nordpool = states('sensor.nordpool_tomorrow') %}
         {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
@@ -300,7 +300,7 @@ template:
       state: >
         {% set prices = namespace(list=[]) %}
         {% set tibber = states('input_text.tibber_tomorrow') %}
-        {% set nordpool = states('input_text.nordpool_tomorrow') %}
+        {% set nordpool = states('sensor.nordpool_tomorrow') %}
         {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
@@ -312,7 +312,7 @@ template:
       state: >
         {% set prices = namespace(sum=0) %}
         {% set tibber = states('input_text.tibber_tomorrow') %}
-        {% set nordpool = states('input_text.nordpool_tomorrow') %}
+        {% set nordpool = states('sensor.nordpool_tomorrow') %}
         {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
