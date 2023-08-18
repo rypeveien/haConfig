@@ -299,8 +299,21 @@ template:
         {%- endfor %}
         {% set var.price = [] %}
         {% set ev_power = 3500 %}
-        {% set limit = state_attr('input_datetime.car_ready_charged','hour') %}
-        {% set limit = limit if limit > now().hour else limit + 24 %}
+        {% set ev_soc = states('sensor.soc_estimate')|float %}
+        {% if states('input_boolean.charge_by_clock') == 'on' %}
+          {% set ev_target = states('input_number.ev_charge_target')|int(default=90) %}
+          {% set limit = state_attr('input_datetime.car_ready_charged','hour') %}
+          {% set limit = limit if limit > now().hour else limit + 24 %}
+        {% elif ev_soc <= 50 %}
+          {% set ev_target = 50 %}
+          {% set limit = now().hour + 12 %}
+        {% else %}
+          {% set ev_target = states('input_number.ev_charge_target')|int(default=90) %}
+          {% set limit = 48 %}
+        {% endif %}
+        {% set ev_full = states('input_number.ev_battery_pack')|int %}
+        {% set ev_target = ev_target * ev_full / 100 %}
+        {% set var.ev_soc = ev_soc * ev_full / 100 %}
         {% set limit = energy_price|length -1 if limit >= energy_price|length else
                             limit %}
         {% for i in range(energy_price|length) %}
@@ -311,10 +324,7 @@ template:
           {% set var.price = var.price + [ { "hour" : i, "price" : price|round(3) }] %}
         {%- endfor %}
         {% set var.price = var.price|sort(attribute="price") %}
-        {% set ev_full = states('input_number.ev_battery_pack')|int %}
-        {% set var.ev_soc = states('sensor.soc_estimate')|float * ev_full / 100 %}
         {% set ev_efficient = states('input_number.ev_charge_efficiency')|float / 100 %}
-        {% set ev_target = states('input_number.ev_charge_target')|int(default=90) * ev_full / 100 %}
         {% for i in range(var.price|length) %}
           {% if var.price[i].hour >= now().hour and
                 var.price[i].hour <= limit  and var.ev_soc < ev_target %}
