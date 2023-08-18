@@ -179,7 +179,8 @@ automation:
           {% set ah_home = is_state('person.amalie_johansen', 'home') %}
           {% set rp2_connected = is_state('binary_sensor.rypse2_chargeportconnected', 'on') %}
           {% set rp2_home = states('sensor.template_rypse2_loc') |float(default=10) < 0.01 %}
-          {{ 'Polestar' if rp2_home and rp2_connected else
+          {{ last if not unconnected and last in ['Ioniq', 'Gjest'] else
+              'Polestar' if rp2_home and rp2_connected else
               last if unconnected else 
              'Ioniq' if ah_home else
              'Ukjent'  }}
