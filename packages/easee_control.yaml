@@ -131,27 +131,24 @@ template:
     - name: soc_estimate
       unit_of_measurement: "%"
       state: >
+        {% set last = states('sensor.soc_estimate') %}
         {% set soc = states('sensor.rypse2_soc')|float %}
         {% set soc = (soc if soc > 1 else soc * 100)|int %}
-        {% if (trigger.entity_id != 'sensor.rypse2_soc') and 
-              (states('sensor.easee_home_63089_status') == 'charging') and
-              (states('input_select.which_car') == 'Polestar') %}
+        {% if (trigger.entity_id == 'sensor.rypse2_soc') %}
+          {{ soc }}
+        {% elif states('input_select.which_car') == 'Polestar' %}
           {% set session = states('sensor.easee_home_63089_session_energy') | float %}
           {% set efficiency = states('input_number.ev_charge_efficiency') | float %}
           {% set battery = states('input_number.ev_battery_pack') | int %}
           {% set charged = session * 1000 * efficiency / 100 %}
           {% set energy = soc * battery / 100 %}
-          {% if soc > 95 %}
-            {{ '95' }}
-          {% else %}
-            {{ ((energy + charged) / battery  * 100) | round(1) }}
-          {% endif %}
-        {% elif (states('input_number.ev_charge_target') == '100') and 
-              (states('sensor.easee_home_63089_status') == 'completed') and
-              (states('input_select.which_car') == 'Polestar') %}
-          {{ '100' }}
-        {% else %}
+          {% set soc =  ((energy + charged) / battery  * 100) | round(0) %}
+          {% set soc = 95 if soc > 95 else soc  %}
+          {% set soc = 100 if (states('input_number.ev_charge_target') == '100') and 
+              (states('sensor.easee_home_63089_status') == 'completed') else soc %}
           {{ soc }}
+        {% else %}
+          {{ last }}
         {% endif %}
 
 automation:
