@@ -94,6 +94,21 @@ template:
           {% endif %}
         {% endfor %}
         {{ var.price|to_json }}
+  - trigger:
+    - platform: time
+      at: 00:00
+    sensor:
+    - name: nordpool_month
+      state: >
+        {% set last = states('sensor.nordpool_month') %}
+        {% set last = states('input_text.nordpool_month') if last == 'unknown' else last %}
+        {% set nextmonth = (now() + timedelta(days=20 if now().day > 20 else 31)) %}
+        {% set length = (nextmonth - timedelta(days=nextmonth.day)).day %}
+        {% set last = [] if last in ['unknown', 'unavailable'] else last|from_json %}
+        {% set today = states('input_text.nordpool_today') %}
+        {% set today = [] if today in ['unknown', 'unavailable'] else [ today|from_json|average|round(4) ] %}
+        {{ ((today + last)[:length])|to_json }}
+
 
 automation:  
   - id: '1654892652238'
@@ -105,7 +120,7 @@ automation:
         {% set updated = states.sensor.nordpool_api.last_updated if last not in ['unknown', 'unavailable'] else (now() - timedelta(days=1)) %}
         {% set last = as_datetime(last) if last not in ['unknown', 'unavailable'] else (now() - timedelta(days=1)) %}
         {{ (last.day != now().day or (last.hour < 13 and updated.hour < 14)
-            or states('input_text.nordpool_tomorrow') in  ['', 'unknown', '[]']) 
+            or states('sensor.nordpool_tomorrow') in  ['', 'unknown', '[]']) 
             and (now().minute % 15) == 8 and now().hour >= 13 
             and state_attr('automation.nordpool_price_update', 'current') == 0 }}
     condition: []
