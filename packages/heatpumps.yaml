@@ -42,9 +42,9 @@ template:
     delay_on:
       minutes: 30
   - name: vpnede_onoff
-    state: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 1 }}"
+    state: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 20 }}"
   - name: vpoppe_onoff
-    state: "{{ states('sensor.stikk_vp_oppe_power')|int(default=0) > 1 }}"
+    state: "{{ states('sensor.stikk_vp_oppe_power')|int(default=0) > 20 }}"
   - name: schedule_adjust
     state: >
       {% set holiday_until = as_datetime(states('input_datetime.holiday_until')).timestamp() %}
