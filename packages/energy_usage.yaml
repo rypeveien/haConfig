@@ -184,6 +184,21 @@ template:
         {% endfor %}
         {{ (v.sum / max3|length)|round(3) }}
 
+    - name: power_available
+      state: 'See attribute hours'
+      attributes:
+        hours: >
+          {% set var = namespace (available = []) %}
+          {% set forecast = states('sensor.forecast_solar_48h')|from_json %}
+          {% set month_limit = states('sensor.rest_of_month_energy_limit')|int %}
+          {% set uctrld = states('input_text.uncontrolled_estimate')|from_json|average|int %}
+          {% for i in range(forecast|length) %}
+          {% set solar = 0 if forecast[i] <= uctrld else forecast[i] - uctrld %}
+          {% set grid = month_limit if forecast[i] > uctrld else
+                        month_limit + forecast[i] - uctrld %}
+          {% set var.available = var.available + [ { "s": solar, "g": grid }] %}
+          {% endfor %}
+          {{ var.available }}
     - name: power_usage_by_subsides_and_maxpower
       state: >
         {# variables that needs to be declared #}
