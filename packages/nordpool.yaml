@@ -1,11 +1,3 @@
-input_text:
-  nordpool_today:
-    max: 255
-  nordpool_tomorrow:
-    max: 255
-  nordpool_month: 
-    max: 255
-
 rest:
   - resource: "https://www.nordpoolgroup.com/api/marketdata/page/23?currency=,NOK,NOK,EUR"
     scan_interval: 129600
@@ -29,9 +21,9 @@ template:
     - name: nordpool_month_average
       unit_of_measurement: "NOK/kWh"
       state: >
-        {% set month = states('input_text.nordpool_month') %}
+        {% set month = states('sensor.nordpool_month') %}
         {% set month = [] if month in ['unknown', 'unavailable'] else month|from_json %}
-        {% set tomorrow = states('input_text.nordpool_tomorrow') %}
+        {% set tomorrow = states('sensor.nordpool_tomorrow') %}
         {% set daymon = now().day if now().month != (now() + timedelta(days=1)).month else now().day + 1 %}
         {% set month = month if tomorrow in ['unknown', 'unavailable', '[]'] or daymon > now().day 
                        else [ tomorrow|from_json|average] + month  %}
@@ -101,13 +93,12 @@ template:
     - name: nordpool_month
       state: >
         {% set last = states('sensor.nordpool_month') %}
-        {% set last = states('input_text.nordpool_month') if last == 'unknown' else last %}
         {% set nextmonth = (now() + timedelta(days=20 if now().day > 20 else 31)) %}
-        {% set length = (nextmonth - timedelta(days=nextmonth.day)).day %}
+        {% set monthlength = (nextmonth - timedelta(days=nextmonth.day)).day %}
         {% set last = [] if last in ['unknown', 'unavailable'] else last|from_json %}
-        {% set today = states('input_text.nordpool_today') %}
-        {% set today = [] if today in ['unknown', 'unavailable'] else [ today|from_json|average|round(4) ] %}
-        {{ ((today + last)[:length])|to_json }}
+        {% set today = states('sensor.nordpool_today') %}
+        {% set today = [] if today in ['unknown', 'unavailable'] else [today|from_json|average|round(4) ] %}
+        {{ ((today + last)[:monthlength])|to_json }}
 
 
 automation:  
@@ -131,62 +122,3 @@ automation:
       target:
         entity_id: sensor.nordpool_api
 
-  - id: '1665404895206'
-    alias: 'nordpool tomorrow cache'
-    trigger: 
-    - platform: state
-      entity_id: sensor.nordpool_api
-    condition: []
-    action: 
-    - service: input_text.set_value
-      target:
-        entity_id: input_text.nordpool_tomorrow
-      data: 
-        value: >
-          {% set l = namespace(prices=[]) %}
-          {% for row in states.sensor.nordpool_api.attributes.Rows %}
-            {% if (as_datetime(row.EndTime).timestamp() - as_datetime(row.StartTime).timestamp() == 3600) %}
-              {% for column in row.Columns %}
-                {% if column.Name  == 'Kr.sand' %}
-                  {% set l.prices = l.prices +
-                    [(column.Value|replace(" ", "")|replace(",",".")|float/1000)|round(4)] %}
-                {% endif %}
-              {% endfor %}
-            {% endif %}
-          {% endfor %}
-          {{ l.prices|to_json }}
-#          To list names for the different sones. Use template in Developer tools to list them
-#          {% for cols in state_attr('sensor.nordpool_api', 'Rows')[0].Columns %} {{ cols.Name }} {% endfor %}
-
-  - id: '1665405646854'
-    alias: 'nordpool rotate cache at midnight'
-    trigger: 
-    - platform: time
-      at: "00:00"
-    condition: []
-    action: 
-    - service: input_text.set_value
-      target:
-        entity_id: input_text.nordpool_today
-      data: 
-        value: "{{ states('input_text.nordpool_tomorrow')}}"
-    - service: input_text.set_value
-      target:
-        entity_id: input_text.nordpool_tomorrow
-      data: 
-        value: "[]"
-    - service: input_text.set_value
-      target:
-        entity_id: input_text.nordpool_month
-      data: 
-        value: >
-          {% set last = states('input_text.nordpool_month') %}
-          {% set month = now().month %}
-          {% set length = 31 if month in [1, 3, 5, 7, 8, 10, 12]
-                     else 30 if month in [4, 6, 9, 11 ]
-                     else 29 if now().year % 4 == 0
-                     else 28 %}
-          {% set last = [] if last in ['unknown', 'unavailable'] else last|from_json %}
-          {% set today = states('input_text.nordpool_today') %}
-          {% set today = [] if today in ['unknown', 'unavailable'] else [ today|from_json|average|round(4) ] %}
-          {{ ((today + last)[:length])|to_json }}
