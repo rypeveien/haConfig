@@ -52,7 +52,8 @@ template:
           {% if (end.timestamp() - start.timestamp() == 3600) %}
             {%- for column in row.Columns -%}
               {% if column.Name == 'Kr.sand' -%}
-                {% set price = (column.Value|replace(',', '.')|float/1000)|round(4) %}
+                {% set price = (column.Value|replace(' ', '')|replace(',', '.')|float/1000) %}
+                {% set price = price|round(3) if price >= 10 else price|round(4) %}
                 {% set var.price = var.price + [ price ] %}
               {% endif %}
             {%- endfor %}
@@ -79,7 +80,8 @@ template:
               (start.day != now().day) %}
             {% for column in row.Columns %}
               {% if column.Name == 'Kr.sand' %}
-                {% set price = (column.Value|replace(',', '.')|float/1000)|round(4) %}
+                {% set price = (column.Value|replace(' ', '')|replace(',', '.')|float/1000) %}
+                {% set price = price|round(3) if price >= 10 else price|round(4) %}
                 {% set var.price = var.price + [ price ] %}
               {% endif %}
             {% endfor %}
