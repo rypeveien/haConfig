@@ -199,6 +199,214 @@ template:
           {% set var.available = var.available + [ { "s": solar, "g": grid }] %}
           {% endfor %}
           {{ var.available }}
+    - name: main_heater_hours
+      state: >
+        {% set var = namespace( price=[], heater=[], used = 0, done = 0) %}
+        {% set power_available = state_attr('sensor.power_available', 'hours') %}
+        {% set grid_price = states('sensor.to_grid_today_nok_kwh')|from_json + states('sensor.to_grid_tomorrow_nok_kwh')|from_json %}
+        {% set energy_price = state_attr('sensor.energy_all_nok_kwh', 'prices') %}
+        {% set subsides = states('sensor.energy_subsides')|float %}
+        {% set heater_power = states('sensor.vvtank_power_when_on')|int(default=3000) %}
+        {% set heater_time = as_local(as_datetime(state_attr('sensor.vvtank_cycle_1', 'last_reset'))) %}
+        {% set heater_usage = (states('counter.vvtank_usage')|int * 200 - states('sensor.vvtank_cycle_1')|float(default=0) * 1000)|int %}
+        {% set limit = heater_time.hour + 24 if heater_time.day == now().day else
+                       heater_time.hour if heater_time.hour > now().hour else
+                            now().hour %}
+        {% set limit = 7 if (limit <= 7 and now().weekday() > 4) else
+                      6 if limit <= 6 else
+                      15 if limit <= 15 else
+                      limit if limit <= 23 else
+                      31 if (limit <= 31 and now().weekday() in [4, 5]) else
+                      30 if limit <= 30 else
+                      39 if limit <= 39 else
+                      limit %}
+        {% set limit = energy_price|length -1 if limit >= energy_price|length else
+                            limit %}
+        {% for i in range(energy_price|length) %}
+          {%- set price = grid_price[i] if power_available[i].s > heater_power else
+                         (grid_price[i] * power_available[i].s + (energy_price[i] - subsides) * (heater_power - power_available[i].s))/heater_power %}
+          {% set var.price = var.price + [ { "hour" : i, "price" : price|round(3) }] %}
+        {%- endfor %}
+        {% set var.price = var.price|sort(attribute="price") %}
+        {% set var.used = 0 %}
+        {% set var.done = 0 %}
+        {%- for i in range(var.price|length) %}
+          {%- if var.price[i].hour >= now().hour and
+                var.price[i].hour <= limit  and var.done == 0 -%}
+            {%- set uses = heater_power %}
+            {%- set needs = (var.price[i].hour - heater_time.hour) * 140 + heater_usage - var.used %}
+            {%- set needs = needs if heater_time.day == now().day else needs + 140 * 24 %}
+            {%- set var.done = 1 if uses > needs else var.done %}
+            {%- set uses = uses if uses < needs else  needs %}
+            {%- set var.used = var.used + uses %}
+            {%- set var.heater = var.heater + [ var.price[i].hour ] %}
+          {%- endif %}
+        {%- endfor %}
+        {{ var.heater|sort|to_json }}
+      attributes:
+        power_available: >
+          {% set var = namespace( available = []) %}
+          {% set power = states('sensor.vvtank_power_when_on')|int(default=3000) %}
+          {% set var.available = state_attr('sensor.power_available', 'hours') %}
+          {% set hours = states('sensor.main_heater_hours')|from_json %}
+          {% for hour in hours %}
+            {% set grid = var.available[hour].g %}
+            {% set solar = var.available[hour].s %}
+            {% set grid = grid if solar >= power else grid + solar - power %}
+            {% set solar = 0 if power >= solar else solar - power %}
+            {% set var.available = var.available[:hour] + 
+                  [ { "s": solar, "g": grid } ] + var.available[hour+1:] %}
+          {% endfor %}
+          {{ var.available }}
+    - name: aux_heater_hours
+      state: >
+        {% set var = namespace( price=[], heater=[], used = 0, done = 0) %}
+        {% set power_available = state_attr('sensor.main_heater_hours', 'power_available') %}
+        {% set grid_price = states('sensor.to_grid_today_nok_kwh')|from_json + states('sensor.to_grid_tomorrow_nok_kwh')|from_json %}
+        {% set energy_price = state_attr('sensor.energy_all_nok_kwh', 'prices') %}
+        {% set subsides = states('sensor.energy_subsides')|float %}
+        {% set heater_power = states('sensor.vvkjeller_power_when_on')|int(default=2000) %}
+        {% set heater_time = as_local(as_datetime(state_attr('sensor.vvkjeller_cycle_1', 'last_reset'))) %}
+        {% set heater_usage = (states('counter.vvkjeller_usage')|int * 200 - states('sensor.vvkjeller_cycle_1')|float(default=0) * 1000)|int %}
+        {% set limit = heater_time.hour + 24 if heater_time.day == now().day else
+                       heater_time.hour if heater_time.hour > now().hour else
+                            now().hour %}
+        {% set limit = 7 if (limit <= 7 and now().weekday() > 4) else
+                      6 if limit <= 6 else
+                      15 if limit <= 15 else
+                      limit if limit <= 23 else
+                      31 if (limit <= 31 and now().weekday() in [4, 5]) else
+                      30 if limit <= 30 else
+                      39 if limit <= 39 else
+                      limit %}
+        {% set limit = energy_price|length -1 if limit >= energy_price|length else
+                            limit %}
+        {% for i in range(energy_price|length) %}
+          {%- set price = grid_price[i] if power_available[i].s > heater_power else
+                         (grid_price[i] * power_available[i].s + (energy_price[i] - subsides) * (heater_power - power_available[i].s))/heater_power %}
+          {% set var.price = var.price + [ { "hour" : i, "price" : price|round(3) }] %}
+        {%- endfor %}
+        {% set var.price = var.price|sort(attribute="price") %}
+        {% set var.used = 0 %}
+        {% set var.done = 0 %}
+        {%- for i in range(var.price|length) %}
+          {%- if var.price[i].hour >= now().hour and
+                var.price[i].hour <= limit  and var.done == 0 -%}
+            {%- set uses = heater_power %}
+            {%- set needs = (var.price[i].hour - heater_time.hour) * 140 + heater_usage - var.used %}
+            {%- set needs = needs if heater_time.day == now().day else needs + 140 * 24 %}
+            {%- set var.done = 1 if uses > needs else var.done %}
+            {%- set uses = uses if uses < needs else  needs %}
+            {%- set var.used = var.used + uses %}
+            {%- set var.heater = var.heater + [ var.price[i].hour ] %}
+          {%- endif %}
+        {%- endfor %}
+        {{ var.heater|sort|to_json }}
+      attributes:
+        power_available: >
+          {% set var = namespace( available = []) %}
+          {% set power = states('sensor.vvkjeller_power_when_on')|int(default=2000) %}
+          {% set var.available = state_attr('sensor.main_heater_hours', 'power_available') %}
+          {% set hours = states('sensor.aux_heater_hours')|from_json %}
+          {% for hour in hours %}
+            {% set grid = var.available[hour].g %}
+            {% set solar = var.available[hour].s %}
+            {% set grid = grid if solar >= power else grid + solar - power %}
+            {% set solar = 0 if power >= solar else solar - power %}
+            {% set var.available = var.available[:hour] + 
+                  [ { "s": solar, "g": grid } ] + var.available[hour+1:] %}
+          {% endfor %}
+          {{ var.available }}
+    - name: ev_charger_hours
+      state: >
+        {% set var = namespace (ev_soc = 0, price = [], ev = [], ev50 = [] ) %}
+        {% set energy_price = state_attr('sensor.energy_all_nok_kwh', 'prices') %}
+        {% set grid_price = states('sensor.to_grid_today_nok_kwh')|from_json + states('sensor.to_grid_tomorrow_nok_kwh')|from_json %}
+        {% set subsides = states('sensor.energy_subsides')|float %}
+        {% set available = state_attr('sensor.aux_heater_hours','power_available') %}
+        {% set ev_power = 3500 %}
+        {% set ev_soc = states('sensor.soc_estimate')|float %}
+        {% set ev_full = states('input_number.ev_battery_pack')|int %}
+        {% set ev_efficient = states('input_number.ev_charge_efficiency')|float / 100 %}
+        {% if ev_soc < 50 %}
+          {% set ev_target = ev_full / 2 %}
+          {% set var.ev_soc = ev_soc * ev_full / 100 %}
+          {% set limit = now().hour + 12 %}
+          {% for i in range(energy_price|length) %}
+            {% set power = ev_power if (available[i].s + available[i].g > ev_power) else
+                            available[i].s + available[i].g %}
+            {%- set price = grid_price[i] if available[i].s > power else
+                           (grid_price[i] * available[i].s + (energy_price[i] - subsides) * (power - available[i].s))/power %}
+            {% set var.price = var.price + [ { "hour" : i, "price" : price|round(3) }] %}
+          {%- endfor %}
+          {% set var.price = var.price|sort(attribute="price") %}
+          {% for i in range(var.price|length) %}
+            {% if var.price[i].hour >= now().hour and
+                  var.price[i].hour <= limit  and var.ev_soc < ev_target %}
+              {% set needs = (ev_target - var.ev_soc) / ev_efficient  %}
+              {% set uses = ev_power %}
+              {% set uses = uses if uses < needs else needs %}
+              {% set var.ev50 = var.ev50 + [ var.price[i].hour ] %}
+              {% set var.ev_soc = var.ev_soc + uses * ev_efficient %}
+              {% set solar = 0 if available[i].s < uses else
+                                  available[i].s - uses %}
+              {% set grid = available[i].g if available[i].s >= uses else
+                                  available[i].g + available[i].s - uses %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {% set var.price = [] %}
+        {% set ev_target = states('input_number.ev_charge_target')|int(default=90) %}
+        {% if states('input_boolean.charge_by_clock') == 'on' %}
+          {% set limit = state_attr('input_datetime.car_ready_charged','hour') %}
+          {% set limit = limit if limit > now().hour else limit + 24 %}
+        {% else %}
+          {% set limit = 48 %}
+        {% endif %}
+        {% set ev_target = ev_target * ev_full / 100 %}
+        {% set var.ev_soc = ev_soc * ev_full / 100 %}
+        {% set limit = energy_price|length -1 if limit >= energy_price|length else
+                            limit %}
+        {% for i in range(energy_price|length) %}
+          {% set power = ev_power if (available[i].s + available[i].g > ev_power) else
+                          available[i].s + available[i].g %}
+          {%- set price = grid_price[i] if available[i].s > power else
+                         (grid_price[i] * available[i].s + (energy_price[i] - subsides) * (power - available[i].s))/power %}
+          {% set var.price = var.price + [ { "hour" : i, "price" : price|round(3) }] %}
+        {%- endfor %}
+        {% set var.price = var.price|sort(attribute="price") %}
+        {% for i in range(var.price|length) %}
+          {% if var.price[i].hour >= now().hour and
+                var.price[i].hour <= limit  and var.ev_soc < ev_target %}
+            {% set needs = (ev_target - var.ev_soc) / ev_efficient  %}
+            {% set uses = ev_power %}
+            {% set uses = uses if uses < needs else needs %}
+            {% if var.price[i].hour not in var.ev50 %}
+              {% set var.ev = var.ev + [ var.price[i].hour ] %}
+            {% endif %}
+            {% set var.ev_soc = var.ev_soc + uses * ev_efficient %}
+            {% set solar = 0 if available[i].s < uses else
+                                available[i].s - uses %}
+            {% set grid = available[i].g if available[i].s >= uses else
+                                available[i].g + available[i].s - uses %}
+          {% endif %}
+        {% endfor %}
+        {{ (var.ev50 + var.ev)|sort|to_json }}
+      attributes:
+        power_available: >
+          {% set var = namespace( available = []) %}
+          {% set power = 3500 %}
+          {% set var.available = state_attr('sensor.aux_heater_hours', 'power_available') %}
+          {% set hours = states('sensor.ev_charger_hours')|from_json %}
+          {% for hour in hours %}
+            {% set grid = var.available[hour].g %}
+            {% set solar = var.available[hour].s %}
+            {% set grid = grid if solar >= power else grid + solar - power %}
+            {% set solar = 0 if power >= solar else solar - power %}
+            {% set var.available = var.available[:hour] + 
+                  [ { "s": solar, "g": grid } ] + var.available[hour+1:] %}
+          {% endfor %}
+          {{ var.available }}
     - name: power_usage_by_subsides_and_maxpower
       state: >
         {# variables that needs to be declared #}
@@ -319,7 +527,7 @@ template:
           {% set ev_target = states('input_number.ev_charge_target')|int(default=90) %}
           {% set limit = state_attr('input_datetime.car_ready_charged','hour') %}
           {% set limit = limit if limit > now().hour else limit + 24 %}
-        {% elif ev_soc <= 50 %}
+        {% elif ev_soc < 50 %}
           {% set ev_target = 50 %}
           {% set limit = now().hour + 12 %}
         {% else %}
