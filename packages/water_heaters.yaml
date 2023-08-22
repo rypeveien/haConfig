@@ -184,19 +184,19 @@ automation:
     trigger: 
     - platform: state
       entity_id: 
-        - sensor.vvtank_hours
+        - sensor.main_heater_hours
     - platform: state
       entity_id: 
         - binary_sensor.under_limit_if_vvtank_on
     - platform: template
       value_template: >
-        {% set hours = states('sensor.vvtank_hours')|from_json %}
+        {% set hours = states('sensor.main_heater_hours')|from_json %}
         {{ hours|length > 0 and hours[0] == now().hour }}
     action:
       - if:
           - condition: template
             value_template: >-
-              {% set hours = states('sensor.vvtank_hours')|from_json %}
+              {% set hours = states('sensor.main_heater_hours')|from_json %}
               {% set hour = now().hour %}
               {{ hours|length == 0 or hours[0] == hour or (hours|length > 1 and hours[1] == hour) }}
         then:
@@ -234,19 +234,19 @@ automation:
     trigger: 
     - platform: state
       entity_id: 
-        - sensor.vvkjeller_hours
+        - sensor.aux_heater_hours
     - platform: state
       entity_id: 
         - binary_sensor.under_limit_if_vvkjeller_on
     - platform: template
       value_template: >
-        {% set hours = states('sensor.vvkjeller_hours')|from_json %}
+        {% set hours = states('sensor.aux_heater_hours')|from_json %}
         {{ hours|length > 0 and hours[0] == now().hour }}
     action:
       - if:
           - condition: template
             value_template: >-
-              {% set hours = states('sensor.vvkjeller_hours')|from_json %}
+              {% set hours = states('sensor.aux_heater_hours')|from_json %}
               {% set hour = now().hour %}
               {{ hours|length == 0 or hours[0] == hour or (hours|length > 1 and hours[1] == hour) }}
         then:
@@ -343,7 +343,7 @@ automation:
     description: ''
     trigger:
     - platform: state
-      entity_id: sensor.vvkjeller_hours
+      entity_id: sensor.aux_heater_hours
     - platform: template
       value_template: >
         {{ states('sensor.lowest_humidity_at_bathrom_downstairs_last_15_minutes') != 'unknown'
