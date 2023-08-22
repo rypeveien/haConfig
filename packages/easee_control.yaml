@@ -103,10 +103,6 @@ template:
       unit_of_measurement: W
       device_class: power
       state: '{{ states(''sensor.easee_home_63089_power'')|float(default=0)*1000 }}'
-    - name: charge_hours
-      state: >
-        {% set by_subsides = states.sensor.power_usage_by_subsides_and_maxpower.state|from_json %}
-        {{ by_subsides.easee|sort }}
     - name: easee_basic_schedule_start
       state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStartTime') }}"
     - name: easee_basic_schedule_stop

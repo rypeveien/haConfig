@@ -57,14 +57,6 @@ template:
       state: "{{ (state_attr('sensor.vvtank_cycle_1', 'last_reset')|as_datetime|as_local|string)[:16] }}"
     - name: vvkjeller_last_on
       state: "{{ (state_attr('sensor.vvkjeller_cycle_1', 'last_reset')|as_datetime|as_local|string)[:16] }}"
-    - name: vvtank_hours
-      state: >
-        {% set by_subsides = states('sensor.power_usage_by_subsides_and_maxpower')|from_json %}
-        {{ by_subsides.vvtank|sort }}
-    - name: vvkjeller_hours
-      state: >
-        {% set by_subsides = states('sensor.power_usage_by_subsides_and_maxpower')|from_json %}
-        {{ by_subsides.vvkjeller|sort }}
   - binary_sensor:
     - name: vvtank_on
       state: "{{ states('sensor.vv_tank_power')|float(default=0) > 0 }}"
