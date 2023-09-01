@@ -130,7 +130,8 @@ template:
         {% set last = states('sensor.soc_estimate') %}
         {% set soc = states('sensor.rypse2_soc')|float %}
         {% set soc = (soc if soc > 1 else soc * 100)|int %}
-        {% if (trigger.entity_id == 'sensor.rypse2_soc') %}
+        {% if (trigger.entity_id == 'sensor.rypse2_soc' and 
+               trigger.from_state.state != '') %}
           {{ soc }}
         {% elif states('input_select.which_car') == 'Polestar' %}
           {% set session = states('sensor.easee_home_63089_session_energy') | float %}
@@ -146,6 +147,10 @@ template:
         {% else %}
           {{ last }}
         {% endif %}
+      attributes:
+        unit_of_measurement: '%'
+        last_trigger: '{{ trigger.entity_id }}'
+        trigger_from: '{{ trigger.from_state.state }}'
 
 automation:
   - id: '1691265354404'
@@ -201,7 +206,8 @@ automation:
         entity_id: input_select.which_car
       - platform: template
         value_template: >
-          {% set hours = states('sensor.ev_charger_hours')|from_json %}
+          {% set hours = states('sensor.ev_charger_hours') %}
+          {% set hours = [] if hours in ('unavailable') else hours|from_json %}
           {{ hours|length > 0 and hours[0] <= now().hour }}
     condition:
       - condition: or
@@ -218,7 +224,8 @@ automation:
                   below: 20
                 - condition: template
                   value_template: >
-                    {% set hours = states('sensor.ev_charger_hours')|from_json %}
+                    {% set hours = states('sensor.ev_charger_hours') %}
+                    {% set hours = [] if hours in ('unavailable') else hours|from_json %}
                     {{ hours|length > 0 and hours[0] <= now().hour }}
           - condition: state
             entity_id: input_select.which_car
@@ -242,7 +249,8 @@ automation:
         above: 20
       - platform: template
         value_template: >
-          {% set hours = states('sensor.ev_charger_hours')|from_json %}
+          {% set hours = states('sensor.ev_charger_hours') %}
+          {% set hours = [now().hour] if hours in ('unavailable') else hours|from_json %}
           {{ hours|length == 0 or hours[0] > now().hour }}
     condition:
       - condition: state
@@ -260,7 +268,8 @@ automation:
                 above: 20
               - condition: template
                 value_template: >
-                  {% set hours = states('sensor.ev_charger_hours')|from_json %}
+                  {% set hours = states('sensor.ev_charger_hours') %}
+                  {% set hours = [now().hour] if hours in ('unavailable') else hours |from_json %}
                   {{ hours|length == 0 or hours[0] > now().hour }}
           - condition: state
             entity_id: input_select.which_car
