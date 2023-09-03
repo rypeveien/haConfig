@@ -245,6 +245,9 @@ automation:
         entity_id: sensor.easee_home_63089_status
         to: charging
       - platform: numeric_state
+        entity_id: sensor.easee_home_63089_power
+        above: 500
+      - platform: numeric_state
         entity_id: sensor.soc_estimate
         above: 20
       - platform: template
@@ -253,9 +256,14 @@ automation:
           {% set hours = [now().hour] if hours in ('unavailable') else hours|from_json %}
           {{ hours|length == 0 or hours[0] > now().hour }}
     condition:
-      - condition: state
-        entity_id: sensor.easee_home_63089_status
-        state: charging
+      - condition: or
+        conditions:
+          - condition: state
+            entity_id: sensor.easee_home_63089_status
+            state: charging
+          - condition: numeric_state
+            entity_id: sensor.easee_home_63089_power
+            above: 500
       - condition: or
         conditions:
           - condition: and
