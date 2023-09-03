@@ -255,7 +255,7 @@ template:
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else 'unknown' %}  
         {{ 'unknown' if prices == 'unknown' else 
             0 if prices[now().hour] <= 0.7 else 
-            ((prices[now().hour] - 0.7) * 0.9)|round(4) }}
+            ((prices[now().hour] - 0.7) * 0.9 * 1.25)|round(4) }}
     - name: energy_today_nok_kwh
       state: >
         {% set prices = namespace(list=[]) %}
@@ -275,7 +275,7 @@ template:
         {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
                 nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
-          {% set subsides.list = subsides.list + [0 if priceInfo[i] <= 0.7 else ((priceInfo[i] -0.7) * 0.9)|round(4)] %}
+          {% set subsides.list = subsides.list + [0 if priceInfo[i] <= 0.7 else ((priceInfo[i] - 0.7) * 0.9 * 1.25)|round(4)] %}
         {% endfor %}
         {{ subsides.list|to_json }}
     - name: to_grid_today_nok_kwh
@@ -326,6 +326,17 @@ template:
           {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + 0.01 + state_attr('sensor.template_grid_charge', 'prices')[i+24]|float)|round(3)] %}
         {% endfor %}
         {{ prices.list|to_json }}
+    - name: subsides_tomorrow_nok_kwh
+      state: >
+        {% set subsides = namespace(list=[]) %}
+        {% set tibber = states('input_text.tibber_tomorrow') %}
+        {% set nordpool = states('sensor.nordpool_tomorrow') %}
+        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
+                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% for i in range(priceInfo|length) %}
+          {% set subsides.list = subsides.list + [0 if priceInfo[i] <= 0.7 else ((priceInfo[i] - 0.7) * 0.9 * 1.25)|round(4)] %}
+        {% endfor %}
+        {{ subsides.list|to_json }}
     - name: to_grid_tomorrow_nok_kwh
       state: >
         {% set prices = namespace(list=[]) %}
