@@ -1,0 +1,71 @@
+timer:
+  mower_on_lawn:
+    duration: 03:00:00
+    restore: true
+
+template:
+  binary_sensor:
+    - name: mower_on_lawn
+      state: "{{ 2 < states('sensor.shellyplugklipper_power')|float(default=0) < 4 }}"
+    - name: mower_on_base
+      state: "{{ 4 < states('sensor.shellyplugklipper_power')|float(default=0) }}"
+    - name: mower_charging
+      state: "{{ 10 < states('sensor.shellyplugklipper_power')|float(default=0) }}"
+      
+
+automation:
+  - id: '1696109036533'
+    alias: mower_on_lawn
+    description: "Mower on lawn"
+    trigger:
+      - platform: event
+        event_type: timer.finished
+        event_data: 
+          entity_id: timer.mower_on_lawn
+        id: timer
+      - platform: state
+        entity_id:
+          - binary_sensor.mower_on_lawn
+        from: "off"
+        to: "on"
+        id: on_lawn
+      - platform: state
+        entity_id:
+          - binary_sensor.mower_on_base
+        from: "off"
+        to: "on"
+        id: on_base
+    condition: []
+    action:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: timer
+              - condition: state
+                entity_id: binary_sensor.mower_on_lawn
+                state: "on"
+            sequence:
+              - service: notify.mobile_app_xq_au52
+                data:
+                  message: mower on lawn
+          - conditions:
+              - condition: trigger
+                id: on_lawn
+              - condition: state
+                entity_id: timer.mower_on_lawn
+                state: idle
+            sequence:
+              - service: timer.start
+                target:
+                  entity_id: timer.mower_on_lawn
+          - conditions:
+              - condition: trigger
+                id: on_base
+              - condition: state
+                entity_id: timer.mower_on_lawn
+                state: active
+            sequence:
+              - service: timer.finish
+                target:
+                  entity_id: timer.mower_on_lawn
+
