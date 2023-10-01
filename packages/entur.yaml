@@ -1,0 +1,5 @@
+sensor:
+  - platform: entur_public_transport
+    stop_ids:
+      - NSR:StopPlace:23266
+      - NSR:StopPlace:24051
