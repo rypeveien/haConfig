@@ -3,11 +3,9 @@ template:
     - name: on_bike
       state: "{{ states('sensor.titophone_detected_activity') == 'on_bicycle' }}"
       delay_on:
-        hours: 1
-        minutes: 15
+        minutes: 45
       delay_off:
-        hours: 1
-        minutes: 15
+        minutes: 45
 
   - trigger: 
       - platform: state
