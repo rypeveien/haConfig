@@ -107,6 +107,8 @@ template:
         friendly_name: "Energycost @ rypeveien"
         prices: >
           {% set pv_guess = states.sensor.forecast_solar_48h.state|from_json %}
+          {% set subsides = states('sensor.subsides_today_nok_kwh')|from_json %}
+          {% set subsides = subsides + states('sensor.subsides_tomorrow_nok_kwh')|from_json %}
           {% set uncontrolled = states.input_text.uncontrolled_estimate.state|from_json %}
           {% set energy_price = states('sensor.energy_today_nok_kwh')|from_json +
                                 states('sensor.energy_tomorrow_nok_kwh')|from_json %}
