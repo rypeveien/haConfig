@@ -38,54 +38,55 @@ automation:
     trigger:
       - platform: state
         entity_id: binary_sensor.zwift_active
+        id: active
       - platform: state
         entity_id: switch.shellyrulle
         to: "off"
+        id: rulle
       - platform: numeric_state
         entity_id: sensor.shellyrulle_power
         below: 1.5
         for: 
           minutes: 45
-        id: idle
+        id: power
       - platform: state
         entity_id: light.kjellerstuetak
         to: "off"
-        id: lights_off
-    condition:
-      - condition: state
-        entity_id: climate.vp_gnede
-        state: 'heat'
+        id: lights
     action:
       - if:
+          - condition: trigger
+            id: active
           - condition: state
             entity_id: binary_sensor.zwift_active
             state: "on"
-          - condition: state
-            entity_id: switch.shellyrulle
-            state: "on"
-          - condition: not
-            conditions:
-              - condition: trigger
-                id: 
-                  - idle
-                  - lights_off
         then:
-          - service: climate.set_temperature
-            data:
-              hvac_mode: dry
-              temperature: 18
-            target:
-              entity_id: climate.vpnede
-          - service: climate.set_fan_mode
-            data:
-              fan_mode: high
-            target:
-              entity_id: climate.vpnede
+          - choose:
+            - conditions:
+              - condition: state
+                entity_id: climate.vpnede
+                state: "heat"
+              sequence:
+              - service: climate.set_temperature
+                data:
+                  fan_mode: high
+                  hvac_mode: dry
+                  temperature: 18
+                target:
+                  entity_id: climate.vpnede
+            - conditions:
+              - condition: state
+                entity_id: climate.vpnede
+                state: "off"
+              sequence:
+              - service: switch.turn_on
+                target:
+                  entity_id: switch.shellybikefan
         else:
           - if:
               - condition: state
                 entity_id: climate.vpnede
-                state: "dry"
+                state: "heat"
             then:
               - service: climate.set_hvac_mode
                 data:
