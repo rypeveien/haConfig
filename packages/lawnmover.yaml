@@ -69,3 +69,20 @@ automation:
                 target:
                   entity_id: timer.mower_on_lawn
 
+  - id: '1697520331154'
+    alias: Slå av klipper etter klipping
+    description: ''
+    trigger:
+    - platform: state
+      entity_id:
+      - binary_sensor.mower_charging
+      from: 'on'
+      to: 'off'
+    condition:
+    - condition: time
+      after: '16:00:00'
+    action:
+    - type: turn_off
+      device_id: 599fbca18af1cb509fee126d8ce3e8fa
+      entity_id: switch.shellyplugklipper
+      domain: switch
