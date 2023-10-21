@@ -1,17 +1,31 @@
 template:
-  sensor:
-  - name: eos_main_voltage
-    unit_of_measurement: V
-    state: "{{ state_attr('sensor.rpieos_battery', 'main_voltage') | float }}"
-  - name: eos_start_voltage
-    unit_of_measurement: V
-    state: "{{ state_attr('sensor.rpieos_battery', 'start_voltage') | float }}"
-  - name: eos_main_current
-    unit_of_measurement: A
-    state: "{{ state_attr('sensor.rpieos_battery', 'main_current') | float }}"
-  - name: eos_main_power
-    unit_of_measurement: W
-    state: "{{ state_attr('sensor.rpieos_battery', 'main_power') | float }}"
+  - sensor:
+    - name: eos_main_voltage
+      unit_of_measurement: V
+      state: "{{ state_attr('sensor.rpieos_battery', 'main_voltage') | float }}"
+    - name: eos_start_voltage
+      unit_of_measurement: V
+      state: "{{ state_attr('sensor.rpieos_battery', 'start_voltage') | float }}"
+    - name: eos_main_current
+      unit_of_measurement: A
+      state: "{{ state_attr('sensor.rpieos_battery', 'main_current') | float }}"
+    - name: eos_main_power
+      unit_of_measurement: W
+      state: "{{ state_attr('sensor.rpieos_battery', 'main_power') | float }}"
+
+  - trigger: 
+      platform: mqtt
+      topic: eos2mqtt/eos
+    sensor:
+      - name: eos_temperatur
+        unit_of_measurement: '°C'
+        state: "{{ trigger.payload_json['temperature'] }}"
+      - name: eos_humidity
+        unit_of_measurement: '%'
+        state: "{{ trigger.payload_json['humidity'] }}"
+      - name: eos_sensor_battery
+        unit_of_measurement: '%'
+        state: "{{ trigger.payload_json['battery'] }}"
 
 sensor:
   - platform: integration
@@ -19,8 +33,6 @@ sensor:
     source: sensor.eos_main_power
     method: left
     round: 2
-
-sensor:
   - platform: integration
     name: eos_energy
     source: sensor.eos_main_power
