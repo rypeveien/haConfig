@@ -6,8 +6,8 @@ homeassistant:
   customize:
     zone.home:
       radius: 28
-#  packages: !include_dir_merge_named packages
   packages: !include_dir_named packages
+
 http:
   use_x_forwarded_for: true
   trusted_proxies: 
