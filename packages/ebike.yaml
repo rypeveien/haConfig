@@ -90,3 +90,37 @@ automation:
       domain: switch
       enabled: true
     mode: single
+
+  - id: '1683654356246'
+    alias: eMTB ferdig ladet
+    description: ''
+    trigger:
+    - type: power
+      platform: device
+      device_id: ccc29c0433b8ca9717c4b89f9cef98b0
+      entity_id: sensor.shellyemtb_power
+      domain: sensor
+      below: 150
+    condition:
+    - condition: device
+      type: is_on
+      device_id: ccc29c0433b8ca9717c4b89f9cef98b0
+      entity_id: switch.shellyemtb
+      domain: switch
+    - condition: numeric_state
+      entity_id: sensor.shellyemtb_power
+      above: 2
+    action:
+    - service: notify.mobile_app_xq_au52
+      data:
+        message: Ser ut som lading nærmer seg ferdig
+        title: eMTB
+        data:
+          ttl: 0
+          priority: high
+    - type: turn_off
+      device_id: ccc29c0433b8ca9717c4b89f9cef98b0
+      entity_id: switch.shellyemtb
+      domain: switch
+      enabled: true
+    mode: single
