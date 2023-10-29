@@ -56,3 +56,5 @@ binary_sensor:
       minutes: 2
     delay_off: 
       minutes: 5
+  - name: soverom_unavailable
+    state: "{{ is_state('sensor.soverom_temperature', 'unavailable') }}"
