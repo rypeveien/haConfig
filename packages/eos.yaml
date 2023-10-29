@@ -12,6 +12,9 @@ template:
     - name: eos_main_power
       unit_of_measurement: W
       state: "{{ state_attr('sensor.rpieos_battery', 'main_power') | float }}"
+  - binary_sensor:
+    - name: eos_relay
+      state: "{{ state_attr('sensor.rpieos_battery', 'Relay') == 'ON' }}"
 
   - trigger: 
       platform: mqtt
