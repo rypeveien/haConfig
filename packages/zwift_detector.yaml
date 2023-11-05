@@ -61,36 +61,38 @@ automation:
             entity_id: binary_sensor.zwift_active
             state: "on"
         then:
-          - choose:
-            - conditions:
+          - if:
               - condition: state
-                entity_id: climate.vpnede
+                entity_id: climate.vp_gnede
                 state: "heat"
-              sequence:
+            then:
               - service: climate.set_temperature
                 data:
-                  fan_mode: high
-                  hvac_mode: dry
-                  temperature: 18
+                  temperature: 17
                 target:
                   entity_id: climate.vpnede
-            - conditions:
-              - condition: state
-                entity_id: climate.vpnede
-                state: "off"
-              sequence:
-              - service: switch.turn_on
-                target:
-                  entity_id: switch.shellybikefan
+          - service: switch.turn_on
+            target:
+              entity_id: switch.shellybikefan
         else:
           - if:
               - condition: state
-                entity_id: climate.vpnede
+                entity_id: climate.vp_gnede
                 state: "heat"
+              - condition: not
+                conditions:
+                - condition: state
+                  entity_id: climate.vpnede
+                  state: "heat"
             then:
               - service: climate.set_hvac_mode
                 data:
                   hvac_mode: heat
+                target:
+                  entity_id: climate.vpnede
+              - service: climate.set_fan_mode
+                data:
+                  fan_mode: auto
                 target:
                   entity_id: climate.vpnede
           - if:
@@ -109,3 +111,11 @@ automation:
               - service: light.turn_off
                 target:
                   entity_id: light.kjellerstuetak
+          - if:
+              - condition: state
+                entity_id: switch.shellybikefan
+                state: "on"
+            then:
+              - service: switch.turn_off
+                target:
+                  entity_id: switch.shellybikefan
