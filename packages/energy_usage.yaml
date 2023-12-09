@@ -232,7 +232,8 @@ template:
         {% set var.done = 0 %}
         {%- for i in range(var.price|length) %}
           {%- if var.price[i].hour >= now().hour and
-                var.price[i].hour <= limit  and var.done == 0 -%}
+                var.price[i].hour <= limit  and var.done == 0 and 
+                (power_available[var.price[i].hour].g + power_available[var.price[i].hour].s) >= heater_power -%}
             {%- set uses = heater_power %}
             {%- set needs = (var.price[i].hour - heater_time.hour) * 140 + heater_usage - var.used %}
             {%- set needs = needs if heater_time.day == now().day else needs + 140 * 24 %}
@@ -291,7 +292,8 @@ template:
         {% set var.done = 0 %}
         {%- for i in range(var.price|length) %}
           {%- if var.price[i].hour >= now().hour and
-                var.price[i].hour <= limit  and var.done == 0 -%}
+                var.price[i].hour <= limit  and var.done == 0 and 
+                (power_available[var.price[i].hour].g + power_available[var.price[i].hour].s) >= heater_power -%}
             {%- set uses = heater_power %}
             {%- set needs = (var.price[i].hour - heater_time.hour) * 140 + heater_usage - var.used %}
             {%- set needs = needs if heater_time.day == now().day else needs + 140 * 24 %}
