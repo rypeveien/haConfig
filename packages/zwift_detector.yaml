@@ -11,25 +11,25 @@ template:
       - name: zwift saved humidity 
         unit_of_measurement: "%"
         state: >
+          {% set to_state = trigger.to_state.state|float(default=50) %}
+          {% set last = states('sensor.zwift_saved_humidity')|float(default=to_state) %}
           {% set active = states('binary_sensor.zwift_active') %}
-          {% set last = states('sensor.zwift_saved_humidity')|float(default=0) %}
-          {% set trainer = states('switch.shellyrulle') %}
-          {% set to_state = trigger.to_state.state|float %}
-          {{ to_state if (active == 'off' and trainer != 'on') else
-             to_state if (active == 'on' and to_state > last) else 
-             to_state if (active == 'off' and trainer == 'on' and to_state < last) else 
+          {% set zwiftlap = states('device_tracker.zwiftlap') %}
+          {{ to_state if (zwiftlap != 'home' and active == 'off') else
+             to_state if (zwiftlap == 'home' and active == 'on' and to_state > last) else
+             to_state if (zwiftlap == 'home' and active == 'off' and to_state < last) else 
              last }}
     binary_sensor:
       - name: zwift_active
         state: >
           {% set active = states('binary_sensor.zwift_active') %}
-          {% set trainer3watt = states('binary_sensor.trainer_over_3_watt') %}
           {% set zwift_hum = states('sensor.zwift_saved_humidity')|float %}
+          {% set zwiftlap = states('device_tracker.zwiftlap') %}
           {% set trainer = states('switch.shellyrulle') %}
           {% set to_state = trigger.to_state.state|float %}
-          {{ 'on' if trainer3watt == 'on' else
+          {{ 'off' if 2 <= now().hour < 5 else 
              (to_state + 5) > zwift_hum if active == 'on' else 
-             to_state > (zwift_hum + 1) if trainer == 'on' else
+             to_state > (zwift_hum + 2) if zwiftlap == 'home' else
              active }}
 
 automation:
@@ -66,9 +66,14 @@ automation:
                 entity_id: climate.vp_gnede
                 state: "heat"
             then:
-              - service: climate.set_temperature
+              - service: climate.set_hvac_mode
                 data:
-                  temperature: 17
+                  hvac_mode: dry
+                target:
+                  entity_id: climate.vpnede
+              - service: climate.set_fan_mode
+                data:
+                  fan_mode: high
                 target:
                   entity_id: climate.vpnede
           - service: switch.turn_on
