@@ -1,3 +1,17 @@
+input_boolean:
+  homeoffice_monday:
+    name: homeoffice_monday
+  homeoffice_tuesday:
+    name: homeoffice_tuesday
+  homeoffice_wednesday:
+    name: homeoffice_wednesday
+  homeoffice_thursday:
+    name: homeoffice_thursday
+  homeoffice_friday:
+    name: homeoffice_friday
+  homeoffice_weekend:
+    name: homeoffice_weekend
+
 template: 
   sensor:
   - name: adax_faoff_analyze_temp
@@ -27,6 +41,19 @@ template:
   - name: adax_guest_power
     unit_of_measurement: "W"
     state: "{{ 600 if state_attr('climate.adaxg_guest', 'hvac_action') == 'heating' else 0 }}"
+
+  binary_sensor:
+    - name: office_at_home
+      state: > 
+        {% set weekday = now().isoweekday () %}
+        {{ (7 <= now().hour < 16) and (
+           (states('input_boolean.homeoffice_monday') == 'on' and weekday == 1) or
+           (states('input_boolean.homeoffice_tuesday') == 'on' and weekday == 2) or 
+           (states('input_boolean.homeoffice_wednesday') == 'on' and weekday == 3) or 
+           (states('input_boolean.homeoffice_thursday') == 'on' and weekday == 4) or
+           (states('input_boolean.homeoffice_friday') == 'on' and weekday == 5) or
+           (states('input_boolean.homeoffice_weekend') == 'on' and (weekday < 1 or weekday > 5)))
+        }}
 
 sensor:
 - platform: integration
@@ -84,7 +111,7 @@ automation:
     description: ''
     trigger:
     - platform: state
-      entity_id: input_boolean.adax_faoff
+      entity_id: binary_sensor.office_at_home
       id: hjemmekontorvalg
     - platform: time
       at: 07:00
@@ -102,7 +129,7 @@ automation:
     - choose:
       - conditions:
         - condition: state
-          entity_id: input_boolean.adax_faoff
+          entity_id: binary_sensor.office_at_home
           state: 'on'
         - condition: time
           after: 05:00
@@ -116,11 +143,11 @@ automation:
         - condition: numeric_state
           entity_id: climate.adaxg_faoff
           attribute: temperature
-          below: '19'
+          below: '21'
         sequence:
         - service: climate.set_temperature
           data:
-            temperature: 19
+            temperature: 21
           target:
             entity_id: climate.adaxg_faoff
       - conditions:
@@ -131,7 +158,7 @@ automation:
         - condition: or
           conditions:
           - condition: state
-            entity_id: input_boolean.adax_faoff
+            entity_id: binary_sensor.office_at_home
             state: 'off'
           - condition: not
             conditions:
@@ -160,7 +187,7 @@ automation:
     mode: single
 
   - id: '1669366403330'
-    alias: adjust adax temp according to generic thermostat, hva action and analyzer_updown
+    alias: adjust adax temp according to generic thermostat, hvac action and analyzer_updown
     trigger:
       - platform: state
         entity_id: 
