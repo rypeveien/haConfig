@@ -1,3 +1,8 @@
+input_datetime:
+  laundry_start:
+    has_date: false
+    has_time: true
+
 automation:
   - id: '1642107767643'
     alias: Vaskemaskin ferdig
@@ -145,25 +150,42 @@ automation:
     description: 'Ferdig klargjort vaskemaskin settes på '
     trigger:
     - platform: time
-      at: "07:00:00"
-    - platform: time
-      at: "08:00:00"
-    - platform: time
-      at: "15:00:00"
-    condition:
-    - condition: device
-      type: is_off
-      device_id: 20cc6302b62d10aed8b47f36582763e1
-      entity_id: switch.stikk_vaskemaskin
-      domain: switch
-    - condition: template
-      value_template: >
-        {{ now().hour == 8 if now().weekday() == 6 else
-           now().hour == 7 if now().weekday() == 5 else 
-           now().hour == 15 }}
+      at: input_datetime.laundry_start
     action:
-    - type: turn_on
-      device_id: 20cc6302b62d10aed8b47f36582763e1
-      entity_id: switch.stikk_vaskemaskin
-      domain: switch
+    - if:
+      - condition: device
+        type: is_off
+        device_id: 20cc6302b62d10aed8b47f36582763e1
+        entity_id: switch.stikk_vaskemaskin
+        domain: switch
+      then:
+        - type: turn_on
+          device_id: 20cc6302b62d10aed8b47f36582763e1
+          entity_id: switch.stikk_vaskemaskin
+          domain: switch
+    - choose:
+      - conditions:
+        - condition: template
+          value_template: "{{ now().isoweekday() == 5 }}"
+        sequence: 
+        - service: input_datetime.set_datetime
+          data:
+            time: "07:00:00"
+          target:
+            entity_id: input_datetime.laundry_start
+      - conditions:
+        - condition: template
+          value_template: "{{ now().isoweekday() == 6 }}"
+        sequence: 
+        - service: input_datetime.set_datetime
+          data:
+            time: "08:00:00"
+          target:
+            entity_id: input_datetime.laundry_start
+      default:
+        - service: input_datetime.set_datetime
+          data:
+            time: "14:00:00"
+          target:
+            entity_id: input_datetime.laundry_start
     mode: single
