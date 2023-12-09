@@ -69,6 +69,9 @@
         domain: lock
         entity_id: lock.dana_oppe
         type: is_locked
+      - condition: state
+        entity_id: input_boolean.fenrir_pa_besok
+        state: "off"
       sequence:
       - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
         domain: lock
