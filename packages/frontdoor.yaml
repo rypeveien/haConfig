@@ -62,6 +62,9 @@ automation:
         domain: lock
         entity_id: lock.dana_oppe
         type: is_locked
+      - condition: state
+        entity_id: input_boolean.fenrir_pa_besok
+        state: "off"
       - condition: not
         conditions:
           - condition: and
