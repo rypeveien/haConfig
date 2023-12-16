@@ -245,9 +245,10 @@ automation:
             entity_id: input_select.which_car
             state: Gjest
     action:
-      - service: easee.resume
+      - service: easee.action_command
         data:
-          charger_id: EH630897
+          device_id: a20dd2805745c03f8ecfdb606254114c
+          action_command: resume
 
   - id: '1691611803661'
     trace:
@@ -302,9 +303,10 @@ automation:
             entity_id: sensor.easee_current_limit
             below: 7
     action:
-      - service: easee.pause
+      - service: easee.action_command
         data:
-          charger_id: EH630897
+          device_id: a20dd2805745c03f8ecfdb606254114c
+          action_command: pause
       - service: timer.start
         data: {}
         target:
@@ -338,8 +340,8 @@ automation:
       else:
         - service: easee.set_charger_dynamic_limit
           data:
-            charger_id: EH630897
             current: "{{ states('sensor.easee_current_limit') }}"
+            device_id: a20dd2805745c03f8ecfdb606254114c
 
   - id: '1680332588223'
     trace:
@@ -397,9 +399,10 @@ automation:
             entity_id: sensor.easee_home_63089_status
             state: charging
     action:
-      - service: easee.pause
+      - service: easee.action_command
         data:
-          charger_id: EH630897
+          device_id: a20dd2805745c03f8ecfdb606254114c
+          action_command: pause
       - service: timer.start
         target:
           entity_id: timer.charge_without_reason
