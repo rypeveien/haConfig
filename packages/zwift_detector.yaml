@@ -29,7 +29,7 @@ template:
           {% set to_state = trigger.to_state.state|float %}
           {{ 'off' if 2 <= now().hour < 5 else 
              (to_state + 5) > zwift_hum if active == 'on' else 
-             to_state > (zwift_hum + 2) if zwiftlap == 'home' else
+             to_state > (zwift_hum + 1) if zwiftlap == 'home' else
              active }}
 
 automation:
