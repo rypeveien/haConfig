@@ -184,7 +184,8 @@ automation:
                          states('sensor.analyzer_updown')|int }}"
       target:
         entity_id: climate.adax_faoff
-    mode: single
+    mode: queued
+    max: 3
 
   - id: '1669366403330'
     alias: adjust adax temp according to generic thermostat, hvac action and analyzer_updown
