@@ -2,4 +2,12 @@ sensor:
   - platform: entur_public_transport
     stop_ids:
       - NSR:StopPlace:23266
-      - NSR:StopPlace:24051
+      - NSR:StopPlace:23728
+
+template:
+  - sensor:
+    - name: entur_neste_oygaardsdalen
+      state: "{{ state_attr('sensor.entur_oygardsdalen','next_route_id') }}"
+    - name: entur_neste_oddernesbrua
+      state: "{{ state_attr('sensor.entur_oddernesbrua_kjoita_park','next_route_id') }}"
+    
