@@ -231,7 +231,8 @@ automation:
               - condition: or
                 conditions:
                 - condition: numeric_state
-                  entity_id: sensor.soc_estimate
+#                  entity_id: sensor.soc_estimate
+                  entity_id: sensor.polestar_8958_battery_charge_level
                   below: 20
                 - condition: template
                   value_template: >
@@ -265,7 +266,8 @@ automation:
         entity_id: sensor.easee_home_63089_power
         above: 1
       - platform: numeric_state
-        entity_id: sensor.soc_estimate
+#        entity_id: sensor.soc_estimate
+        entity_id: sensor.polestar_8958_battery_charge_level
         above: 20
       - platform: template
         value_template: >
@@ -289,7 +291,8 @@ automation:
                 entity_id: input_select.which_car
                 state: Polestar
               - condition: numeric_state
-                entity_id: sensor.soc_estimate
+                entity_id: sensor.polestar_8958_battery_charge_level
+#                entity_id: sensor.soc_estimate
                 above: 20
               - condition: template
                 value_template: >
