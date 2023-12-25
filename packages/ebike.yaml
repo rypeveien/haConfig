@@ -100,7 +100,7 @@ automation:
       device_id: ccc29c0433b8ca9717c4b89f9cef98b0
       entity_id: sensor.shellyemtb_power
       domain: sensor
-      below: 150
+      below: 100
     condition:
     - condition: device
       type: is_on
