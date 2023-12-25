@@ -9,7 +9,9 @@ template:
         entity_id: sensor.qp_kjellerstue_humidity
     sensor:
       - name: zwift saved humidity 
-        unit_of_measurement: "%"
+        unit_of_measurement: '%'
+        device_class: humidity
+        state_class: measurement
         state: >
           {% set to_state = trigger.to_state.state|float(default=50) %}
           {% set last = states('sensor.zwift_saved_humidity')|float(default=to_state) %}
@@ -19,6 +21,13 @@ template:
              to_state if (zwiftlap == 'home' and active == 'on' and to_state > last) else
              to_state if (zwiftlap == 'home' and active == 'off' and to_state < last) else 
              last }}
+        attributes:
+          before: >
+            {% set to_state = trigger.to_state.state|float(default=50) %}
+            {% set last = state_attr('sensor.zwift_saved_humidity', 'before')|float(default=to_state) %}
+            {% set active = states('binary_sensor.zwift_active') %}
+            {{ to_state if (to_state < last or active != 'on') else 
+               last }}
     binary_sensor:
       - name: zwift_active
         state: >
@@ -27,9 +36,9 @@ template:
           {% set zwiftlap = states('device_tracker.zwiftlap') %}
           {% set trainer = states('switch.shellyrulle') %}
           {% set to_state = trigger.to_state.state|float %}
-          {{ 'off' if 2 <= now().hour < 5 else 
-             (to_state + 5) > zwift_hum if active == 'on' else 
-             to_state > (zwift_hum + 1) if zwiftlap == 'home' else
+          {{ 'on' if (zwiftlap == 'home' and active == 'on' and (zwift_hum - to_state > 10.0)) else 
+             'off' if (zwiftlap != 'home' or (2 <= now().hour < 5) or (zwift_hum - to_state) > 5.0) else 
+             'on' if (zwiftlap == 'home' and (to_state - zwift_hum) > 1.0) else
              active }}
 
 automation:
