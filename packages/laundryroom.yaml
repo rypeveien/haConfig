@@ -48,7 +48,7 @@ automation:
         entity_id: media_player.stue
         message: Vaskemaskinen er ferdig
         language: 'no'
-    - delay: 1
+    - delay: 2
     - wait_template: "{{ is_state('media_player.stue', 'paused') }}"
     - service: media_player.volume_set
       data:
@@ -87,7 +87,7 @@ automation:
           entity_id: media_player.stue
           message: Tørketrommelen er ferdig
           language: 'no'
-      - delay: 1
+      - delay: 2
       - wait_template: "{{ is_state('media_player.stue', 'paused') }}"
       - service: media_player.volume_set
         data:
@@ -130,7 +130,7 @@ automation:
         entity_id: media_player.stue
         message: Unnskyld, men jeg lurer på om sikringen til vaskemaskin og tørketrommel har gått
         language: 'no'
-    - delay: 1
+    - delay: 2
     - wait_template: "{{ is_state('media_player.stue', 'paused') }}"
     - service: media_player.volume_set
       data:
