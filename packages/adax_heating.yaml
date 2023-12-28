@@ -122,7 +122,9 @@ automation:
     - platform: template
       value_template: '{{ now().timestamp() - as_timestamp(states.climate.adax_faoff.last_updated) > (3 * 3600) }}'
       id: lost_connection
-    condition: 
+    condition:
+    - condition: time
+      after: input_datetime.holiday_until
     - condition: template
       value_template: '{{ states.automation.kontortemp.attributes.current == 0 }}'
     action:
