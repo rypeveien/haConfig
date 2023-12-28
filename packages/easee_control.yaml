@@ -154,6 +154,27 @@ template:
            else (availible / ev_steps)|int + 1  }}
 
 automation:
+  - id: '1703798116334'
+    alias: trigger easee_timer
+    trace:
+      stored_traces: 15
+    trigger:
+      - platform: time_pattern
+        minutes: "0"
+      - platform: state
+        entity_id: sensor.easee_home_63089_status
+        from: 'disconnected'
+      - platform: state
+        entity_id: input_select.which_car
+    condition:
+      - condition: state
+        entity_id: timer.easee_timer
+        state: idle
+    action:
+      - service: timer.start
+        target:
+          entity_id: timer.easee_timer
+
   - id: '1691265354404'
     alias: Select car to charge or not
     trace:
@@ -213,33 +234,36 @@ automation:
     trigger: 
       - platform: event
         event_type: timer.finished
-        event_data: 
-          entity_id: timer.easee_time
+        event_data:
+          entity_id: timer.easee_timer
       - platform: numeric_state
         entity_id: sensor.easee_current_limit
         above: 6
       - platform: state
         entity_id: input_select.which_car
-      - platform: template
-        value_template: >
-          {% set hours = states('sensor.ev_charger_hours') %}
-          {% set hours = [] if hours in ('unavailable') else hours|from_json %}
-          {{ hours|length > 0 and hours[0] <= now().hour }}
     condition:
       - condition: numeric_state
         entity_id: sensor.easee_current_limit
-        above: 6
+        below: 1
       - condition: or
-        conditions:
+        conditions: 
+          - condition: numeric_state
+            entity_id: sensor.easee_current_limit
+            above: 6
+          - condition: state
+            entity_id: input_select.which_car
+            state: Ioniq
+          - condition: state
+            entity_id: input_select.which_car
+            state: Gjestelading
           - condition: and
             conditions:
               - condition: state
                 entity_id: input_select.which_car
                 state: Polestar
               - condition: or
-                conditions:
+                conditions: 
                 - condition: numeric_state
-#                  entity_id: sensor.soc_estimate
                   entity_id: sensor.polestar_8958_battery_charge_level
                   below: 20
                 - condition: template
@@ -247,12 +271,6 @@ automation:
                     {% set hours = states('sensor.ev_charger_hours') %}
                     {% set hours = [] if hours in ('unavailable') else hours|from_json %}
                     {{ hours|length > 0 and hours[0] <= now().hour }}
-          - condition: state
-            entity_id: input_select.which_car
-            state: Ioniq
-          - condition: state
-            entity_id: input_select.which_car
-            state: Gjest
     action:
       - service: easee.action_command
         data:
@@ -261,62 +279,48 @@ automation:
       - service: timer.start
         data: {}
         target:
-          entity_id: timer.easee_time
+          entity_id: timer.easee_timer
 
   - id: '1691611803661'
     trace:
       stored_traces: 15
     alias: Pause Easee charger if not set to charge
     trigger: 
-      - platform: state
-        entity_id: sensor.easee_home_63089_status
-        to: charging
+      - platform: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.easee_timer
       - platform: numeric_state
         entity_id: sensor.easee_current_limit
         below: 7
       - platform: numeric_state
-        entity_id: sensor.easee_home_63089_power
-        above: 1
-      - platform: numeric_state
-#        entity_id: sensor.soc_estimate
         entity_id: sensor.polestar_8958_battery_charge_level
         above: 20
-      - platform: template
-        value_template: >
-          {% set hours = states('sensor.ev_charger_hours') %}
-          {% set hours = [now().hour] if hours in ('unavailable') else hours|from_json %}
-          {{ hours|length == 0 or hours[0] > now().hour }}
     condition:
+      - condition: numeric_state
+        entity_id: sensor.easee_home_63089_power
+        above: 1
       - condition: or
-        conditions:
-          - condition: state
-            entity_id: sensor.easee_home_63089_status
-            state: charging
+        conditions: 
           - condition: numeric_state
-            entity_id: sensor.easee_home_63089_power
-            above: 500
-      - condition: or
-        conditions:
+            entity_id: sensor.easee_current_limit
+            below: 7
+          - condition: state
+            entity_id: input_select.which_car
+            state: Ukjent
           - condition: and
             conditions:
               - condition: state
                 entity_id: input_select.which_car
                 state: Polestar
-              - condition: numeric_state
-                entity_id: sensor.polestar_8958_battery_charge_level
-#                entity_id: sensor.soc_estimate
-                above: 20
               - condition: template
                 value_template: >
                   {% set hours = states('sensor.ev_charger_hours') %}
-                  {% set hours = [now().hour] if hours in ('unavailable') else hours |from_json %}
+                  {% set hours = [now().hour] if hours in ('unavailable') else hours|from_json %}
                   {{ hours|length == 0 or hours[0] > now().hour }}
-          - condition: state
-            entity_id: input_select.which_car
-            state: Ukjent
-          - condition: numeric_state
-            entity_id: sensor.easee_current_limit
-            below: 7
+              - condition: numeric_state
+                entity_id: sensor.polestar_8958_battery_charge_level
+                above: 20
     action:
       - service: easee.action_command
         data:
@@ -325,8 +329,7 @@ automation:
       - service: timer.start
         data: {}
         target:
-          entity_id: timer.easee_time
-
+          entity_id: timer.easee_timer
 
   - id: '1657636827656'
     alias: Easee charger throttling
@@ -344,22 +347,13 @@ automation:
         entity_id: sensor.easee_home_63089_status
         state: charging
     action: 
-      - if: 
-          - condition: template
-            value_template: "{{ now().month == 13 }}"
-        then: 
-          - service: notify.persistent_notification
-            data: 
-              title: "Easee ladestrøm"
-              message: Ville satt ladestrøm til {{ states('sensor.easee_current_limit') }}
-        else:
-          - service: easee.set_charger_dynamic_limit
-            data:
-              current: "{{ states('sensor.easee_current_limit') }}"
-              device_id: a20dd2805745c03f8ecfdb606254114c
+      - service: easee.set_charger_dynamic_limit
+        data:
+          current: "{{ states('sensor.easee_current_limit') }}"
+          device_id: a20dd2805745c03f8ecfdb606254114c
       - service: timer.start
         target:
-          entity_id: timer.easee_time
+          entity_id: timer.easee_timer
 
   - id: '1680332588223'
     trace:
@@ -389,16 +383,13 @@ automation:
     condition:
       - condition: numeric_state
         entity_id: input_number.ev_charge_target
-        above: 85
+        above: 80
     action: 
       - service: input_number.set_value
         data: 
-          value: 85
+          value: 80
         target: 
           entity_id: input_number.ev_charge_target
-      - service: timer.start
-        target:
-          entity_id: timer.easee_time
 
   - id: '1695420496433'
     trace:
@@ -409,7 +400,7 @@ automation:
       - platform: event
         event_type: timer.finished
         event_data:
-          entity_id: timer.easee_time
+          entity_id: timer.easee_timer
     condition:
       - condition: numeric_state
         entity_id: sensor.easee_home_63089_power
@@ -430,5 +421,5 @@ automation:
           title: Easeelader @ rypeveien
       - service: timer.start
         target:
-          entity_id: timer.easee_time
+          entity_id: timer.easee_timer
 
