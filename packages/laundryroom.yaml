@@ -5,7 +5,7 @@ input_datetime:
 
 automation:
   - id: '1642107767643'
-    alias: Vaskemaskin ferdig
+    alias: Vaskemaskin er ferdig
     description: ''
     trigger:
     - platform: state
