@@ -3,11 +3,7 @@ template:
       - unique_id: Rypse2_loc
         name: Rypse2 location
         unit_of_measurement: "km"
-        state: "{{ distance(state_attr('sensor.rypse2_battery','lat'), state_attr('sensor.rypse2_battery','lon'))|round(3) }}"
-        attributes: 
-          latitude: "{{ state_attr('sensor.rypse2_battery','lat') }}"
-          longitude: "{{ state_attr('sensor.rypse2_battery','lon') }}"
-        
+        state: "{{ distance(states('sensor.rypse2_lat'), states('sensor.rypse2_lon'))|round(3) }}"
 
 automation:
   - alias: "Update known_soc when Rypse2 updates its soc"
