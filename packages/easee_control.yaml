@@ -1,5 +1,5 @@
 timer:
-  charge_without_reason:
+  easee_timer:
     duration: 00:05:00
     restore: true
 
@@ -172,41 +172,49 @@ automation:
       entity_id: sensor.template_rypse2_loc
       below: 0.01
     action:
-    - service: input_select.select_option
-      data:
-        option: >
-          {% set last = states('input_select.which_car') %}
-          {% set unconnected = is_state ('sensor.easee_home_63089_status', 'disconnected') %}
-          {% set ah_home = is_state('person.amalie_johansen', 'home') %}
-          {% set rp2_connected = is_state('binary_sensor.rypse2_chargeportconnected', 'on') %}
-          {% set rp2_home = states('sensor.template_rypse2_loc') |float(default=10) < 0.01 %}
-          {{ last if not unconnected and last in ['Ioniq', 'Gjest'] else
-              'Polestar' if rp2_home and rp2_connected else
-              last if unconnected else 
-             'Ioniq' if ah_home else
-             'Ukjent'  }}
-      target:
-        entity_id: input_select.which_car
-    - if:
-      - condition: state
-        entity_id: input_select.which_car
-        state: "Ukjent"
-      - condition: not
-        conditions:
-          - condition: state
-            entity_id: sensor.easee_home_63089_status
-            state: disconnected
-      then: 
-        - service: notify.mobile_app_xq_au52
-          data:
-            message: Ser ut som ukjent bil har koblet seg til laderen.
-            title: Easeelader @ rypeveien
+      - service: input_select.select_option
+        data:
+          option: >
+            {% set last = states('input_select.which_car') %}
+            {% set unconnected = is_state ('sensor.easee_home_63089_status', 'disconnected') %}
+            {% set ah_home = is_state('person.amalie_johansen', 'home') %}
+            {% set rp2_connected = is_state('binary_sensor.rypse2_chargeportconnected', 'on') %}
+            {% set rp2_home = states('sensor.template_rypse2_loc') |float(default=10) < 0.01 %}
+            {{ last if not unconnected and last in ['Ioniq', 'Gjest'] else
+                'Polestar' if rp2_home and rp2_connected else
+                last if unconnected else 
+               'Ioniq' if ah_home else
+               'Ukjent'  }}
+        target:
+          entity_id: input_select.which_car
+      - if:
+        - condition: state
+          entity_id: input_select.which_car
+          state: "Ukjent"
+        - condition: not
+          conditions:
+            - condition: state
+              entity_id: sensor.easee_home_63089_status
+              state: disconnected
+        then: 
+          - service: notify.mobile_app_xq_au52
+            data:
+              message: Ser ut som ukjent bil har koblet seg til laderen.
+              title: Easeelader @ rypeveien
+      - service: timer.start
+        data: {}
+        target:
+          entity_id: timer.easee_time
 
   - id: '1691611803561'
     alias: resume Easee charger if set to charge
     trace:
       stored_traces: 15
     trigger: 
+      - platform: event
+        event_type: timer.finished
+        event_data: 
+          entity_id: timer.easee_time
       - platform: numeric_state
         entity_id: sensor.easee_current_limit
         above: 6
@@ -250,6 +258,10 @@ automation:
         data:
           device_id: a20dd2805745c03f8ecfdb606254114c
           action_command: resume
+      - service: timer.start
+        data: {}
+        target:
+          entity_id: timer.easee_time
 
   - id: '1691611803661'
     trace:
@@ -313,7 +325,7 @@ automation:
       - service: timer.start
         data: {}
         target:
-          entity_id: timer.charge_without_reason
+          entity_id: timer.easee_time
 
 
   - id: '1657636827656'
@@ -322,29 +334,32 @@ automation:
       stored_traces: 15
     description: ''
     trigger:
-    - platform: state
-      entity_id: sensor.easee_current_limit
+      - platform: state
+        entity_id: sensor.easee_current_limit
     condition:
-    - condition: numeric_state
-      entity_id: sensor.easee_current_limit
-      above: 6
-    - condition: state
-      entity_id: sensor.easee_home_63089_status
-      state: charging
+      - condition: numeric_state
+        entity_id: sensor.easee_current_limit
+        above: 6
+      - condition: state
+        entity_id: sensor.easee_home_63089_status
+        state: charging
     action: 
-    - if: 
-        - condition: template
-          value_template: "{{ now().month == 13 }}"
-      then: 
-        - service: notify.persistent_notification
-          data: 
-            title: "Easee ladestrøm"
-            message: Ville satt ladestrøm til {{ states('sensor.easee_current_limit') }}
-      else:
-        - service: easee.set_charger_dynamic_limit
-          data:
-            current: "{{ states('sensor.easee_current_limit') }}"
-            device_id: a20dd2805745c03f8ecfdb606254114c
+      - if: 
+          - condition: template
+            value_template: "{{ now().month == 13 }}"
+        then: 
+          - service: notify.persistent_notification
+            data: 
+              title: "Easee ladestrøm"
+              message: Ville satt ladestrøm til {{ states('sensor.easee_current_limit') }}
+        else:
+          - service: easee.set_charger_dynamic_limit
+            data:
+              current: "{{ states('sensor.easee_current_limit') }}"
+              device_id: a20dd2805745c03f8ecfdb606254114c
+      - service: timer.start
+        target:
+          entity_id: timer.easee_time
 
   - id: '1680332588223'
     trace:
@@ -381,6 +396,9 @@ automation:
           value: 85
         target: 
           entity_id: input_number.ev_charge_target
+      - service: timer.start
+        target:
+          entity_id: timer.easee_time
 
   - id: '1695420496433'
     trace:
@@ -391,7 +409,7 @@ automation:
       - platform: event
         event_type: timer.finished
         event_data:
-          entity_id: timer.charge_without_reason
+          entity_id: timer.easee_time
     condition:
       - condition: numeric_state
         entity_id: sensor.easee_home_63089_power
@@ -406,11 +424,11 @@ automation:
         data:
           device_id: a20dd2805745c03f8ecfdb606254114c
           action_command: pause
-      - service: timer.start
-        target:
-          entity_id: timer.charge_without_reason
       - service: notify.mobile_app_xq_au52
         data:
           message: Ser ut som Easee lader uten grunn. Har forsøkt å stoppe det
           title: Easeelader @ rypeveien
+      - service: timer.start
+        target:
+          entity_id: timer.easee_time
 
