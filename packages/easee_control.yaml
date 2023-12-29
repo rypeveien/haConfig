@@ -166,6 +166,8 @@ automation:
         from: 'disconnected'
       - platform: state
         entity_id: input_select.which_car
+      - platform: state
+        entity_id: sensor.ev_charger_hours
     condition:
       - condition: state
         entity_id: timer.easee_timer
