@@ -1,9 +1,23 @@
 template:
   - sensor: 
+      - name: Rypse2 app location
+        unit_of_measurement: "km"
+        state: "{{ distance(state_attr('device_tracker.polestar', 'latitude'), state_attr('device_tracker.polestar', 'longitude')) }}"
+
+  - trigger: 
+    - platform: state
+      entity_id:
+        - sensor.rypse2_lat
+        - sensor.rypse2_lon
+    sensor: 
       - unique_id: Rypse2_loc
         name: Rypse2 location
         unit_of_measurement: "km"
-        state: "{{ distance(states('sensor.rypse2_lat'), states('sensor.rypse2_lon'))|round(3) }}"
+        state: >
+          {% set last = states('sensor.template_rypse2_loc') %}
+          {% set lat = states('sensor.rypse2_lat') %}
+          {% set lon = states('sensor.rypse2_lon') %}
+          {{ last if (lat == 'None' or lon == 'None') else distance(lat, lon)|round(3) }}
 
 automation:
   - alias: "Update known_soc when Rypse2 updates its soc"
