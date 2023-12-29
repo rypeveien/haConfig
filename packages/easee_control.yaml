@@ -149,7 +149,7 @@ template:
         {% set ev_min = states('input_number.ev_min_charge')|int %}
         {% set ev_steps = states('input_number.ev_charge_steps')|int %}
         {{ last if now().minute < 5 
-           else ev_max/ ev_steps if availible > ev_max
+           else (ev_max/ ev_steps)|int(default=16) if availible > ev_max
            else 0 if availible < ev_min 
            else (availible / ev_steps)|int + 1  }}
 
@@ -243,7 +243,7 @@ automation:
         entity_id: input_select.which_car
     condition:
       - condition: numeric_state
-        entity_id: sensor.easee_current_limit
+        entity_id: sensor.easee_home_63089_power
         below: 1
       - condition: or
         conditions: 
@@ -346,6 +346,8 @@ automation:
       - condition: state
         entity_id: sensor.easee_home_63089_status
         state: charging
+      - condition: template
+        value_template: "{{ trigger.from_state.state|int(default=16) != trigger.to_state.state|int(default=16) }}"
     action: 
       - service: easee.set_charger_dynamic_limit
         data:
