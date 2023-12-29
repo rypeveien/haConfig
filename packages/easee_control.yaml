@@ -238,11 +238,11 @@ automation:
       - condition: numeric_state
         entity_id: sensor.easee_home_63089_power
         below: 1
+      - condition: numeric_state
+        entity_id: sensor.easee_current_limit
+        above: 6
       - condition: or
         conditions: 
-          - condition: numeric_state
-            entity_id: sensor.easee_current_limit
-            above: 6
           - condition: state
             entity_id: input_select.which_car
             state: Ioniq
