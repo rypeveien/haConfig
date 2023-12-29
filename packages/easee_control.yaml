@@ -210,22 +210,13 @@ automation:
           entity_id: input_select.which_car
       - if:
         - condition: state
-          entity_id: input_select.which_car
-          state: "Ukjent"
-        - condition: not
-          conditions:
-            - condition: state
-              entity_id: sensor.easee_home_63089_status
-              state: disconnected
-        then: 
-          - service: notify.mobile_app_xq_au52
-            data:
-              message: Ser ut som ukjent bil har koblet seg til laderen.
-              title: Easeelader @ rypeveien
-      - service: timer.start
-        data: {}
-        target:
-          entity_id: timer.easee_time
+          entity_id: timer.easee_timer
+          state: idle
+        then:
+        - service: timer.start
+          data: {}
+          target:
+            entity_id: timer.easee_timer
 
   - id: '1691611803561'
     alias: resume Easee charger if set to charge
@@ -330,6 +321,17 @@ automation:
         data: {}
         target:
           entity_id: timer.easee_timer
+      - if:
+        - condition: state
+          entity_id: input_select.which_car
+          state: "Ukjent"
+        then: 
+          - service: notify.mobile_app_xq_au52
+            data:
+              message: Ser ut som ukjent bil har koblet seg til laderen.
+              title: Easeelader @ rypeveien
+              data:
+                priority: high
 
   - id: '1657636827656'
     alias: Easee charger throttling
