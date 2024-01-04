@@ -1,5 +1,16 @@
+timer:
+  polestar_timer:
+    duration: 24:00:00
+    restore: true
+
 template:
   - sensor: 
+      - name: ps2_soc_age
+        unit_of_measurement: "s"
+        state: "{{ (now().timestamp() - as_timestamp(states('sensor.polestar_8958_last_updated_battery_data')))|int }}"
+      - name: ps2_odo
+        unit_of_measurement: "s"
+        state: "{{ (now().timestamp() - as_timestamp(states('sensor.polestar_8958_last_updated_odometer_data')))|int }}"
       - name: Rypse2 app location
         unit_of_measurement: "km"
         state: "{{ distance(state_attr('device_tracker.polestar', 'latitude'), state_attr('device_tracker.polestar', 'longitude')) }}"
@@ -79,3 +90,27 @@ automation:
           message: Mangler SOC fra Rypse2
           title: Sjekk CSV i Rypse2
     mode: single
+
+automation:
+  - alias: "Reload polestar integration"
+    id: '1704267824190'
+    trigger: 
+      - platform: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.polestar_timer
+      - platform: state
+        entity_id: sensor.polestar_8958_battery_charge_level
+    action: 
+      - if:
+        - condition: state
+          entity_id: timer.polestar_timer
+          state: idle
+        then:
+        - service: homeassistant.reload_config_entry
+          target:
+            device_id: c8f8fb92299461f7daf63e72dfff9a35
+      - service: timer.start
+        data: {}
+        target:
+          entity_id: timer.polestar_timer
