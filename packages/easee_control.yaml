@@ -168,6 +168,9 @@ automation:
         entity_id: input_select.which_car
       - platform: state
         entity_id: sensor.ev_charger_hours
+      - platform: numeric_state
+        entity_id: sensor.easee_home_63089_power
+        above: 1
     condition:
       - condition: state
         entity_id: timer.easee_timer
