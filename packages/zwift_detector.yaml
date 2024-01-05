@@ -43,7 +43,7 @@ template:
 
 automation:
   - id: '1671655275820'
-    alias: 'Set heatpump downstairs hvac mode when zwifting'
+    alias: 'Set fanmode when zwifting'
     trigger:
       - platform: state
         entity_id: binary_sensor.zwift_active
@@ -52,12 +52,6 @@ automation:
         entity_id: switch.shellyrulle
         to: "off"
         id: rulle
-      - platform: numeric_state
-        entity_id: sensor.shellyrulle_power
-        below: 1.5
-        for: 
-          minutes: 45
-        id: power
       - platform: state
         entity_id: light.kjellerstuetak
         to: "off"
@@ -70,49 +64,14 @@ automation:
             entity_id: binary_sensor.zwift_active
             state: "on"
         then:
-          - if:
-              - condition: state
-                entity_id: climate.vp_gnede
-                state: "heat"
-            then:
-              - service: climate.set_hvac_mode
-                data:
-                  hvac_mode: dry
-                target:
-                  entity_id: climate.vpnede
-              - service: climate.set_fan_mode
-                data:
-                  fan_mode: high
-                target:
-                  entity_id: climate.vpnede
           - service: switch.turn_on
             target:
               entity_id: switch.shellybikefan
         else:
           - if:
               - condition: state
-                entity_id: climate.vp_gnede
-                state: "heat"
-              - condition: not
-                conditions:
-                - condition: state
-                  entity_id: climate.vpnede
-                  state: "heat"
-            then:
-              - service: climate.set_hvac_mode
-                data:
-                  hvac_mode: heat
-                target:
-                  entity_id: climate.vpnede
-              - service: climate.set_fan_mode
-                data:
-                  fan_mode: auto
-                target:
-                  entity_id: climate.vpnede
-          - if:
-              - condition: state
                 entity_id: switch.shellyrulle
-                state: "on"
+                state: "onnotoff"
             then:
               - service: switch.turn_off
                 target:
@@ -133,3 +92,22 @@ automation:
               - service: switch.turn_off
                 target:
                   entity_id: switch.shellybikefan
+
+  - id: '1704490413597'
+    alias: 'Turn trainer on or off '
+    trigger:
+      - platform: state
+        entity_id: device_tracker.zwiftlap
+    action:
+      - if: 
+          - condition: state
+            entity_id: device_tracker.zwiftlap
+            state: 'home'
+        then:
+          - service: switch.turn_on
+            target:
+              entity_id: switch.shellyrulle
+        else:
+          - service: switch.turn_off
+            target:
+              entity_id: switch.shellyrulle
