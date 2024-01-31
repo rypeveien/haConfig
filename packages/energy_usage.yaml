@@ -327,8 +327,11 @@ template:
         {% set subsides = states('sensor.energy_subsides')|float %}
         {% set available = state_attr('sensor.aux_heater_hours','power_available') %}
         {% set ev_power = 3500 %}
-        {% set ev_soc = states('sensor.soc_estimate')|float %}
-        {% set ev_soc = states('sensor.polestar_8958_battery_charge_level')|float %}
+        {% set ev_soc_ps = states('sensor.polestar_8958_battery_charge_level')|float(default=50) %}
+        {% set ev_soc_est = states('sensor.soc_estimate')|float(default=50) %}
+        {% set wants_soc = states('binary_sensor.rypse2_wants_soc') == 'on' %}
+        {% set idle = states('timer.polestar') == 'idle' %}
+        {% set ev_soc = ev_soc_est if (wants_soc and idle) else ev_soc_ps %}
         {% set ev_full = states('input_number.ev_battery_pack')|int %}
         {% set ev_efficient = states('input_number.ev_charge_efficiency')|float / 100 %}
         {% if ev_soc < 50 %}
