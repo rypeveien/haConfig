@@ -85,6 +85,14 @@ template:
       state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStartTime') }}"
     - name: easee_basic_schedule_stop
       state: "{{ state_attr('binary_sensor.easee_home_63089_basic_schedule', 'schedule_chargeStopTime') }}"
+    - name: easee_charge_target
+      unit_of_measurement: '%'
+      state: >
+        {% set v = namespace (low=[] ) %}
+        {% for forecast in state_attr('weather.rypeveien','forecast') %}
+        {% set v.low = v.low + [forecast.templow] %}
+        {% endfor %}
+        {{ 90 if v.low|min < -5 else 80 }}
   - binary_sensor:
     - name: wants_to_charge
       state: >
@@ -104,6 +112,7 @@ template:
     sensor:
     - name: soc_estimate
       unit_of_measurement: "%"
+      device_class: battery
       state: >
         {% set last = states('sensor.soc_estimate') %}
         {% set soc = states('sensor.rypse2_soc')|float %}
@@ -204,8 +213,8 @@ automation:
             {% set last = states('input_select.which_car') %}
             {% set unconnected = is_state ('sensor.easee_home_63089_status', 'disconnected') %}
             {% set ah_home = is_state('person.amalie_johansen', 'home') %}
-            {% set rp2_connected = is_state('binary_sensor.rypse2_chargeportconnected', 'on') %}
-            {% set rp2_home = states('sensor.template_rypse2_loc') |float(default=10) < 0.01 %}
+            {% set rp2_connected = is_state('sensor.polestar_8958_charger_connection_status', 'Connected') %}
+            {% set rp2_home = states('sensor.rypse2_saved_dist') |float(default=10) < 0.01 %}
             {{ last if not unconnected and last in ['Ioniq', 'Gjest'] else
                 'Polestar' if rp2_home and rp2_connected else
                 last if unconnected else 
@@ -392,11 +401,11 @@ automation:
     condition:
       - condition: numeric_state
         entity_id: input_number.ev_charge_target
-        above: 80
+        above: sensor.easee_charge_target
     action: 
       - service: input_number.set_value
         data: 
-          value: 80
+          value: "{{ states('sensor.easee_charge_target') }}"
         target: 
           entity_id: input_number.ev_charge_target
 
