@@ -54,14 +54,14 @@
         device_id: 2336ec55a36729c3797ce9e76358ed13
         entity_id: light.kitchen_lights
         domain: light
-        brightness_pct: 95
+        brightness_pct: 100
       - condition: template
         value_template: "{{ states.light.kjokkentak.attributes.brightness|int <= 38 }}"
       - type: turn_on
         device_id: f45a5dd2a00dc6bf817724d7c2b40900
         entity_id: light.kjokkentak
         domain: light
-        brightness_pct: 35
+        brightness_pct: 65
     - conditions:
       - condition: device
         type: is_on
