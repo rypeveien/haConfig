@@ -32,6 +32,16 @@ automation:
     - condition: state
       entity_id: input_boolean.fenrir_pa_besok
       state: "off"
+    - condition: or
+      conditions:
+        - condition: trigger
+          id: 
+          - cleaningtime
+          - done_cleaning
+          - noenkommerhjem
+        - condition: state
+          entity_id: timer.vacuum_timer
+          state: 'idle'
     action:
     - choose:
       - conditions:
@@ -42,7 +52,7 @@ automation:
           - condition: numeric_state
             entity_id: sensor.martin_current_clean_area
             above: 35
-        - then: 
+          then: 
           - service: timer.start
             target:
               entity_id: timer.vacuum_timer
