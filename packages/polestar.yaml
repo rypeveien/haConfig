@@ -1,116 +1,116 @@
 timer:
-  polestar_timer:
-    duration: 24:00:00
+  polestar:
+    duration: 00:30:00
+    restore: true
+  polestar_inhibit:
+    duration: 00:05:00
     restore: true
 
 template:
   - sensor: 
-      - name: ps2_soc_age
-        unit_of_measurement: "s"
-        state: "{{ (now().timestamp() - as_timestamp(states('sensor.polestar_8958_last_updated_battery_data')))|int }}"
-      - name: ps2_odo
-        unit_of_measurement: "s"
-        state: "{{ (now().timestamp() - as_timestamp(states('sensor.polestar_8958_last_updated_odometer_data')))|int }}"
-      - name: Rypse2 app location
+      - name: rypse2_diff_dist
         unit_of_measurement: "km"
-        state: "{{ distance(state_attr('device_tracker.polestar', 'latitude'), state_attr('device_tracker.polestar', 'longitude')) }}"
+        state: >
+          {% set saved = states('sensor.rypse2_saved_dist') %}
+          {% set lat =  state_attr('device_tracker.polestar', 'latitude') %}
+          {% set lon = state_attr('device_tracker.polestar', 'longitude') %}
+          {% set dist = distance(lat, lon) %}
+          {{ 0 if saved in ('unknown', 'Unavailable') else 
+             (dist - saved|float)|abs|round(2) }}
 
   - trigger: 
     - platform: state
       entity_id:
-        - sensor.rypse2_lat
-        - sensor.rypse2_lon
+        - sensor.polestar_8958_battery_charge_level
+        - sensor.polestar_8958_charging_status
+        - sensor.polestar_8958_charger_connection_status
+        - sensor.polestar_8958_current_trip_meter_automatic
     sensor: 
-      - unique_id: Rypse2_loc
-        name: Rypse2 location
+      - name: rypse2_saved_dist
         unit_of_measurement: "km"
         state: >
-          {% set last = states('sensor.template_rypse2_loc') %}
-          {% set lat = states('sensor.rypse2_lat') %}
-          {% set lon = states('sensor.rypse2_lon') %}
-          {{ last if (lat == 'None' or lon == 'None') else distance(lat, lon)|round(3) }}
+          {% set lat =  state_attr('device_tracker.polestar', 'latitude') %}
+          {% set lon = state_attr('device_tracker.polestar', 'longitude') %}
+          {{ distance(lat, lon)|round(2) }}
 
 automation:
-  - alias: "Update known_soc when Rypse2 updates its soc"
-    id: '1681118159227'
-    trigger:
-      - platform: state
-        entity_id: sensor.rypse2_soc
-    action: 
-      - service: input_text.set_value
-        data: 
-          value: >
-            {% set energy = states('sensor.easee_home_63089_session_energy')| int 
-                            if states('sensor.easee_home_63089_status') == 'charging' else 0 %}
-            {{ {'energy': energy, 
-                'soc': states('sensor.rypse2_soc'),
-                'ts': states.sensor.rypse2_soc.last_updated.timestamp()|int }|to_json }}
-        target: 
-          entity_id: input_text.known_soc
-
-  - id: '1682539957676'
-    alias: Rypse2 Notify missing SOC
-    description: Sends message if it looks like CSV in Rypse2 has failed
-    trigger:
-    - platform: template
-      value_template: '{{ (now().timestamp() - states.sensor.rypse2_soc.last_updated.timestamp())|int
-        > 300 }}'
-    condition:
-    - condition: state
-      entity_id: sensor.easee_home_63089_status
-      state: disconnected
-      for:
-        hours: 0
-        minutes: 5
-        seconds: 0
-    - condition: state
-      entity_id: sensor.fa_tracker_activity_detected
-      state: in_vehicle
-      for:
-        hours: 0
-        minutes: 5
-        seconds: 0
-    - condition: template
-      value_template: '{{ (now().timestamp() - states.sensor.template_rypse2_loc.last_updated.timestamp())|int
-        > 120 }}'
-    action:
-    - choose:
-      - conditions:
-        - condition: state
-          entity_id: sensor.fa_tracker
-          state: faa3phone
-        sequence:
-        - service: notify.mobile_app_sm_a320fl
-          data:
-            message: Mangler SOC fra Rypse2
-            title: Sjekk CSV i Rypse2
-      default:
-      - service: notify.mobile_app_xq_au52
-        data:
-          message: Mangler SOC fra Rypse2
-          title: Sjekk CSV i Rypse2
-    mode: single
-
-automation:
-  - alias: "Reload polestar integration"
-    id: '1704267824190'
+  - alias: "Polestar timer integration"
+    id: '1706544994327'
+    trace:
+      stored_traces: 15
     trigger: 
-      - platform: event
-        event_type: timer.finished
-        event_data:
-          entity_id: timer.polestar_timer
       - platform: state
-        entity_id: sensor.polestar_8958_battery_charge_level
+        entity_id:
+          - timer.polestar
+        to: 'idle'
+        id: timer
+      - platform: state
+        entity_id: device_tracker.polestar
+        id: tracker
+      - platform: state
+        entity_id: 
+        - sensor.easee_home_63089_session_energy
+        - sensor.easee_home_63089_status
+        id: easee
+      - platform: state
+        entity_id: 
+        - sensor.polestar_8958_battery_charge_level
+        - sensor.polestar_8958_charger_connection_status
+        - sensor.polestar_8958_charging_status
+        - sensor.polestar_8958_current_trip_meter_automatic
+        id: polestar
     action: 
-      - if:
-        - condition: state
-          entity_id: timer.polestar_timer
-          state: idle
-        then:
-        - service: homeassistant.reload_config_entry
-          target:
-            device_id: c8f8fb92299461f7daf63e72dfff9a35
-      - service: timer.start
-        data: {}
-        target:
-          entity_id: timer.polestar_timer
+      - choose: 
+        - conditions:
+          - condition: trigger
+            id: polestar
+          sequence:
+            - service: timer.start
+              target:
+                entity_id: timer.polestar_inhibit
+            - if: 
+                - condition: state
+                  entity_id: timer.polestar
+                  state: 'active'
+              then: 
+                - service: timer.cancel
+                  target:
+                    entity_id: timer.polestar
+        - conditions:
+          - condition: state
+            entity_id: 
+              - timer.polestar_inhibit
+              - timer.polestar
+            state: 'idle'
+          - condition: or
+            conditions: 
+              - condition: trigger
+                id: easee
+              - condition: and
+                conditions: 
+                  - condition: trigger
+                    id: tracker
+                  - condition: numeric_state
+                    entity_id: sensor.rypse2_diff_dist
+                    above: 0.05
+          sequence:
+            - service: timer.start
+              target:
+                entity_id: timer.polestar
+        - conditions:
+          - condition: trigger
+            id: timer
+          - condition: state
+            entity_id: 
+            - timer.polestar_inhibit
+            - timer.polestar
+            state: 'idle'
+          sequence:
+            - service: notify.mobile_app_xq_au52
+              data:
+                message: Ser ut som vi har mistet kontakten med Polestar_api
+                title: Polestar @ rypeveien
+                data:
+                  priority: high
+    mode: queued
+    max: 3
