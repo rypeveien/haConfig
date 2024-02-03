@@ -65,13 +65,9 @@ automation:
             conditions: 
             - condition: trigger
               id: cleaningtime
-            - condition: template
-              value_template: >
-                {{ states('binary_sensor.anyone_home') == 'off' 
-                   and now().timestamp() - as_timestamp(states.binary_sensor.anyone_home.last_changed) > 1800 }}
-            - condition: template
-              value_template: >
-                  {{ now().timestamp() - as_timestamp(states('input_datetime.vacuum_last_on')) > 86400 }}
+            - condition: state
+              entity_id: binary_sensor.anyone_home
+              state: 'off'
         - condition: or
           conditions:
           - condition: time
@@ -80,9 +76,9 @@ automation:
             weekday:
             - mon
             - fri
-          - condition: template
-            value_template: >
-              {{ now().timestamp() - as_timestamp(states('input_datetime.vacuum_last_on')) > 345600 }}
+          - condition: state
+            entity_id: timer.vacuum_timer
+            state: 'idle'
         - condition: device
           device_id: 22bed80b6a2c686ba9af11178f87dc16
           domain: vacuum
