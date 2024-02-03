@@ -82,6 +82,8 @@ automation:
               - timer.polestar_inhibit
               - timer.polestar
             state: 'idle'
+          - condition: template
+            value_template: "{{ trigger.entity_id != 'sensor.easee_home_63089_session_energy' or states('sensor.easee_home_63089_power')| float > 0 }}"
           - condition: or
             conditions: 
               - condition: trigger
