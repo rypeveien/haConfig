@@ -196,16 +196,12 @@ automation:
     trigger:
     - platform: state
       entity_id: sensor.easee_home_63089_status
-      from: 'disconnected'
     - platform: state
       entity_id: person.amalie_johansen
-      to: 'home'
     - platform: state
-      entity_id: binary_sensor.rypse2_chargeportconnected
-      to: 'on'
-    - platform: numeric_state
-      entity_id: sensor.template_rypse2_loc
-      below: 0.01
+      entity_id: sensor.polestar_8958_charger_connection_status
+    - platform: state
+      entity_id: device_tracker.polestar
     action:
       - service: input_select.select_option
         data:
@@ -214,12 +210,11 @@ automation:
             {% set unconnected = is_state ('sensor.easee_home_63089_status', 'disconnected') %}
             {% set ah_home = is_state('person.amalie_johansen', 'home') %}
             {% set rp2_connected = is_state('sensor.polestar_8958_charger_connection_status', 'Connected') %}
-            {% set rp2_home = states('sensor.rypse2_saved_dist') |float(default=10) < 0.01 %}
-            {{ last if not unconnected and last in ['Ioniq', 'Gjest'] else
-                'Polestar' if rp2_home and rp2_connected else
-                last if unconnected else 
+            {% set rp2_home = states('device_tracker.polestar') == 'home' %}
+            {{ 'Ukjent' if unconnected else 
+               'Polestar' if rp2_connected and rp2_home else 
                'Ioniq' if ah_home else
-               'Ukjent'  }}
+               last }}
         target:
           entity_id: input_select.which_car
       - if:
