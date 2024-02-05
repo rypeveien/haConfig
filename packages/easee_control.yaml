@@ -198,6 +198,9 @@ automation:
       entity_id: sensor.easee_home_63089_status
       to: 'disconnected'
     - platform: state
+      entity_id: sensor.easee_home_63089_status
+      from: 'disconnected'
+    - platform: state
       entity_id: 
         - person.amalie_johansen
         - device_tracker.polestar
