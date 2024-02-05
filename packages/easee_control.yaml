@@ -190,18 +190,21 @@ automation:
           entity_id: timer.easee_timer
 
   - id: '1691265354404'
-    alias: Select car to charge or not
+    alias: Select which car to charge or not
     trace:
       stored_traces: 15
     trigger:
     - platform: state
       entity_id: sensor.easee_home_63089_status
+      to: 'disconnected'
     - platform: state
-      entity_id: person.amalie_johansen
+      entity_id: 
+        - person.amalie_johansen
+        - device_tracker.polestar
+      to: 'home'
     - platform: state
       entity_id: sensor.polestar_8958_charger_connection_status
-    - platform: state
-      entity_id: device_tracker.polestar
+      to: 'Connected'
     action:
       - service: input_select.select_option
         data:
