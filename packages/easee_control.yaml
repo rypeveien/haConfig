@@ -209,20 +209,34 @@ automation:
       entity_id: sensor.polestar_8958_charger_connection_status
       to: 'Connected'
     action:
-      - service: input_select.select_option
-        data:
-          option: >
-            {% set last = states('input_select.which_car') %}
-            {% set unconnected = is_state ('sensor.easee_home_63089_status', 'disconnected') %}
-            {% set ah_home = is_state('person.amalie_johansen', 'home') %}
-            {% set rp2_connected = is_state('sensor.polestar_8958_charger_connection_status', 'Connected') %}
-            {% set rp2_home = states('device_tracker.polestar') == 'home' %}
-            {{ 'Ukjent' if unconnected else 
-               'Polestar' if rp2_connected and rp2_home else 
-               'Ioniq' if ah_home else
-               last }}
-        target:
-          entity_id: input_select.which_car
+      - choose:
+        - conditions:
+          - condition: state
+            entity_id: sensor.easee_home_63089_status
+            state: 'disconnected'
+          sequence:
+          - service: input_select.select_option
+            data:
+              option: 'Ukjent'
+        - conditions:
+          - condition: state
+            entity_id: sensor.polestar_8958_charger_connection_status
+            state: 'Connected'
+          - condition: state
+            entity_id: device_tracker.polestar
+            state: 'home'
+          sequence:
+          - service: input_select.select_option
+            data:
+              option: 'Polestar'
+        - conditions:
+          - condition: state
+            entity_id: person.amalie_johansen
+            state: 'home'
+          sequence:
+          - service: input_select.select_option
+            data:
+              option: 'Ioniq'
       - if:
         - condition: state
           entity_id: timer.easee_timer
