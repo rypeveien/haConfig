@@ -203,7 +203,7 @@ automation:
     - platform: state
       entity_id: 
         - person.amalie_johansen
-        - device_tracker.polestar
+        - device_tracker.polestar_dual
       to: 'home'
     - platform: state
       entity_id: sensor.polestar_8958_charger_connection_status
@@ -216,6 +216,8 @@ automation:
             state: 'disconnected'
           sequence:
           - service: input_select.select_option
+            target: 
+              entity_id: input_select.which_car
             data:
               option: 'Ukjent'
         - conditions:
@@ -223,10 +225,12 @@ automation:
             entity_id: sensor.polestar_8958_charger_connection_status
             state: 'Connected'
           - condition: state
-            entity_id: device_tracker.polestar
+            entity_id: device_tracker.polestar_dual
             state: 'home'
           sequence:
           - service: input_select.select_option
+            target: 
+              entity_id: input_select.which_car
             data:
               option: 'Polestar'
         - conditions:
@@ -235,6 +239,8 @@ automation:
             state: 'home'
           sequence:
           - service: input_select.select_option
+            target: 
+              entity_id: input_select.which_car
             data:
               option: 'Ioniq'
       - if:
@@ -355,7 +361,7 @@ automation:
           entity_id: input_select.which_car
           state: "Ukjent"
         then: 
-          - service: notify.mobile_app_xq_au52
+          - service: notify.mobile_app_pixel_8
             data:
               message: Ser ut som ukjent bil har koblet seg til laderen.
               title: Easeelader @ rypeveien
@@ -448,7 +454,7 @@ automation:
         data:
           device_id: a20dd2805745c03f8ecfdb606254114c
           action_command: pause
-      - service: notify.mobile_app_xq_au52
+      - service: notify.mobile_app_pixel_8
         data:
           message: Ser ut som Easee lader uten grunn. Har forsøkt å stoppe det
           title: Easeelader @ rypeveien
