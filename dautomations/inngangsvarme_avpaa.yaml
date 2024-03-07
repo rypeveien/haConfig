@@ -30,7 +30,7 @@
               state: 'on'
             - condition: device
               type: is_on
-              device_id: d3a181b9d77763be22078fafae7016ce
+              device_id: 5eb0be6709d3772a920cadf4565f3f1b
               entity_id: switch.inngangstikk
               domain: switch
         - condition: and
@@ -40,7 +40,7 @@
               state: 'off'
             - condition: device
               type: is_off
-              device_id: d3a181b9d77763be22078fafae7016ce
+              device_id: 5eb0be6709d3772a920cadf4565f3f1b
               entity_id: switch.inngangstikk
               domain: switch
   action:
@@ -51,12 +51,12 @@
         state: 'on'
       - condition: device
         type: is_on
-        device_id: d3a181b9d77763be22078fafae7016ce
+        device_id: 5eb0be6709d3772a920cadf4565f3f1b
         entity_id: switch.inngangstikk
         domain: switch
       sequence:
       - type: turn_off
-        device_id: d3a181b9d77763be22078fafae7016ce
+        device_id: 5eb0be6709d3772a920cadf4565f3f1b
         entity_id: switch.inngangstikk
         domain: switch
     - conditions:
@@ -65,12 +65,12 @@
         state: 'off'
       - condition: device
         type: is_off
-        device_id: d3a181b9d77763be22078fafae7016ce
+        device_id: 5eb0be6709d3772a920cadf4565f3f1b
         entity_id: switch.inngangstikk
         domain: switch
       sequence:
       - type: turn_on
-        device_id: d3a181b9d77763be22078fafae7016ce
+        device_id: 5eb0be6709d3772a920cadf4565f3f1b
         entity_id: switch.inngangstikk
         domain: switch
     default: []
