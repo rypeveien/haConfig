@@ -193,7 +193,7 @@ automation:
       domain: button
       entity_id: button.shellykjol_reboot
       type: press
-    - service: notify.mobile_app_xq_au52
+    - service: notify.mobile_app_pixel_8
       data:
         message: Overspenning oppdaget p åkjolerom. Har restartet, men sjekk selv om
           det hjelper

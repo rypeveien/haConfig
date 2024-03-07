@@ -77,7 +77,7 @@ automation:
       entity_id: sensor.sykkellader_power
       above: 2
     action:
-    - service: notify.mobile_app_xq_au52
+    - service: notify.mobile_app_pixel_8
       data:
         message: Ser ut som lading nærmer seg ferdig
         title: Sykkellader
@@ -111,7 +111,7 @@ automation:
       entity_id: sensor.shellyemtb_power
       above: 2
     action:
-    - service: notify.mobile_app_xq_au52
+    - service: notify.mobile_app_pixel_8
       data:
         message: Ser ut som lading nærmer seg ferdig
         title: eMTB

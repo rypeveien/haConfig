@@ -50,7 +50,7 @@ automation:
           sequence:
           - service: timer.start
             entity_id: timer.frigate_silencer
-          - service: notify.mobile_app_xq_au52
+          - service: notify.mobile_app_pixel_8
             data_template:
               message: "A {{state_attr('sensor.template_last_frigate_event', 'label')}} was detected."
               data:
@@ -78,7 +78,7 @@ automation:
           sequence:
           - service: timer.start
             entity_id: timer.frigate_silencer
-          - service: notify.mobile_app_xq_au52
+          - service: notify.mobile_app_pixel_8
             data_template:
               message: 'A {{last_frigate.msg}} was detected {{ last_frigate.count }} time(s).'
               data:

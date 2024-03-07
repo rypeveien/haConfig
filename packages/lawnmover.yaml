@@ -45,7 +45,7 @@ automation:
                 entity_id: binary_sensor.mower_on_lawn
                 state: "on"
             sequence:
-              - service: notify.mobile_app_xq_au52
+              - service: notify.mobile_app_pixel_8
                 data:
                   message: mower on lawn
           - conditions:
