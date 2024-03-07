@@ -64,6 +64,11 @@
     - conditions:
       - condition: trigger
         id: Arriving_home
+      - condition: template
+        value_template: >
+          {% set from = as_timestamp(trigger.from_state.last_changed) %}
+          {% set to = as_timestamp(trigger.to_state.last_changed) %}
+          {{ to - from > 600 }}
       - condition: device
         device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
         domain: lock
