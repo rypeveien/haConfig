@@ -24,6 +24,9 @@ rest:
 #   metapiurl: "https://api.met.no/weatherapi/locationforecast/2.0/classic?lat=mylat&lon=mylon"
   - resource: !secret metapiurl
     scan_interval: 1800
+    headers:
+      User-Agent: Home Assistant
+      Content-Type: application/json
     sensor: 
       - name: met api
         value_template: '{{ value_json.weatherdata.meta.model|to_json }}'
