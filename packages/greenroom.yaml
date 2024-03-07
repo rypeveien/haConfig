@@ -1,0 +1,28 @@
+automation:
+  - id: '1707340333317'
+    alias: Slå av plantelys
+    description: ''
+    trigger:
+    - platform: time
+      at: '22:00:00'
+    condition: []
+    action:
+    - type: turn_off
+      device_id: c2cc1440ec5a45d6f56006a438eee0dc
+      entity_id: 93a8e60fbc04e73ff34888fa077fc5df
+      domain: switch
+    mode: single
+  - id: '1707340376307'
+    alias: Slå på plantelys
+    description: ''
+    trigger:
+    - platform: time
+      at: 07:00:00
+    condition: []
+    action:
+    - type: turn_on
+      device_id: c2cc1440ec5a45d6f56006a438eee0dc
+      entity_id: 93a8e60fbc04e73ff34888fa077fc5df
+      domain: switch
+    mode: single
+
