@@ -42,21 +42,20 @@ automation:
     alias: 'Unlock when rypse2 arrive and connects'
     trigger:
       - platform: state
-        entity_id:
-          - binary_sensor.rypse2_chargeportconnected
-        from: "off"
-        to: "on"
+        entity_id: sensor.polestar_8958_charger_connection_status
+        from: "Disconnected"
+        to: "Connected"
       - platform: state
         entity_id:
           - sensor.easee_home_63089_status
         from: disconnected
     condition:
       - condition: state
-        entity_id: binary_sensor.rypse2_arrived_home
-        state: "on"
+        entity_id: device_tracker.polestar_dual
+        state: "home"
       - condition: state
-        entity_id: binary_sensor.rypse2_chargeportconnected
-        state: "on"
+        entity_id: sensor.polestar_8958_charger_connection_status
+        state: "Connected"
       - condition: device
         device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
         domain: lock
