@@ -40,23 +40,3 @@
     default: []
   mode: single
 
-- id: '1658172883286'
-  alias: 'slå av infravarmer'
-  trigger:
-    - platform: state
-      entity_id:
-        - light.hagestue
-      to: 'off'
-  condition:
-    - type: is_on
-      condition: device
-      device_id: 89c8e491871bffad8151dcab1f8809e4
-      entity_id: binary_sensor.infravarmer_hagestue
-      domain: binary_sensor
-  action:
-    - type: turn_off
-      device_id: 89c8e491871bffad8151dcab1f8809e4
-      entity_id: switch.infravarmer_hagestue
-      domain: switch
-
-
