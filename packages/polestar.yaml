@@ -12,8 +12,8 @@ template:
         unit_of_measurement: "km"
         state: >
           {% set saved = states('sensor.rypse2_saved_dist') %}
-          {% set lat =  state_attr('device_tracker.polestar', 'latitude') %}
-          {% set lon = state_attr('device_tracker.polestar', 'longitude') %}
+          {% set lat =  state_attr('device_tracker.polestar_dual', 'latitude') %}
+          {% set lon = state_attr('device_tracker.polestar_dual', 'longitude') %}
           {% set dist = distance(lat, lon) %}
           {{ 0 if saved in ('unknown', 'Unavailable') else 
              (dist - saved|float)|abs|round(2) }}
@@ -29,8 +29,8 @@ template:
       - name: rypse2_saved_dist
         unit_of_measurement: "km"
         state: >
-          {% set lat =  state_attr('device_tracker.polestar', 'latitude') %}
-          {% set lon = state_attr('device_tracker.polestar', 'longitude') %}
+          {% set lat =  state_attr('device_tracker.polestar_dual', 'latitude') %}
+          {% set lon = state_attr('device_tracker.polestar_dual', 'longitude') %}
           {{ distance(lat, lon)|round(2) }}
 
 automation:
@@ -45,7 +45,7 @@ automation:
         to: 'idle'
         id: timer
       - platform: state
-        entity_id: device_tracker.polestar
+        entity_id: device_tracker.polestar_dual
         id: tracker
       - platform: state
         entity_id: 
@@ -108,7 +108,7 @@ automation:
             - timer.polestar
             state: 'idle'
           sequence:
-            - service: notify.mobile_app_xq_au52
+            - service: notify.mobile_app_pixel_8
               data:
                 message: Ser ut som vi har mistet kontakten med Polestar_api
                 title: Polestar @ rypeveien
@@ -116,3 +116,17 @@ automation:
                   priority: high
     mode: queued
     max: 3
+  - alias: "Polestar dual tracker"
+    id: '1709718126123'
+    trigger: 
+      - platform: state
+        entity_id:
+          - device_tracker.polestar
+          - device_tracker.rypse2
+    action: 
+      - service: device_tracker.see
+        data:
+          dev_id: polestar_dual
+          location_name: "{{ trigger.to_state.state }}"
+          gps: "[{{ trigger.to_state.attributes.latitude }}, {{trigger.to_state.attributes.longitude}}]"
+          gps_accuracy: "{{ trigger.to_state.attributes.gps_accuracy }}"
