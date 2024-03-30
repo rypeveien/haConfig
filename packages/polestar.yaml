@@ -17,6 +17,9 @@ template:
           {% set dist = distance(lat, lon) %}
           {{ 0 if saved in ('unknown', 'Unavailable') else 
              (dist - saved|float)|abs|round(2) }}
+  - binary_sensor: 
+      - name: rypse2_charger_connected
+        state: "{{ is_state('sensor.polestar_8958_charger_connection_status', 'Connected') }}"
 
   - trigger: 
     - platform: state
