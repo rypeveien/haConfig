@@ -321,6 +321,8 @@ template:
           {{ var.available }}
     - name: ev_charger_hours
       state: >
+        {% set wd = now().weekday() %}
+        {% set commute = states('input_boolean.commute_by_car') %}
         {% set var = namespace (ev_soc = 0, price = [], ev = [], ev50 = [] ) %}
         {% set energy_price = state_attr('sensor.energy_all_nok_kwh', 'prices') %}
         {% set grid_price = states('sensor.to_grid_today_nok_kwh')|from_json + states('sensor.to_grid_tomorrow_nok_kwh')|from_json %}
@@ -382,8 +384,10 @@ template:
         {%- endfor %}
         {% set var.price = var.price|sort(attribute="price") %}
         {% for i in range(var.price|length) %}
+          {% set hour = var.price[i].hour %}
           {% if var.price[i].hour >= now().hour and
-                var.price[i].hour <= limit  and var.ev_soc < ev_target %}
+                var.price[i].hour <= limit  and var.ev_soc < ev_target and
+                (commute != 'on' or wd > 4 or hour < 7 or hour > 40 or (hour > 16 and (wd > 3 or hour < 31))) %}
             {% set needs = (ev_target - var.ev_soc) / ev_efficient  %}
             {% set uses = ev_power %}
             {% set uses = uses if uses < needs else needs %}

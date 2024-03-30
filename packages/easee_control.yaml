@@ -53,6 +53,8 @@ input_datetime:
 input_boolean:
   charge_by_clock:
     name: Set charge target by a specific time
+  commute_by_car:
+    name: If car is used to daily work commute
 
 input_text: 
   known_soc: 
