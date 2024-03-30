@@ -53,6 +53,11 @@ automation:
             entity_id: sensor.martin_current_clean_area
             above: 35
           then: 
+          - service: timer.cancel
+            target:
+              entity_id: timer.vacuum_timer
+          - delay:
+              minutes: 1
           - service: timer.start
             target:
               entity_id: timer.vacuum_timer
