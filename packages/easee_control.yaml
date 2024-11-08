@@ -292,7 +292,7 @@ automation:
               - condition: or
                 conditions: 
                 - condition: numeric_state
-                  entity_id: sensor.polestar_8958_battery_charge_level
+                  entity_id: sensor.rypse2_soc
                   below: 20
                 - condition: template
                   value_template: >
@@ -322,7 +322,7 @@ automation:
         entity_id: sensor.easee_current_limit
         below: 7
       - platform: numeric_state
-        entity_id: sensor.polestar_8958_battery_charge_level
+        entity_id: sensor.rypse2_soc
         above: 20
     condition:
       - condition: numeric_state
@@ -347,7 +347,7 @@ automation:
                   {% set hours = [now().hour] if hours in ('unavailable') else hours|from_json %}
                   {{ hours|length == 0 or hours[0] > now().hour }}
               - condition: numeric_state
-                entity_id: sensor.polestar_8958_battery_charge_level
+                entity_id: sensor.rypse2_soc
                 above: 20
     action:
       - service: easee.action_command
@@ -363,7 +363,7 @@ automation:
           entity_id: input_select.which_car
           state: "Ukjent"
         then: 
-          - service: notify.mobile_app_pixel_8
+          - service: notify.mobile_app_titophone
             data:
               message: Ser ut som ukjent bil har koblet seg til laderen.
               title: Easeelader @ rypeveien
@@ -456,11 +456,47 @@ automation:
         data:
           device_id: a20dd2805745c03f8ecfdb606254114c
           action_command: pause
-      - service: notify.mobile_app_pixel_8
+      - service: notify.mobile_app_titophone
         data:
           message: Ser ut som Easee lader uten grunn. Har forsøkt å stoppe det
           title: Easeelader @ rypeveien
       - service: timer.start
         target:
           entity_id: timer.easee_timer
+
+
+  - id: '2024060723090'
+    trace:
+      stored_traces: 15
+    alias: Ferdig med å lade nnen bile enn Polestar
+    description: "Polestar is not connected, but car connected stops charging"
+    trigger:
+      - platform: numeric_state
+        entity_id:
+          - sensor.easee_home_63089_power
+        below: 1
+    condition:
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: input_select.which_car
+            state: Polestar
+    action:
+      - delay:
+          hours: 0
+          minutes: 1
+          seconds: 0
+          milliseconds: 0
+      - condition: not
+        conditions:
+        - condition: state
+          entity_id: input_select.which_car
+          state: Polestar
+        - condition: state
+          entity_id: input_select.which_car
+          state: Ukjent
+      - service: notify.mobile_app_titophone
+        data:
+          message: Ser ut som bilen som er koblet til lader er ferdig med å lade
+          title: Easeelader @ rypeveien
 

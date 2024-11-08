@@ -4,10 +4,6 @@ template:
       entity_id: 'sensor.rypse2_battery'
 
     sensor:
-      - name: 'Rypse2 SOC'
-        unit_of_measurement: '%'
-        state: "{{ states('sensor.rypse2_battery') }}"
-        icon : mdi:car-electric
       - name: 'Rypse2 currentPower'
         state: "{{ state_attr('sensor.rypse2_battery', 'power') }}"
         unit_of_measurement: 'kW'

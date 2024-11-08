@@ -329,7 +329,7 @@ template:
         {% set subsides = states('sensor.energy_subsides')|float %}
         {% set available = state_attr('sensor.aux_heater_hours','power_available') %}
         {% set ev_power = 3500 %}
-        {% set ev_soc_ps = states('sensor.polestar_8958_battery_charge_level')|float(default=50) %}
+        {% set ev_soc_ps = states('sensor.rypse2_soc')|float(default=50) %}
         {% set ev_soc_est = states('sensor.soc_estimate')|float(default=50) %}
         {% set wants_soc = states('binary_sensor.rypse2_wants_soc') == 'on' %}
         {% set idle = states('timer.polestar') == 'idle' %}
@@ -367,7 +367,7 @@ template:
         {% set ev_target = states('input_number.ev_charge_target')|int(default=90) %}
         {% if states('input_boolean.charge_by_clock') == 'on' %}
           {% set limit = state_attr('input_datetime.car_ready_charged','hour') %}
-          {% set limit = limit if limit > now().hour else limit + 24 %}
+          {% set limit = limit-1 if limit > now().hour else limit + 23 %}
         {% else %}
           {% set limit = 48 %}
         {% endif %}
@@ -387,7 +387,7 @@ template:
           {% set hour = var.price[i].hour %}
           {% if var.price[i].hour >= now().hour and
                 var.price[i].hour <= limit  and var.ev_soc < ev_target and
-                (commute != 'on' or wd > 4 or hour < 7 or hour > 40 or (hour > 16 and (wd > 3 or hour < 31))) %}
+                (commute != 'on' or wd > 4 or hour < 8 or hour > 39 or (hour > 15 and (wd > 3 or hour < 32))) %}
             {% set needs = (ev_target - var.ev_soc) / ev_efficient  %}
             {% set uses = ev_power %}
             {% set uses = uses if uses < needs else needs %}

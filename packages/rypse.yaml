@@ -1,0 +1,16 @@
+template:
+  - trigger:
+    - platform: state
+      entity_id:
+        - sensor.polestar_8958_battery_charge_level
+        - sensor.rypse2_csv
+    sensor:
+      - name: rypse2_soc
+        unit_of_measurement: "%"
+        icon : mdi:car-electric
+        state: >
+          {% set last = states('sensor.rypse2_csv') %}
+          {{ last if trigger.to_state.state in ('unknown', 'Undefined', 'undefined')
+             else trigger.to_state.state }}
+
+
