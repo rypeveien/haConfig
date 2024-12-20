@@ -1,0 +1,113 @@
+template:
+  - sensor: 
+    - name: weather_warn_wind
+      state: >
+        {% set warn = states('sensor.weather_warn')|from_json %}
+        {% set time = as_local(as_datetime(warn.warn.ts))|string %}
+        {% set time = time[11:16] if warn.warn.ts < now().timestamp() + 86400 else time[0:10] %}
+        {{ time }} {{ warn.warn.wind }} {{ warn.warn.gust }} {{ warn.warn.bearing }}
+    - name: weather_warn_max
+      state: >
+        {% set warn = states('sensor.weather_warn')|from_json %}
+        {% if warn.max.ts > warn.warn.ts %}
+        {% set time = as_local(as_datetime(warn.max.ts))|string %}
+        {% set time = time[11:16] if warn.max.ts < now().timestamp() + 86400 else time[0:10] %}
+        {{ time }} {{ warn.max.wind }} {{ warn.max.bearing }}
+        {% endif %}
+    - name: weather_warn_gust
+      state: >
+        {% set warn = states('sensor.weather_warn')|from_json %}
+        {% if warn.gust.ts > warn.warn.ts %}
+        {% set time = as_local(as_datetime(warn.gust.ts))|string %}
+        {% set time = time[11:16] if warn.gust.ts < now().timestamp() + 86400 else time[0:10] %}
+        {{ time }} {{ warn.gust.gust }} {{ warn.gust.bearing }}
+        {% endif %}
+
+
+  - sensor: 
+    - name: weather_warn
+      state: >
+        {% set r = namespace(j = [], ts = 0) %}
+        {% set wind_limit = 10 %}
+        {% set gust_limit = 16 %}
+        {% set r.j = { 
+                        'warn': { 'ts': 0, 'wind': 0, 'gust': 0, 'bearing': "" }, 
+                        'max': { 'ts': 0, 'wind': 0, 'bearing': "" }, 
+                        'gust': { 'ts': 0, 'gust': 0, 'bearing': "" } 
+                      } %}
+                              
+        {% for forecast in states.sensor.barselkilen_hourly.attributes.forecast %}
+          {%- set bearing = "N" if forecast.wind_bearing < 23 or forecast.wind_bearing > 337
+                       else "NE" if forecast.wind_bearing < 68
+                       else "E" if forecast.wind_bearing < 113
+                       else "SE" if forecast.wind_bearing < 158
+                       else "S" if forecast.wind_bearing < 203
+                       else "SW" if forecast.wind_bearing < 248
+                       else "W" if forecast.wind_bearing < 293
+                       else "NW" %}
+          {% set gust = forecast.wind_gust_speed if forecast.wind_gust_speed is defined else forecast.wind_speed %}
+          {% set r.ts = forecast.datetime|as_timestamp %}
+          {% if forecast.wind_speed > r.j.max.wind and forecast.wind_speed > wind_limit %}
+            {% set r.j = { 
+                            'warn': { 'ts': r.j.warn.ts, 'wind': r.j.warn.wind, 'gust': r.j.warn.gust, 'bearing': r.j.warn.bearing }, 
+                            'max': { 'ts': r.ts, 'wind': forecast.wind_speed, 'bearing': bearing }, 
+                            'gust': { 'ts': r.j.gust.ts, 'gust': r.j.gust.gust, 'bearing': r.j.gust.bearing } 
+                          } %}
+          {% endif %}
+          {% if gust > r.j.gust.gust and gust > gust_limit %}
+            {% set r.j = { 
+                            'warn': { 'ts': r.j.warn.ts, 'wind': r.j.warn.wind, 'gust': r.j.warn.gust, 'bearing': r.j.warn.bearing }, 
+                            'max': { 'ts': r.j.max.ts, 'wind': r.j.max.wind, 'bearing': r.j.max.bearing }, 
+                            'gust': { 'ts': r.ts, 'gust': gust, 'bearing': bearing } 
+                          } %}
+          {% endif %}
+          {% if r.j.warn.ts == 0 and (forecast.wind_speed > wind_limit or gust > gust_limit) %}
+            {% set r.j = { 
+                            'warn': { 'ts': r.ts, 'wind': forecast.wind_speed, 'gust': gust, 'bearing': bearing }, 
+                            'max': { 'ts': r.j.max.ts, 'wind': r.j.max.wind, 'bearing': r.j.max.bearing }, 
+                            'gust': { 'ts': r.j.gust.ts, 'gust': r.j.gust.gust, 'bearing': r.j.gust.bearing } 
+                          } %}
+          {% endif %}
+        {%- endfor %}
+        {% for forecast in states.weather.forecast_barselkilen.attributes.forecast %}
+          {%- set bearing = "N" if forecast.wind_bearing < 23 or forecast.wind_bearing > 337
+                       else "NE" if forecast.wind_bearing < 68
+                       else "E" if forecast.wind_bearing < 113
+                       else "SE" if forecast.wind_bearing < 158
+                       else "S" if forecast.wind_bearing < 203
+                       else "SW" if forecast.wind_bearing < 248
+                       else "W" if forecast.wind_bearing < 293
+                       else "NW" %}
+          {% if r.ts < forecast.datetime|as_timestamp %}
+            {% set gust = forecast.wind_gust_speed if forecast.wind_gust_speed is defined else forecast.wind_speed %}
+            {% set r.ts = forecast.datetime|as_timestamp %}
+            {% if forecast.wind_speed > r.j.max.wind and forecast.wind_speed > wind_limit %}
+              {% set r.j = { 
+                              'warn': { 'ts': r.j.warn.ts, 'wind': r.j.warn.wind, 'gust': r.j.warn.gust, 'bearing': r.j.warn.bearing }, 
+                              'max': { 'ts': r.ts, 'wind': forecast.wind_speed, 'bearing': bearing }, 
+                              'gust': { 'ts': r.j.gust.ts, 'gust': r.j.gust.gust, 'bearing': r.j.gust.bearing } 
+                            } %}
+            {% endif %}
+            {% if gust > r.j.gust.gust and gust > gust_limit %}
+              {% set r.j = { 
+                              'warn': { 'ts': r.j.warn.ts, 'wind': r.j.warn.wind, 'gust': r.j.warn.gust, 'bearing': r.j.warn.bearing }, 
+                              'max': { 'ts': r.j.max.ts, 'wind': r.j.max.wind, 'bearing': r.j.max.bearing }, 
+                              'gust': { 'ts': r.ts, 'gust': gust, 'bearing': bearing } 
+                            } %}
+            {% endif %}
+            {% if r.j.warn.ts == 0 and (forecast.wind_speed > wind_limit or gust > gust_limit) %}
+              {% set r.j = { 
+                              'warn': { 'ts': r.ts, 'wind': forecast.wind_speed, 'gust': gust, 'bearing': bearing }, 
+                              'max': { 'ts': r.j.max.ts, 'wind': r.j.max.wind, 'bearing': r.j.max.bearing }, 
+                              'gust': { 'ts': r.j.gust.ts, 'gust': r.j.gust.gust, 'bearing': r.j.gust.bearing } 
+                            } %}
+            {% endif %}
+          {% endif %}
+        {%- endfor %}
+        {{ r.j|to_json }}
+  - binary_sensor: 
+    - name: weather_warn
+      state: >
+        {% set warn = states('sensor.weather_warn')|from_json %}
+        {{ warn.warn.ts > 0 }}
+
