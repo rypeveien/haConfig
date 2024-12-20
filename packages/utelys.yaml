@@ -1,0 +1,4 @@
+timer:
+  person_outside:
+    duration: 00:15:00
+    restore: true
