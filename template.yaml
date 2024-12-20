@@ -1,9 +1,20 @@
 sensor:
+  - name: wind_direction
+    state: >
+      {% set grades = states('sensor.ws2900_v2_02_02_wind_direction')|float %}
+      {{ 'N' if grades > 337.5 or grades < 22.5 else
+         'NE' if grades < 67.5 else
+         'E' if grades < 112.5 else
+         'SE' if grades < 157.5 else
+         'S' if grades < 202.5 else
+         'SW' if grades < 247.5 else
+         'W' if grades < 292.5 else
+         'NW' }}
   - name: windspeed_ms
-    state: '{{ (states(''sensor.netatmo_vindmaler_wind_strength'')|float / 3.6)|round(1) }}'
+    state: '{{ (states(''sensor.ws2900_v2_02_02_wind_speed'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
   - name: windgust_ms
-    state: '{{ (states(''sensor.netatmo_vindmaler_gust_strength'')|float / 3.6)|round(1) }}'
+    state: '{{ (states(''sensor.ws2900_v2_02_02_wind_gust'')|float / 3.6)|round(1) }}'
     unit_of_measurement: 'm/s'
   - name: howmanyhome
     unit_of_measurement: 'stk'
@@ -12,8 +23,8 @@ sensor:
     unit_of_measurement: '°C'
     state: >
       {% set o = namespace (temp=[]) %} 
-      {% if not states('sensor.netatmo_ute_temperature') in ['unavailable', 'unknown'] %}
-        {% set o.temp = o.temp + [ states('sensor.netatmo_ute_temperature')|float ] %}
+      {% if not states('sensor.ws2900_v2_02_02_outdoor_temperature') in ['unavailable', 'unknown'] %}
+        {% set o.temp = o.temp + [ states('sensor.ws2900_v2_02_02_outdoor_temperature')|float ] %}
       {% endif %}
       {% if not states('sensor.lumi_ute_temperature') in ['unavailable', 'unknown'] %}
         {% set o.temp = o.temp + [ states('sensor.lumi_ute_temperature')|float ] %}
