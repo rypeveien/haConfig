@@ -1,0 +1,62 @@
+template:
+  - sensor: 
+    - name: fan_humidity_limit
+      unit_of_measurement: "%"
+      state: >
+        {{ states('sensor.avg_humidity_aux_bathrom')|int(default=50) + 5 }}
+  - binary_sensor:
+    - name: humidity_above_limit
+      state: "{{ states('sensor.lumi_bad_nede_humidity')|int(default=50) > states('sensor.fan_humidity_limit')|int(default=50) }}"
+      delay_off:
+        minutes: 1
+
+sensor: 
+  - platform: statistics
+    name: "Avg humidity aux bathrom"
+    entity_id: sensor.lumi_bad_nede_humidity
+    state_characteristic: average_linear
+    max_age:
+      hours: 1
+  - platform: statistics
+    name: "Short avg humidity aux bathrom"
+    entity_id: sensor.lumi_bad_nede_humidity
+    state_characteristic: average_linear
+    max_age:
+      minutes: 10
+
+automation: 
+  - id: '1662628125245'
+    alias: Styr vifte bad nede
+    description: ''
+    trigger:
+    - platform: state
+      entity_id: binary_sensor.humidity_above_limit
+      from: "off"
+      to: "on"
+      id: fan_on
+    - platform: state
+      entity_id: binary_sensor.humidity_above_limit
+      from: "on"
+      to: "off"
+      id: fan_off
+    condition: []
+    action:
+    - choose:
+      - conditions:
+        - condition: trigger
+          id: fan_on
+        sequence:
+        - type: turn_on
+          device_id: 485562750d88f6818a0405dda7176d43
+          entity_id: switch.shellyfan
+          domain: switch
+      - conditions:
+        - condition: trigger
+          id: fan_off
+        sequence:
+        - type: turn_off
+          device_id: 485562750d88f6818a0405dda7176d43
+          entity_id: switch.shellyfan
+          domain: switch
+      default: []
+    mode: single

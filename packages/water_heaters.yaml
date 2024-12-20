@@ -98,7 +98,7 @@ template:
       - name: vvtank_power_when_on
         unit_of_measurement: "W"
         state: >
-          {% set last = states('sensor.vvtank_power_when_on') %}
+          {% set last = states('sensor.vvtank_power_when_on')|int(default=3000) %}
           {% set last = last if last > 2500 else 3000 %}
           {% set current = states('sensor.vv_tank_power')|int(default=3000) %}
           {{ last if current < 2500 else current }}
@@ -108,6 +108,7 @@ template:
     sensor: 
       - name: vvtank_ut_reference
         unit_of_measurement: "°C"
+        device_class: temperature
         state: >
           {% set last = states('sensor.vvtank_ut_reference') %}
           {% set from = trigger.from_state.state %}
@@ -124,7 +125,7 @@ template:
           {% set to = trigger.to_state.state %}
           {{ last if (from in ['unavailable'] or to in ['unavailable']) else
              "off" if (to|float + 0.2) < from|float else
-             "on" if to|float > (from|float + 1) else last }}
+             "on" if to|float > (from|float + 5) else last }}
   - trigger:
       - platform: state
         entity_id: sensor.stikk_vv_kjeller_power
@@ -157,7 +158,7 @@ template:
           {% set to = trigger.to_state.state %}
           {{ last if (from in ['unavailable'] or to in ['unavailable']) else
              "off" if (to|float + 0.2) < from|float else 
-             "on" if to|float > (from|float + 1) else last }}
+             "on" if to|float > (from|float + 5) else last }}
 
 utility_meter:
   vvtank_cycle:
@@ -341,7 +342,7 @@ automation:
       value_template: >
         {{ states('sensor.lowest_humidity_at_bathrom_downstairs_last_15_minutes') != 'unknown'
            and states('sensor.lumi_bad_nede_humidity')|int(default=50) > 
-           states('sensor.lowest_humidity_at_bathrom_downstairs_last_15_minutes')|int(default=50) + 15 }}
+           states('sensor.lowest_humidity_at_bathrom_downstairs_last_15_minutes')|int(default=50) + 5 }}
       id: humidity_downstairs_high
     - platform: state
       entity_id: binary_sensor.vvkjeller_on
@@ -449,8 +450,11 @@ automation:
         minutes: "/1"
     condition:
       - condition: state
-        entity_id: binary_sensor.vvaux_usage
+        entity_id: binary_sensor.humidity_above_limit
         state: "on"
+      - condition: template
+        value_template: >
+          {{ states('sensor.lumi_bad_nede_humidity')|float(default=50) > states('sensor.short_avg_humidity_aux_bathrom')|float(default=50) }}
     action:
       - service: counter.increment
         target: 
