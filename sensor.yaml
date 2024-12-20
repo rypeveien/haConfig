@@ -5,12 +5,6 @@
   - filter: lowpass
     precision: 0
 - platform: statistics
-  name: "lowest humidity at bathrom last 15 minutes "
-  entity_id: sensor.lumi_bad_humidity
-  state_characteristic: value_min
-  max_age:
-    minutes: 15
-- platform: statistics
   name: "lowest humidity at bathrom downstairs last 15 minutes "
   entity_id: sensor.lumi_bad_nede_humidity
   state_characteristic: value_min
