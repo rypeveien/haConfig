@@ -1,0 +1,47 @@
+template:
+  - trigger:
+      - platform: time_pattern
+        hours: /1
+      - platform: homeassistant
+        event: start
+    action:
+      - service: weather.get_forecasts
+        data:
+          type: hourly
+        target:
+          entity_id: weather.forecast_barselkilen
+          entity_id: weather.forecast_hasseltangen
+        response_variable: hourly
+    sensor:
+      - name: Barselkilen Hourly
+        state: "{{ states('weather.forecast_barselkilen') }}"
+        attributes:
+          temperature: "{{ state_attr('weather.forecast_barselkilen', 'temperature') }}"
+          dew_point: "{{ state_attr('weather.forecast_barselkilen', 'dew_point') }}"
+          temperature_unit: "{{ state_attr('weather.forecast_barselkilen', 'temperature_unit') }}"
+          humidity: "{{ state_attr('weather.forecast_barselkilen', 'humidity') }}"
+          cloud_coverage: "{{ state_attr('weather.forecast_barselkilen', 'cloud_coverage') }}"
+          pressure: "{{ state_attr('weather.forecast_barselkilen', 'pressure') }}"
+          pressure_unit: "{{ state_attr('weather.forecast_barselkilen', 'pressure_unit') }}"
+          wind_bearing: "{{ state_attr('weather.forecast_barselkilen', 'wind_bearing') }}"
+          wind_speed: "{{ state_attr('weather.forecast_barselkilen', 'wind_speed') }}"
+          wind_speed_unit: "{{ state_attr('weather.forecast_barselkilen', 'wind_speed_unit') }}"
+          visibility_unit: "{{ state_attr('weather.forecast_barselkilen', 'visibility_unit') }}"
+          precipitation_unit: "{{ state_attr('weather.forecast_barselkilen', 'precipitation_unit') }}"
+          forecast: "{{ hourly['weather.forecast_barselkilen'].forecast }}"
+      - name: Hasseltangen Hourly
+        state: "{{ states('weather.forecast_hasseltangen') }}"
+        attributes:
+          temperature: "{{ state_attr('weather.forecast_hasseltangen', 'temperature') }}"
+          dew_point: "{{ state_attr('weather.forecast_hasseltangen', 'dew_point') }}"
+          temperature_unit: "{{ state_attr('weather.forecast_hasseltangen', 'temperature_unit') }}"
+          humidity: "{{ state_attr('weather.forecast_hasseltangen', 'humidity') }}"
+          cloud_coverage: "{{ state_attr('weather.forecast_hasseltangen', 'cloud_coverage') }}"
+          pressure: "{{ state_attr('weather.forecast_hasseltangen', 'pressure') }}"
+          pressure_unit: "{{ state_attr('weather.forecast_hasseltangen', 'pressure_unit') }}"
+          wind_bearing: "{{ state_attr('weather.forecast_hasseltangen', 'wind_bearing') }}"
+          wind_speed: "{{ state_attr('weather.forecast_hasseltangen', 'wind_speed') }}"
+          wind_speed_unit: "{{ state_attr('weather.forecast_hasseltangen', 'wind_speed_unit') }}"
+          visibility_unit: "{{ state_attr('weather.forecast_hasseltangen', 'visibility_unit') }}"
+          precipitation_unit: "{{ state_attr('weather.forecast_hasseltangen', 'precipitation_unit') }}"
+          forecast: "{{ hourly['weather.forecast_hasseltangen'].forecast }}"
