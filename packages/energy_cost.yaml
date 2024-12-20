@@ -215,28 +215,22 @@ template:
     - name: energy_raw_nok_kwh
       unit_of_measurement: 'NOK/kWh'
       state: >
-        {% set tibber = states('input_text.tibber_today') %}
         {% set nordpool = states('sensor.nordpool_today') %}
-        {% set prices = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else 'unknown' %}  
+        {% set prices = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else 'unknown' %}  
         {{ prices[now().hour] if prices != 'unknown' else 'unknown' }}
     - name: energy_subsides_nok_kwh
       unit_of_measurement: 'NOK/kWh'
       state: >
-        {% set tibber = states('input_text.tibber_today') %}
         {% set nordpool = states('sensor.nordpool_today') %}
-        {% set prices = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else 'unknown' %}  
+        {% set prices = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else 'unknown' %}  
         {{ 'unknown' if prices == 'unknown' else 
             0 if prices[now().hour] <= 0.7 else 
             ((prices[now().hour] - 0.7) * 0.9 * 1.25)|round(4) }}
     - name: energy_today_nok_kwh
       state: >
         {% set prices = namespace(list=[]) %}
-        {% set tibber = states('input_text.tibber_today') %}
         {% set nordpool = states('sensor.nordpool_today') %}
-        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% set priceInfo = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
           {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + state_attr('sensor.template_grid_charge', 'prices')[i]|float)|round(3)] %}
         {% endfor %}
@@ -244,10 +238,8 @@ template:
     - name: subsides_today_nok_kwh
       state: >
         {% set subsides = namespace(list=[]) %}
-        {% set tibber = states('input_text.tibber_today') %}
         {% set nordpool = states('sensor.nordpool_today') %}
-        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% set priceInfo = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
           {% set subsides.list = subsides.list + [0 if priceInfo[i] <= 0.7 else ((priceInfo[i] - 0.7) * 0.9 * 1.25)|round(4)] %}
         {% endfor %}
@@ -255,10 +247,8 @@ template:
     - name: to_grid_today_nok_kwh
       state: >
         {% set prices = namespace(list=[]) %}
-        {% set tibber = states('input_text.tibber_today') %}
         {% set nordpool = states('sensor.nordpool_today') %}
-        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% set priceInfo = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
           {% set prices.list = prices.list + [(priceInfo[i] + 0.04)|round(3)] %}
         {% endfor %}
@@ -267,10 +257,8 @@ template:
       unit_of_measurement: "NOK/kWh"
       state: >
         {% set prices = namespace(sum=0) %}
-        {% set tibber = states('input_text.tibber_today') %}
         {% set nordpool = states('sensor.nordpool_today') %}
-        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% set priceInfo = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
           {% set prices.sum = prices.sum + priceInfo[i] %}
         {% endfor %}
@@ -281,10 +269,8 @@ template:
       unit_of_measurement: "NOK/kWh"
       state: >
         {% set prices = namespace(sum=0) %}
-        {% set tibber = states('input_text.tibber_today') %}
         {% set nordpool = states('sensor.nordpool_today') %}
-        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% set priceInfo = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
           {% set prices.sum = prices.sum + (priceInfo[i] * 1.25 + 0.01 + state_attr('sensor.template_grid_charge', 'prices')[i]|float)|round(3) %}
         {% endfor %}
@@ -292,10 +278,8 @@ template:
     - name: energy_tomorrow_nok_kwh
       state: >
         {% set prices = namespace(list=[]) %}
-        {% set tibber = states('input_text.tibber_tomorrow') %}
         {% set nordpool = states('sensor.nordpool_tomorrow') %}
-        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% set priceInfo = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
           {% set prices.list = prices.list + [(priceInfo[i] * 1.25 + 0.01 + state_attr('sensor.template_grid_charge', 'prices')[i+24]|float)|round(3)] %}
         {% endfor %}
@@ -303,10 +287,8 @@ template:
     - name: subsides_tomorrow_nok_kwh
       state: >
         {% set subsides = namespace(list=[]) %}
-        {% set tibber = states('input_text.tibber_tomorrow') %}
         {% set nordpool = states('sensor.nordpool_tomorrow') %}
-        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% set priceInfo = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
           {% set subsides.list = subsides.list + [0 if priceInfo[i] <= 0.7 else ((priceInfo[i] - 0.7) * 0.9 * 1.25)|round(4)] %}
         {% endfor %}
@@ -314,10 +296,8 @@ template:
     - name: to_grid_tomorrow_nok_kwh
       state: >
         {% set prices = namespace(list=[]) %}
-        {% set tibber = states('input_text.tibber_tomorrow') %}
         {% set nordpool = states('sensor.nordpool_tomorrow') %}
-        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% set priceInfo = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
           {% set prices.list = prices.list + [(priceInfo[i] + 0.04)|round(3)] %}
         {% endfor %}
@@ -326,10 +306,8 @@ template:
       unit_of_measurement: "NOK/kWh"
       state: >
         {% set prices = namespace(sum=0) %}
-        {% set tibber = states('input_text.tibber_tomorrow') %}
         {% set nordpool = states('sensor.nordpool_tomorrow') %}
-        {% set priceInfo = tibber|from_json if tibber not in ['unknown', 'unavailible', '[]'] else 
-                nordpool|from_json if nordpool not in ['unknown', 'unavailible', '[]'] else [] %}  
+        {% set priceInfo = nordpool|from_json if nordpool not in ['unknown', 'unavailable', '[]'] else [] %}  
         {% for i in range(priceInfo|length) %}
           {% set prices.sum = prices.sum + (priceInfo[i] * 1.25 + 0.01 + state_attr('sensor.template_grid_charge', 'prices')[i+24]|float)|round(3) %}
         {% endfor %}
