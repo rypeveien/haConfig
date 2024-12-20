@@ -1,0 +1,157 @@
+timer:
+  doorlock:
+    duration: 00:15:00
+    restore: true
+    
+automation: 
+  - id: '1711837184499'
+    alias: Dont unlock right after locked
+    trigger: 
+      - platform: state
+        entity_id: lock.dana_oppe
+        to: locked
+    action:
+      - service: timer.start
+        target: 
+          entity_id: timer.doorlock
+
+  - id: '1711838376441'
+    alias: Lock the door
+    trigger: 
+    - platform: state
+      entity_id: binary_sensor.anyone_home
+      to: 'off'
+      for:
+        hours: 0
+        minutes: 10
+        seconds: 0
+    condition:
+      - condition: device
+        device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: b8a45703c54119f3a4f179933900693b
+        type: is_unlocked
+    action:
+      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        domain: lock
+        entity_id: b8a45703c54119f3a4f179933900693b
+        type: lock
+
+  - id: '1645896719736'
+    alias: Dørlåsen
+    description: ''
+    trigger:
+    - platform: state
+      entity_id: binary_sensor.inngangsdor_door_window
+      to: 'off'
+      for:
+        hours: 0
+        minutes: 10
+        seconds: 0
+      id: doorclosed
+    - platform: state
+      entity_id: 
+        - person.amalie_johansen
+        - person.vibeke_johansen
+        - person.thomas_johansen
+        - person.fredrik_johansen
+        - person.finn_arne_johansen
+        - person.torkel_hamre
+      from: not_home
+      to: home
+      id: Arriving_home
+    - platform: device
+      device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+      domain: lock
+      entity_id: lock.dana_oppe
+      type: unlocked
+      for:
+        hours: 0
+        minutes: 5
+        seconds: 0
+      id: has_unlocked
+    condition: 
+    - condition: state
+      entity_id: timer.doorlock
+      state: idle
+    - condition: template
+      value_template: '{{ states.automation.dorlasen.attributes.current == 0 }}'
+    - condition: template
+      value_template: >
+        {{ states('lock.dana_oppe') == 'unlocked' or 
+           now() - states.lock.dana_oppe.last_changed > timedelta(minutes=10) }}
+    action:
+    - choose:
+      - conditions:
+        - condition: device
+          device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+          domain: lock
+          entity_id: lock.dana_oppe
+          type: is_unlocked
+        - condition: trigger
+          id: Everyone left
+        sequence:
+        - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+          domain: lock
+          entity_id: lock.dana_oppe
+          type: lock
+      - conditions:
+        - condition: trigger
+          id: Arriving_home
+        - condition: template
+          value_template: >
+            {% set from = as_timestamp(trigger.from_state.last_changed) %}
+            {% set to = as_timestamp(trigger.to_state.last_changed) %}
+            {{ to - from > 600 }}
+        - type: is_not_open
+          condition: device
+          device_id: 6bc64238a27390d5438678e684f642e6
+          entity_id: f64a8864aa6e44b6aba6bc2517bc5f5a
+          domain: binary_sensor
+        - condition: device
+          device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+          domain: lock
+          entity_id: lock.dana_oppe
+          type: is_locked
+        - condition: state
+          entity_id: input_boolean.fenrir_pa_besok
+          state: "off"
+        sequence:
+        - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+          domain: lock
+          entity_id: lock.dana_oppe
+          type: unlock
+      - conditions:
+        - condition: trigger
+          id: has_unlocked
+        - condition: template
+          value_template: '{{ states.lock.dana_oppe.last_changed > states.binary_sensor.inngangsdor_door_window.last_changed }}'
+        - condition: template
+          value_template: '{{ states.binary_sensor.inngangsdor_door_window.state == ''off'' }}'
+        - condition: template
+          value_template: "{{ states('sensor.inngangsdor_battery_level')|float > 0 }}"
+        sequence:
+        - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+          domain: lock
+          entity_id: lock.dana_oppe
+          type: lock
+      - conditions:
+        - condition: trigger
+          id: doorclosed
+        - condition: time
+          after: '21:30:00'
+        sequence:
+        - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+          domain: lock
+          entity_id: lock.dana_oppe
+          type: lock
+      default: []
+    - if:
+        - condition: template
+          value_template: "{{ now().timestamp() - as_timestamp(states.sensor.dana_oppe_battery_level.last_updated) > 86400 }}"
+      then:
+        - service: zwave_js.refresh_value
+          data:
+            entity_id:
+              - sensor.dana_oppe_battery_level
+    mode: single
