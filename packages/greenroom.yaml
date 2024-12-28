@@ -4,7 +4,7 @@ automation:
     description: ''
     trigger:
     - platform: time
-      at: '22:00:00'
+      at: '18:00:00'
     condition: []
     action:
     - type: turn_off
@@ -17,7 +17,7 @@ automation:
     description: ''
     trigger:
     - platform: time
-      at: 07:00:00
+      at: '10:00:00'
     condition: []
     action:
     - type: turn_on
