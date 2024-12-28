@@ -1,96 +1,4 @@
-template:
-  - binary_sensor:
-    - name: on_bike
-      state: "{{ states('sensor.titophone_detected_activity') == 'on_bicycle' }}"
-      delay_on:
-        minutes: 45
-      delay_off:
-        minutes: 45
-
-  - trigger: 
-      - platform: state
-        entity_id: sensor.titophone_wifi_connection
-    sensor:
-      - name: last_wifi
-        state: >
-          {% set last = states('sensor.last_wifi') %}
-          {{ last if trigger.to_state.state in ('<not connected>', 'unknown', 'unavailable') 
-             else trigger.to_state.state[:7] }}
-
-  - trigger: 
-      - platform: state
-        entity_id: binary_sensor.on_bike
-      - platform: numeric_state
-        entity_id: sensor.sykkellader_power
-        above: 10
-      - platform: numeric_state
-        entity_id: sensor.sykkellader_power
-        below: 5
-      - platform: state
-        entity_id: sensor.last_wifi
-    sensor:
-      - name: e_ride
-        state: >
-          {% set wifi = states('sensor.last_wifi') %}
-          {% set on_bike = states('binary_sensor.on_bike') %}
-          {% set last = states('sensor.e_ride') %}
-          {% set power = states('sensor.sykkellader_power') | int(default=0) %}
-          {{ 'charging' if (power >= 10) else
-             'off' if (last == 'charging') else
-             'to_work' if (wifi == 'ProFund' and last == 'from_home') else
-             'charge' if (wifi == 'BzzWare' and last in ('to_work', 'from_work')) else
-             'from_home' if (wifi == 'BzzWare' and last == 'off' and on_bike == 'on') else
-             'from_work' if (wifi == 'ProFund' and on_bike == 'on') else
-             'off' if (on_bike == 'false') else
-             last }}
-
 automation:
-  - id: '1684539693604'
-    alias: ebike bike charger trigger
-    trigger:
-    - platform: state
-      entity_id: sensor.e_ride
-      to: 'charge'
-    action:
-    - type: turn_on
-      device_id: c2cc1440ec5a45d6f56006a438eee0dc
-      entity_id: switch.sykkellader
-      domain: switch
-
-  - id: '1683654356245'
-    alias: Sykkel ferdig ladet
-    description: ''
-    trigger:
-    - type: power
-      platform: device
-      device_id: c2cc1440ec5a45d6f56006a438eee0dc
-      entity_id: sensor.sykkellader_power
-      domain: sensor
-      below: 60
-    condition:
-    - condition: device
-      type: is_on
-      device_id: c2cc1440ec5a45d6f56006a438eee0dc
-      entity_id: switch.sykkellader
-      domain: switch
-    - condition: numeric_state
-      entity_id: sensor.sykkellader_power
-      above: 2
-    action:
-    - service: notify.mobile_app_pixel_8
-      data:
-        message: Ser ut som lading nærmer seg ferdig
-        title: Sykkellader
-        data:
-          ttl: 0
-          priority: high
-    - type: turn_off
-      device_id: c2cc1440ec5a45d6f56006a438eee0dc
-      entity_id: switch.sykkellader
-      domain: switch
-      enabled: true
-    mode: single
-
   - id: '1683654356246'
     alias: eMTB ferdig ladet
     description: ''
@@ -111,7 +19,7 @@ automation:
       entity_id: sensor.shellyemtb_power
       above: 2
     action:
-    - service: notify.mobile_app_pixel_8
+    - service: notify.mobile_app_titophone
       data:
         message: Ser ut som lading nærmer seg ferdig
         title: eMTB
