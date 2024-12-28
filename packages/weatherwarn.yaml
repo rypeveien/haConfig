@@ -111,3 +111,27 @@ template:
         {% set warn = states('sensor.weather_warn')|from_json %}
         {{ warn.warn.ts > 0 }}
 
+automation:
+  - id: '1724667503437'
+    alias: Varsle om det kommer mye vind
+    description: ''
+    trigger:
+    - platform: state
+      entity_id:
+      - binary_sensor.weather_warn
+      to: 'on'
+    - platform: template
+      value_template: '{% set ts = (states(''sensor.weather_warn'') | from_json).warn.ts
+        %}
+
+        {{ ts > 0 and ts < now().timestamp() + 84600  }}'
+    condition: []
+    action:
+    - service: notify.mobile_app_titophone
+      data:
+        message: '{{ states(''sensor.weather_warn_wind'')}}
+
+          '
+        title: Varsel om mye vind
+    mode: single
+
