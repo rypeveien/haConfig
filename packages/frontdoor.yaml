@@ -42,20 +42,22 @@ automation:
     alias: 'Unlock when rypse2 arrive and connects'
     trigger:
       - platform: state
-        entity_id: sensor.polestar_8958_charger_connection_status
-        from: "Disconnected"
-        to: "Connected"
-      - platform: state
-        entity_id:
-          - sensor.easee_home_63089_status
-        from: disconnected
+        entity_id: binary_sensor.rypse2_connected
+        from: "off"
+        to: "on"
     condition:
+      - condition: state
+        entity_id: binary_sensor.rypse2_connected
+        state: "on"
+      - condition: state
+        entity_id: timer.doorlock
+        state: idle
       - condition: state
         entity_id: device_tracker.polestar_dual
         state: "home"
       - condition: state
-        entity_id: sensor.polestar_8958_charger_connection_status
-        state: "Connected"
+        entity_id: timer.rypse2_home
+        state: active
       - condition: device
         device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
         domain: lock
@@ -64,19 +66,11 @@ automation:
       - condition: state
         entity_id: input_boolean.fenrir_pa_besok
         state: "off"
-      - condition: not
-        conditions:
-          - condition: and
-            conditions:
-              - condition: state
-                entity_id: sensor.easee_home_63089_status
-                state: disconnected
-              - condition: state
-                entity_id: sensor.easee_home_63089_status
-                state: unavailable
-              - condition: state
-                entity_id: sensor.easee_home_63089_status
-                state: unknown
+      - type: is_not_open
+        condition: device
+        device_id: 6bc64238a27390d5438678e684f642e6
+        entity_id: f64a8864aa6e44b6aba6bc2517bc5f5a
+        domain: binary_sensor
     action:
       - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
         domain: lock
