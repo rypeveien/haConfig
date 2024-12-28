@@ -1,16 +1,116 @@
+timer:
+  rypse2_home:
+    duration: 00:05:00
+    restore: true
+
 template:
   - trigger:
     - platform: state
       entity_id:
         - sensor.polestar_8958_battery_charge_level
         - sensor.rypse2_csv
+        - sensor.easee_home_63089_session_energy
     sensor:
       - name: rypse2_soc
         unit_of_measurement: "%"
         icon : mdi:car-electric
         state: >
-          {% set last = states('sensor.rypse2_csv') %}
-          {{ last if trigger.to_state.state in ('unknown', 'Undefined', 'undefined')
-             else trigger.to_state.state }}
+          {% set last = states('sensor.rypse2_soc')|int(default=50) %}
+          {% if trigger.entity_id == 'sensor.easee_home_63089_session_energy' and
+                states('input_select.which_car') == 'Polestar' %}
+            {% set last_charger = state_attr('sensor.rypse2_soc', 'charger_energy')|float(default=0) %}
+            {% set last = state_attr('sensor.rypse2_soc', 'battery_energy')|int(default=50) %}
+            {% set battery_max = 69 %}
+            {% set efficiency = 0.95 %}
+            {% set last_battery = 69 * last / 100 %}
+            {% set added_energy = states('sensor.easee_home_63089_session_energy')|float - last_charger * efficiency %}
+            {{ ((last_battery + added_energy) * 100 / battery_max)|int }}
+          {% else %}
+            {{ last if trigger.to_state.state in ('unknown', 'Undefined', 'undefined')
+                 or trigger.to_state.state|int(default=80) == state_attr('sensor.rypse2_soc','battery_energy')|int(default=50) 
+                 or trigger.to_state.state|int(default=80) == 0 and trigger.from_state.state|int(default=0) > 10
+               else trigger.to_state.state if trigger.entity_id != 'sensor.easee_home_63089_session_energy'
+               else last }}
+          {% endif %}
+        attributes:
+          friendly_name: Rypse2 SOC
+          charger_energy: >
+            {% set last = state_attr('sensor.rypse2_soc', 'charger_energy')|float(default=0) %}
+            {{ 0 if state_attr('sensor.rypse2_csv', 'chargePortConnected') == false 
+               else last if trigger.entity_id == 'sensor.easee_home_63089_session_energy'
+               else states('sensor.easee_home_63089_session_energy')  }}
+          battery_energy: >
+            {% set last = state_attr('sensor.rypse2_soc', 'battery_energy')|int(default=50) %}
+            {{ last if trigger.entity_id == 'sensor.easee_home_63089_session_energy'
+               else states('sensor.rypse2_soc') }}
 
+  - trigger:
+    - platform: state
+      entity_id: 
+        - sensor.polestar_8958_charger_connection_status
+    - platform: state
+      entity_id: sensor.rypse2_csv
+      attribute:  chargePortConnected 
+    binary_sensor: 
+      - name: rypse2_connected
+        state: >
+          {% set last = states('sensor.rypse2_connected') %}
+          {% set psccs = states('sensor.polestar_8958_charger_connection_status') %}
+          {% set csvcpc = state_attr('sensor.rypse2_csv', 'chargePortConnected') %}
+          {{ psccs == 'Connected' if trigger.entity_id == 'sensor.polestar_8958_charger_connection_status' and 
+                                     psccs in ('Connected', 'disconnected') 
+            else csvcpc if trigger.entity_id == 'sensor.rypse2_csv' 
+            else last }}
 
+automation:
+  - alias: "Rypse2 arrives home"
+    id: '202404301553'
+    trace:
+      stored_traces: 15
+    trigger:
+      - platform: state
+        entity_id: device_tracker.polestar_dual
+        id: device_tracker
+      - platform: state
+        entity_id: binary_sensor.rypse2_connected
+        id: connected
+    action: 
+      - choose: 
+        - conditions: 
+          - condition: state
+            entity_id: device_tracker.polestar_dual
+            state: home
+          - condition: trigger
+            id: device_tracker
+          sequence: 
+            - service: timer.start
+              target: 
+                entity_id: timer.rypse2_home
+        - conditions: 
+          - condition: state
+            entity_id: device_tracker.polestar_dual
+            state: not_home
+          - condition: trigger
+            id: device_tracker
+          sequence: 
+            - service: timer.cancel
+              target: 
+                entity_id: timer.rypse2_home
+        - conditions: 
+          - condition: state
+            entity_id: device_tracker.polestar_dual
+            state: home
+          - condition: trigger
+            id: connected
+          - condition: state
+            entity_id: input_select.which_car
+            state: 'Ukjent'
+          - condition: state
+            entity_id: binary_sensor.rypse2_connected
+            state: 'on'
+          sequence: 
+            - service: input_select.select_option
+              target:
+                entity_id: input_select.which_car
+              data:
+                option: 'Polestar'
