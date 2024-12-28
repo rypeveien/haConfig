@@ -16,31 +16,22 @@ template:
   sensor:
   - name: adax_faoff_analyze_temp
     unit_of_measurement: "°C"
-    state: "{{ state_attr('climate.adax_faoff','current_temperature')|float - states('sensor.analyzer_updown')|int }}"
+    state: "{{ state_attr('climate.kontoret','current_temperature')|float - states('sensor.analyzer_updown')|int }}"
   - name: adax_syrom_analyze_temp
     unit_of_measurement: "°C"
-    state: "{{ state_attr('climate.adax_syrom','current_temperature')|float - states('sensor.analyzer_updown')|int }}"
+    state: "{{ state_attr('climate.syrommet','current_temperature')|float - states('sensor.analyzer_updown')|int }}"
   - name: adax_guest_analyze_temp
     unit_of_measurement: "°C"
-    state: "{{ state_attr('climate.adax_guest','current_temperature')|float - states('sensor.analyzer_updown')|int }}"
+    state: "{{ state_attr('climate.gjesterom','current_temperature')|float - states('sensor.analyzer_updown')|int }}"
   - name: adax_faoff_temp
     unit_of_measurement: "°C"
-    state: "{{ state_attr('climate.adax_faoff','current_temperature') }}"
+    state: "{{ state_attr('climate.kontoret','current_temperature') }}"
   - name: adax_syrom_temp
     unit_of_measurement: "°C"
-    state: "{{ state_attr('climate.adax_syrom','current_temperature') }}"
+    state: "{{ state_attr('climate.syrommet','current_temperature') }}"
   - name: adax_guest_temp
     unit_of_measurement: "°C"
-    state: "{{ state_attr('climate.adax_guest','current_temperature') }}"
-  - name: adax_faoff_power
-    unit_of_measurement: "W"
-    state: "{{ 600 if state_attr('climate.adaxg_faoff', 'hvac_action') == 'heating' else 0 }}"
-  - name: adax_syrom_power
-    unit_of_measurement: "W"
-    state: "{{ 600 if state_attr('climate.adaxg_syrom', 'hvac_action') == 'heating' else 0 }}"
-  - name: adax_guest_power
-    unit_of_measurement: "W"
-    state: "{{ 600 if state_attr('climate.adaxg_guest', 'hvac_action') == 'heating' else 0 }}"
+    state: "{{ state_attr('climate.gjesterom','current_temperature') }}"
 
   binary_sensor:
     - name: office_at_home
@@ -54,26 +45,6 @@ template:
            (states('input_boolean.homeoffice_friday') == 'on' and weekday == 5) or
            (states('input_boolean.homeoffice_weekend') == 'on' and (weekday < 1 or weekday > 5)))
         }}
-
-sensor:
-- platform: integration
-  source: sensor.adax_faoff_power
-  name: adax_faoff_energy
-  unit_prefix: k
-  round: 3
-  method: left
-- platform: integration
-  source: sensor.adax_syrom_power
-  name: adax_syrom_energy
-  unit_prefix: k
-  round: 3
-  method: left
-- platform: integration
-  source: sensor.adax_guest_power
-  name: adax_guest_energy
-  unit_prefix: k
-  round: 3
-  method: left
 
 switch:
   - platform: template
@@ -112,36 +83,19 @@ automation:
     trigger:
     - platform: state
       entity_id: binary_sensor.office_at_home
-      id: hjemmekontorvalg
-    - platform: time
-      at: 07:00
-      id: morgen
-    - platform: time
-      at: '16:00'
-      id: ettermiddag
-    - platform: template
-      value_template: '{{ now().timestamp() - as_timestamp(states.climate.adax_faoff.last_updated) > (3 * 3600) }}'
-      id: lost_connection
-    condition:
-    - condition: template
-      value_template: "{{ now().timestamp() > as_timestamp(states('input_datetime.holiday_until')) }}"
-    - condition: template
-      value_template: '{{ states.automation.kontortemp.attributes.current == 0 }}'
+      from: "off"
+      to: "on"
+      id: homeoffice_on
+    - platform: state
+      entity_id: binary_sensor.office_at_home
+      from: "on"
+      to: "off"
+      id: homeoffice_off
     action:
     - choose:
       - conditions:
-        - condition: state
-          entity_id: binary_sensor.office_at_home
-          state: 'on'
-        - condition: time
-          after: 05:00
-          before: '16:00'
-          weekday:
-          - mon
-          - tue
-          - wed
-          - thu
-          - fri
+        - condition: trigger
+          id: homeoffice_on
         - condition: numeric_state
           entity_id: climate.adaxg_faoff
           attribute: temperature
@@ -157,22 +111,8 @@ automation:
           entity_id: climate.adaxg_faoff
           attribute: temperature
           above: '18.9'
-        - condition: or
-          conditions:
-          - condition: state
-            entity_id: binary_sensor.office_at_home
-            state: 'off'
-          - condition: not
-            conditions:
-            - condition: time
-              after: 05:00
-              before: '16:00'
-              weekday:
-              - mon
-              - tue
-              - wed
-              - thu
-              - fri
+        - condition: trigger
+          id: homeoffice_off
         sequence:
         - service: climate.set_temperature
           data:
@@ -180,12 +120,6 @@ automation:
           target:
             entity_id: climate.adaxg_faoff
       default: []
-    - service: climate.set_temperature
-      data: 
-        temperature: "{{ state_attr('climate.adaxg_faoff', 'temperature')|float + 
-                         states('sensor.analyzer_updown')|int }}"
-      target:
-        entity_id: climate.adax_faoff
     mode: queued
     max: 3
 
@@ -213,21 +147,25 @@ automation:
       - service: climate.set_temperature
         data: 
           temperature: >
-            {% set action = 4 if state_attr('climate.adaxg_faoff', 'hvac_action') in ['heating'] else -1 %}
-            {{ state_attr('climate.adaxg_faoff', 'temperature') + action + states('sensor.analyzer_updown')|int }}
+            {% set current = states.climate.kontoret.attributes.current_temperature %}
+            {% set action = states.climate.adaxg_faoff.attributes.hvac_action %}
+            {% set analyzer = states('sensor.analyzer_updown')|int %}
+            {% set gtarget = states.climate.adaxg_faoff.attributes.temperature|float %}
+            {% set target = gtarget + analyzer %}
+            {{ target + 4 if (action == 'heating') and (current < target - 2) else target }}
         target:
-          entity_id: climate.adax_faoff
+          entity_id: climate.kontoret
       - service: climate.set_temperature
         data: 
           temperature: >
-            {% set action = 4 if state_attr('climate.adaxg_guest', 'hvac_action') in ['heating'] else -1 %}
+            {% set action = 4 if state_attr('climate.adaxg_guest', 'hvac_action') in ['heating'] else 0 %}
             {{ state_attr('climate.adaxg_guest', 'temperature') + action + states('sensor.analyzer_updown')|int }}
         target:
-          entity_id: climate.adax_guest
+          entity_id: climate.gjesterom
       - service: climate.set_temperature
         data: 
           temperature: >
-            {% set action = 4 if state_attr('climate.adaxg_syrom', 'hvac_action') in ['heating'] else -1 %}
+            {% set action = 4 if state_attr('climate.adaxg_syrom', 'hvac_action') in ['heating'] else 0 %}
             {{ state_attr('climate.adaxg_syrom', 'temperature') + action + states('sensor.analyzer_updown')|int }}
         target:
-          entity_id: climate.adax_syrom
+          entity_id: climate.syrommet
