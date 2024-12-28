@@ -163,6 +163,20 @@ template:
            else (ev_max/ ev_steps)|int(default=16) if availible > ev_max
            else 0 if availible < ev_min 
            else (availible / ev_steps)|int + 1  }}
+  - trigger:
+    - platform: state
+      entity_id:
+        - sensor.easee_home_63089_session_energy
+        - sensor.easee_home_63089_status
+    sensor:
+      - name: easee_session_energy
+        unit_of_measurement: "kWh"
+        icon: mdi:lightning-bolt
+        state: >
+          {% set last = states('sensor.easee_session_energy')|float(default=0) %}
+          {{ 0 if states('sensor.easee_home_63089_status') == 'disconnected'
+             else states('sensor.easee_home_63089_session_energy') if trigger.entity_id == 'sensor.easee_home_63089_session_energy'
+             else last }}
 
 automation:
   - id: '1703798116334'
