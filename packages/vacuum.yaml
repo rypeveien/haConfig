@@ -1,9 +1,42 @@
+input_select:
+  vacuum_target:
+    options:
+      - Idle
+      - Ukentlig
+      - Stue
+      - Kjøkken
+      - Gang
+      - Soverom
+  
 timer:
   vacuum_timer:
     duration: "96:00:00"
     restore: true
 
 automation:
+  - id: '202412281132'
+    alias: vacuum on select
+    trigger: 
+      - platform: state
+        entity_id: input_select.vacuum_target
+    action:
+    - choose: 
+      - conditions:
+        - condition: state
+          entity_id: input_select.vacuum_target
+          state: 'Ukentlig'
+        sequence:
+        - service: vacuum.send_command
+          target:
+            entity_id: vacuum.roborock_s8
+          data:
+            command: app_segment_clean
+            params: 
+              - segments:
+                - 16 # LivingRoom
+                - 23 # Corridor
+                - 19 # Kitchen
+        
   - id: '1644566778718'
     alias: Støvsug Mandag og Fredag når ingen er hjemme
     description: ''
@@ -21,7 +54,7 @@ automation:
       entity_id: timer.vacuum_timer
       to: 'idle'
     - platform: state
-      entity_id: vacuum.martin
+      entity_id: vacuum.roborock_s8
       from: 'cleaning'
       id: done_cleaning
     - platform: template
@@ -50,7 +83,7 @@ automation:
         sequence:
         - if:
           - condition: numeric_state
-            entity_id: sensor.martin_current_clean_area
+            entity_id: sensor.roborock_s8_cleaning_area
             above: 35
           then: 
           - service: timer.cancel
@@ -84,42 +117,47 @@ automation:
           - condition: state
             entity_id: timer.vacuum_timer
             state: 'idle'
-        - condition: device
-          device_id: 22bed80b6a2c686ba9af11178f87dc16
-          domain: vacuum
-          entity_id: vacuum.martin
-          type: is_docked
+        - condition: state
+          entity_id: vacuum.roborock_s8
+          state: "docked"
         sequence:
-        - device_id: 22bed80b6a2c686ba9af11178f87dc16
-          domain: vacuum
-          entity_id: vacuum.martin
-          type: clean
+        - service: vacuum.send_command
+          target:
+            entity_id: vacuum.roborock_s8
+          data:
+            command: app_segment_clean
+            params: 
+              - segments:
+                - 16 # LivingRoom
+                - 23 # Corridor
+                - 19 # Kitchen
+#                - 17 # MasterBedroom
+#                - 20 # Study1
+#                - 21 # Study
       - conditions:
         - condition: trigger
           id: noenkommerhjem
         sequence:
         - choose:
           - conditions:
-            - condition: device
-              device_id: 22bed80b6a2c686ba9af11178f87dc16
-              domain: vacuum
-              entity_id: vacuum.martin
-              type: is_cleaning
+            - condition: state
+              entity_id: binary_sensor.roborock_s8_cleaning
+              state: "on"
             sequence:
             - service: vacuum.pause
               data: {}
               target:
-                device_id: 22bed80b6a2c686ba9af11178f87dc16
-            - wait_template: "{{ states('vacuum.martin') == 'paused' }}"
+                entity_id: vacuum.roborock_s8
+            - wait_template: "{{ states('vacuum.roborock_s8') == 'paused' }}"
               continue_on_timeout: true
               timeout: "60"
             - service: vacuum.return_to_base
               data: {}
               target:
-                entity_id: vacuum.martin
+                entity_id: vacuum.roborock_s8
           - conditions:
             - condition: state
-              entity_id: vacuum.martin
+              entity_id: vacuum.roborock_s8
               state: error
             sequence:
             - delay:
@@ -146,7 +184,7 @@ automation:
             - service: vacuum.locate
               data: {}
               target:
-                entity_id: vacuum.martin
+                entity_id: vacuum.roborock_s8
           default: []
       default: []
     mode: single
