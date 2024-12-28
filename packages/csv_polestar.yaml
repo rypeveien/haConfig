@@ -1,13 +1,13 @@
 template:
   - trigger: 
     - platform: state
-      entity_id: 'sensor.rypse2_battery'
+      entity_id: 'sensor.rypse2_csv'
 
     sensor:
-      - name: 'Rypse2 currentPower'
-        state: "{{ state_attr('sensor.rypse2_battery', 'power') }}"
-        unit_of_measurement: 'kW'
-        icon : mdi:speedometer
+#      - name: 'Rypse2 currentPower'
+#        state: "{{ state_attr('sensor.rypse2_battery', 'power') }}"
+#        unit_of_measurement: 'kW'
+#        icon : mdi:speedometer
       - name: 'Rypse2 currentSpeed'
         state : >
           {% set speed = state_attr('sensor.rypse2_battery', 'speed')|float(default=0) %}
