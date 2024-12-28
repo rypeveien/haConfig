@@ -116,15 +116,25 @@ automation:
                 entity_id: binary_sensor.trainer_over_3_watt
                 state: 'on'
             sequence:
-            - service: switch.turn_on
-              target:
-                entity_id: switch.shellybikefan
-              data: {}
             - service: climate.set_hvac_mode
               target:
                 entity_id: climate.vpnede
               data:
                 hvac_mode: cool
+            - delay:
+                minutes: 5
+            - condition: or
+              conditions: 
+              - condition: state
+                entity_id: binary_sensor.zwift_active
+                state: "on"
+              - condition: state
+                entity_id: binary_sensor.trainer_over_3_watt
+                state: 'on'
+            - service: switch.turn_on
+              target:
+                entity_id: switch.shellybikefan
+              data: {}
 
   - id: '1704490413597'
     alias: 'Turn trainer on or off '
