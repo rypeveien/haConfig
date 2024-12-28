@@ -11,7 +11,7 @@ automation:
         entity_id: binary_sensor.anyone_home
         state: 'off'
     action: 
-      - service: notify.mobile_app_pixel_8
+      - service: notify.mobile_app_titophone
         data:
           message: 'Noen ringte på døra'
           title: 'Rypeveien 11'
