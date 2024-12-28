@@ -5,8 +5,8 @@
   - platform: template
     value_template: '{{ states(''sensor.howmanyhome'')|int(default=0) > 0}}'
   - platform: numeric_state
-    entity_id: sensor.pvlogger_power
-    below: '50'
+    entity_id: sensor.ws2900_v2_02_02_solar_lux
+    below: '1500'
     for:
       hours: 0
       minutes: 2
@@ -17,8 +17,8 @@
     - condition: template
       value_template: '{{ states(''sensor.howmanyhome'')|int(default=0) > 0}}'
     - condition: numeric_state
-      entity_id: sensor.pvlogger_power
-      below: '50'
+      entity_id: sensor.ws2900_v2_02_02_solar_lux
+      below: '1500'
     - condition: template
       value_template: '{{ states(''binary_sensor.shellygang_input'') == ''on''}}'
   action:

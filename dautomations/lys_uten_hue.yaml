@@ -156,7 +156,7 @@
         brightness: 200
       target:
         entity_id: light.paere_toalett
-  mode: single
+  mode: queued
 
 - id: '1666866158112'
   alias: taklys av paa kjokken og spisestue

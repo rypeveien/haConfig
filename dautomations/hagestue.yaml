@@ -3,12 +3,12 @@
   description: ''
   trigger:
   - platform: numeric_state
-    entity_id: sensor.pvlogger_power
+    entity_id: sensor.ws2900_v2_02_02_solar_lux
     for:
       hours: 0
       minutes: 5
       seconds: 0
-    below: '100'
+    below: '2000'
     id: low light
   - platform: time
     at: 01:30:00
