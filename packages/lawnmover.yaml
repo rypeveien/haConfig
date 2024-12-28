@@ -1,19 +1,59 @@
 timer:
   mower_on_lawn:
-    duration: 03:00:00
+    duration: 02:20:00
+    restore: true
+  rain_counter:
+    duration: 01:00:00
     restore: true
 
 template:
-  binary_sensor:
+  - binary_sensor:
     - name: mower_on_lawn
-      state: "{{ 2 < states('sensor.shellyplugklipper_power')|float(default=0) < 4 }}"
+      state: "{{ 2 < states('sensor.shellypluggrobotklipper_power')|float(default=0) < 4 }}"
     - name: mower_on_base
-      state: "{{ 4 < states('sensor.shellyplugklipper_power')|float(default=0) }}"
+      state: "{{ 4 < states('sensor.shellypluggrobotklipper_power')|float(default=0) }}"
     - name: mower_charging
-      state: "{{ 10 < states('sensor.shellyplugklipper_power')|float(default=0) }}"
+      state: "{{ 10 < states('sensor.shellypluggrobotklipper_power')|float(default=0) }}"
       
+  - trigger:
+    - platform: state
+      entity_id: 
+      - sensor.ws2900_v2_02_02_hourly_rain_rate
+      - timer.rain_counter
+    sensor: 
+    - name: rain_counter
+      unit_of_measurement: "mm"
+      state: >
+        {% set value = states('sensor.rain_counter')|float(default=0) %}
+        {% if (trigger.entity_id == 'sensor.ws2900_v2_02_02_hourly_rain_rate') %}
+        {%   if ((trigger.to_state.state|float) < (trigger.from_state.state|float)) %}
+        {%     set value = value + (trigger.from_state.state|float) %}
+        {%   endif %}
+        {% elif (trigger.to_state.state == 'idle'
+                 and now().timestamp() - states.sensor.rain_counter.last_changed|as_timestamp > 160)  %}
+        {%   set value = value - 1 %}
+        {% endif %}
+        {% set value = 0 if value < 0 else value %}
+        {% set value = 24 if value > 24 else value %}
+        {{ value|round(1) }}
 
 automation:
+  - id: '20240911230500'
+    alias: start_rain_counter
+    description: "Start rain counter timer whenever the rain counter sensor changes"
+    trigger:
+      - platform: state
+        entity_id: sensor.rain_counter
+#    condition:
+#      - condition: state
+#        entity_id: timer.rain_counter
+#        state: idle
+    action:
+      - service: timer.start
+        target:
+          entity_id: timer.rain_counter
+
+
   - id: '1696109036533'
     alias: mower_on_lawn
     description: "Mower on lawn"
@@ -45,7 +85,7 @@ automation:
                 entity_id: binary_sensor.mower_on_lawn
                 state: "on"
             sequence:
-              - service: notify.mobile_app_pixel_8
+              - service: notify.mobile_app_titophone
                 data:
                   message: mower on lawn
           - conditions:
@@ -78,11 +118,97 @@ automation:
       - binary_sensor.mower_charging
       from: 'on'
       to: 'off'
+      for:
+        minutes: 10
     condition:
     - condition: time
       after: '16:00:00'
+    - condition: state
+      entity_id: binary_sensor.mower_on_base
+      state: "on"
     action:
     - type: turn_off
       device_id: 599fbca18af1cb509fee126d8ce3e8fa
-      entity_id: switch.shellyplugklipper
+      entity_id: c6ef0fb17f95d79f7bb0ad2856e77f74
       domain: switch
+
+  - id: '1727353930369'
+    alias: Finnarne kommer hjem og klipper på plenen
+    description: ''
+    trigger:
+    - platform: state
+      entity_id:
+      - person.finn_arne_johansen
+      from: not_home
+      to: home
+    condition:
+    - condition: state
+      entity_id: timer.mower_on_lawn
+      state: idle
+    - condition: state
+      entity_id: binary_sensor.mower_on_lawn
+      state: 'on'
+    action:
+    - service: notify.mobile_app_titophone
+      data:
+        message: Mower on lawn
+        data:
+          ttl: 0
+          priority: high
+    mode: single
+  - id: '1724705323506'
+    alias: robotklipper av paa etter rainevent
+    description: ''
+    trigger:
+    - platform: numeric_state
+      entity_id:
+      - sensor.ws2900_v2_02_02_hourly_rain_rate
+      above: 0
+      id: rain event start
+    - platform: numeric_state
+      entity_id:
+      - sensor.rain_counter
+      below: 0.1
+      id: rain event stop
+    - platform: numeric_state
+      entity_id:
+      - sensor.shellypluggrobotklipper_power
+      below: 40
+      id: charging done
+    condition: []
+    action:
+    - choose:
+      - conditions:
+        - condition: trigger
+          id:
+          - rain event stop
+        sequence:
+        - type: turn_on
+          device_id: 599fbca18af1cb509fee126d8ce3e8fa
+          entity_id: c6ef0fb17f95d79f7bb0ad2856e77f74
+          domain: switch
+      - conditions:
+        - condition: or
+          conditions:
+          - condition: and
+            conditions:
+            - condition: trigger
+              id:
+              - rain event start
+            - condition: state
+              entity_id: binary_sensor.mower_on_base
+              state: 'on'
+          - condition: and
+            conditions:
+            - condition: trigger
+              id:
+              - charging done
+            - condition: numeric_state
+              entity_id: sensor.rain_counter
+              above: 0
+        sequence:
+        - type: turn_off
+          device_id: 599fbca18af1cb509fee126d8ce3e8fa
+          entity_id: c6ef0fb17f95d79f7bb0ad2856e77f74
+          domain: switch
+    mode: single
