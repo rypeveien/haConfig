@@ -193,9 +193,23 @@ automation:
       domain: button
       entity_id: button.shellykjol_reboot
       type: press
-    - service: notify.mobile_app_pixel_8
+    - service: notify.mobile_app_titophone
       data:
         message: Overspenning oppdaget p åkjolerom. Har restartet, men sjekk selv om
           det hjelper
         title: Overspenning på kjølerommet
+    mode: single
+  - id: '1728310539001'
+    alias: Varsle om varm fryser
+    description: ''
+    trigger:
+    - platform: numeric_state
+      entity_id:
+      - sensor.ink_fryser_temperature
+      above: -19
+    condition: []
+    action:
+    - service: notify.mobile_app_titophone
+      data:
+        message: Fryseren er varm ({{ states('sensor.ink_fryser_temperature') }}
     mode: single
