@@ -17,9 +17,6 @@ template:
           {% set dist = distance(lat, lon) %}
           {{ 0 if saved in ('unknown', 'Unavailable') else 
              (dist - saved|float)|abs|round(2) }}
-  - binary_sensor: 
-      - name: rypse2_charger_connected
-        state: "{{ is_state('sensor.polestar_8958_charger_connection_status', 'Connected') }}"
 
   - trigger: 
     - platform: state
@@ -35,6 +32,25 @@ template:
           {% set lat =  state_attr('device_tracker.polestar_dual', 'latitude') %}
           {% set lon = state_attr('device_tracker.polestar_dual', 'longitude') %}
           {{ distance(lat, lon)|round(2) }}
+
+  - trigger:
+    - platform: state
+      entity_id: 
+        - sensor.polestar_8958_charger_connection_status
+        - sensor.easee_home_63089_status
+        - device_tracker.polestar_dual
+    binary_sensor: 
+      - name: rypse2_charger_connected
+        state: >
+          {% set last = states('binary_sensor.rypse2_charger_connected') %}
+          {% set last = false if last in ('unknown', 'undefined', 'Unknown') else last %}
+          {% set psccs = is_state('sensor.polestar_8958_charger_connection_status', 'Connected') %}
+          {% set easee_disconnected = is_state('sensor.easee_home_63089_status', 'disconnected') %}
+          {% set is_home = is_state('device_tracker.polestar_dual', 'home') %}
+          {{ false if not is_home else
+             false if easee_disconnected else
+             true if psccs else
+             last }}
 
 automation:
   - alias: "Polestar timer integration"
@@ -89,8 +105,13 @@ automation:
             value_template: "{{ trigger.entity_id != 'sensor.easee_home_63089_session_energy' or states('sensor.easee_home_63089_power')| float > 0 }}"
           - condition: or
             conditions: 
-              - condition: trigger
-                id: easee
+              - condition: and
+                conditions: 
+                  - condition: trigger
+                    id: easee
+                  - condition: state
+                    entity_id: input_select.which_car
+                    state: Polestar
               - condition: and
                 conditions: 
                   - condition: trigger
@@ -111,7 +132,7 @@ automation:
             - timer.polestar
             state: 'idle'
           sequence:
-            - service: notify.mobile_app_pixel_8
+            - service: notify.mobile_app_titophone
               data:
                 message: Ser ut som vi har mistet kontakten med Polestar_api
                 title: Polestar @ rypeveien
@@ -133,3 +154,25 @@ automation:
           location_name: "{{ trigger.to_state.state }}"
           gps: "[{{ trigger.to_state.attributes.latitude }}, {{trigger.to_state.attributes.longitude}}]"
           gps_accuracy: "{{ trigger.to_state.attributes.gps_accuracy }}"
+
+  - alias: "Polestar csv tracker"
+    id: '202405220905'
+    trigger: 
+      - platform: state
+        entity_id:
+          - sensor.rypse2_csv
+    action: 
+      - service: device_tracker.see
+        data:
+          dev_id: polestar_dual # rypse2_csv
+          location_name: >
+            {{ 'home' if distance(trigger.to_state.attributes.lat, trigger.to_state.attributes.lon) < 0.05 else 'not_home' }}
+          gps: "[{{ trigger.to_state.attributes.lat }}, {{trigger.to_state.attributes.lon}}]"
+          gps_accuracy: 50
+      - service: device_tracker.see
+        data:
+          dev_id: rypse2_csv
+          location_name: >
+            {{ 'home' if distance(trigger.to_state.attributes.lat, trigger.to_state.attributes.lon) < 0.05 else 'not_home' }}
+          gps: "[{{ trigger.to_state.attributes.lat }}, {{trigger.to_state.attributes.lon}}]"
+          gps_accuracy: 50
