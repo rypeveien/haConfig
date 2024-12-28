@@ -2,3 +2,114 @@ timer:
   person_outside:
     duration: 00:15:00
     restore: true
+
+automation: 
+  - id: '1723581711278'
+    alias: Utelys paa eller blinker om person på natten
+    description: ''
+    trigger:
+    - platform: numeric_state
+      entity_id:
+      - sensor.inngang_person_count
+      above: 0
+      id: person
+    - type: opened
+      platform: device
+      device_id: ad3160c2bf2ac77b821e2f52e3d26ab9
+      entity_id: 13e0c2d79a1cc2d01a20be4854e24ff7
+      domain: binary_sensor
+      id: Inngangsdor
+    - platform: state
+      entity_id:
+      - device_tracker.polestar_dual
+      to: home
+      from: not_home
+      id: Polestar
+    condition: []
+    action:
+    - if:
+      - condition: trigger
+        id:
+        - person
+      - condition: state
+        entity_id: timer.person_outside
+        state: idle
+      - condition: sun
+        before: sunrise
+        after: sunset
+      - type: is_not_open
+        condition: device
+        device_id: ad3160c2bf2ac77b821e2f52e3d26ab9
+        entity_id: 13e0c2d79a1cc2d01a20be4854e24ff7
+        domain: binary_sensor
+      - condition: or
+        conditions:
+        - condition: time
+          after: '21:00:00'
+        - condition: time
+          before: 06:00:00
+      then:
+      - type: turn_on
+        device_id: dcbb7a3899f5ef5266de73d56b641b7b
+        entity_id: b8b3ad40cbf5190218f93a27f655afdb
+        domain: light
+        brightness_pct: 100
+      - choose:
+        - conditions:
+          - condition: state
+            entity_id: switch.utelys
+            state: 'on'
+          sequence:
+          - type: turn_off
+            device_id: b6395abb2835f10fd7b0fce5b869d279
+            entity_id: 8e72924c339e9fc477329261f3452240
+            domain: switch
+          - type: turn_off
+            device_id: 1691a1629c7c36dc97c0a99fc170920f
+            entity_id: 5413fc3fd9dac0ca812d2b458f511084
+            domain: light
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 1
+              milliseconds: 0
+          - type: turn_on
+            device_id: b6395abb2835f10fd7b0fce5b869d279
+            entity_id: 8e72924c339e9fc477329261f3452240
+            domain: switch
+          - type: turn_on
+            device_id: 1691a1629c7c36dc97c0a99fc170920f
+            entity_id: 5413fc3fd9dac0ca812d2b458f511084
+            domain: light
+        - conditions:
+          - condition: state
+            entity_id: switch.utelys
+            state: 'off'
+          sequence:
+          - type: turn_on
+            device_id: b6395abb2835f10fd7b0fce5b869d279
+            entity_id: 8e72924c339e9fc477329261f3452240
+            domain: switch
+          - type: turn_on
+            device_id: 1691a1629c7c36dc97c0a99fc170920f
+            entity_id: 5413fc3fd9dac0ca812d2b458f511084
+            domain: light
+          - delay:
+              hours: 0
+              minutes: 5
+              seconds: 0
+              milliseconds: 0
+          - type: turn_off
+            device_id: b6395abb2835f10fd7b0fce5b869d279
+            entity_id: 8e72924c339e9fc477329261f3452240
+            domain: switch
+          - type: turn_off
+            device_id: 1691a1629c7c36dc97c0a99fc170920f
+            entity_id: 5413fc3fd9dac0ca812d2b458f511084
+            domain: light
+    - service: timer.start
+      target:
+        entity_id: timer.person_outside
+      data: {}
+    mode: single
+    
