@@ -6,7 +6,7 @@ input_boolean:
 climate:
   - platform: generic_thermostat
     name: garage_heating
-    heater: switch.shellypluggarasjevarme
+    heater: switch.garasjevarme_switch_0
     target_sensor: sensor.garasjen_temperature
     target_temp_step: 1
     min_temp: 5
