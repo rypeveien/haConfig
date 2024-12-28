@@ -8,6 +8,19 @@ rest:
         json_attributes: 
           - "Rows"
 
+  - resource: https://dataportal-api.nordpoolgroup.com/api/DayAheadPrices
+    params:
+      market: DayAhead
+      deliveryArea: NO2
+      currency: NOK
+      date: "{{ (now() + timedelta (hours=24)).isoformat()[:10] }}"
+    scan_interval: 129600
+    sensor:
+      - name: nordpool_test
+        value_template: '{{ value_json.updatedAt }}'
+        json_attributes:
+          - "areaStates"
+          - "multiAreaEntries"
 
 template:
   - sensor:
@@ -34,59 +47,50 @@ template:
            ((month[:mlength]|average + month[:daymon]|average)/2)|round(4) }}
   - binary_sensor:
     - name: nordpool_official
-      state: "{{ states.sensor.nordpool_api.attributes.Rows[0].Columns[0].IsOfficial }}"
+      state: "{{ state_attr('sensor.nordpool_test', 'areaStates')[0].state == 'Final' }}"
 
   - trigger: 
     - platform: template
       value_template: >
-        {% set rows =  state_attr('sensor.nordpool_api', 'Rows') %}
-        {{ false if rows == None else as_datetime(rows[0].StartTime).day == now().day}}
+        {% set rows =  state_attr('sensor.nordpool_test', 'multiAreaEntries') %}
+        {{ false if rows == None else as_local(as_datetime(rows[0].deliveryStart)).day == now().day}}
     sensor:
     - name: nordpool_today
       state: >
         {% set var = namespace (price=[]) %}
-        {% set rows = state_attr('sensor.nordpool_api', 'Rows') %}
-        {% for row in rows -%}
-          {% set end = as_datetime(row.EndTime) %}
-          {% set start = as_datetime(row.StartTime) %}
-          {% if (end.timestamp() - start.timestamp() == 3600) %}
-            {%- for column in row.Columns -%}
-              {% if column.Name == 'Kr.sand' -%}
-                {% set price = (column.Value|replace(' ', '')|replace(',', '.')|float/1000) %}
-                {% set price = price|round(3) if price >= 10 else price|round(4) %}
-                {% set var.price = var.price + [ price ] %}
-              {% endif %}
-            {%- endfor %}
-          {% endif %}
+        {% set rows = state_attr('sensor.nordpool_test', 'multiAreaEntries') %}
+        {% for row in rows %}
+          {% set price = (row.entryPerArea.NO2|float/1000) %}
+          {% set price = price|round(3) if price >= 10 else price|round(4) %}
+          {% set var.price = var.price + [ price ] %}
         {%- endfor %}
+        {% set var.price = var.price if var.price|length == 24
+                      else var.price[:2] + var.price [3:] if var.price|length == 25 
+                      else var.price[:2] + var.price[1:] if var.price|length == 23 %}
         {{ var.price|to_json }}
   - trigger: 
     - platform: template
       value_template: >
-        {% set rows =  state_attr('sensor.nordpool_api', 'Rows') %}
+        {% set rows =  state_attr('sensor.nordpool_test', 'multiAreaEntries') %}
         {{ false if rows == None else 
-           as_datetime(rows[0].StartTime).day == (now() + timedelta(days=1)).day }}
+           as_local(as_datetime(rows[0].deliveryStart)).day == (now() + timedelta(days=1)).day }}
     - platform: time
       at: 00:00
     sensor:
     - name: nordpool_tomorrow
       state: >
         {% set var = namespace (price=[]) %}
-        {% set rows = state_attr('sensor.nordpool_api', 'Rows') %}
-        {% for row in rows %}
-          {% set end = as_datetime(row.EndTime) %}
-          {% set start = as_datetime(row.StartTime) %}
-          {% if (end.timestamp() - start.timestamp() == 3600) and 
-              (start.day != now().day) %}
-            {% for column in row.Columns %}
-              {% if column.Name == 'Kr.sand' %}
-                {% set price = (column.Value|replace(' ', '')|replace(',', '.')|float/1000) %}
-                {% set price = price|round(3) if price >= 10 else price|round(4) %}
-                {% set var.price = var.price + [ price ] %}
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-        {% endfor %}
+        {% set rows = state_attr('sensor.nordpool_test', 'multiAreaEntries') %}
+        {% if as_local(as_datetime(rows[0].deliveryStart)).day != now().day %}
+          {% for row in rows %}
+            {% set price = (row.entryPerArea.NO2|float/1000) %}
+            {% set price = price|round(3) if price >= 10 else price|round(4) %}
+            {% set var.price = var.price + [ price ] %}
+          {%- endfor %}
+          {% set var.price = var.price if var.price|length == 24
+                        else var.price[:2] + var.price [3:] if var.price|length == 25 
+                        else var.price[:2] + var.price[1:] if var.price|length == 23 %}
+        {% endif %}
         {{ var.price|to_json }}
   - trigger:
     - platform: time
@@ -109,9 +113,9 @@ automation:
     trigger: 
     - platform: template
       value_template: >
-        {% set last = states('sensor.nordpool_api') %}
-        {% set updated = states.sensor.nordpool_api.last_updated if last not in ['unknown', 'unavailable'] else (now() - timedelta(days=1)) %}
-        {% set last = as_datetime(last) if last not in ['unknown', 'unavailable'] else (now() - timedelta(days=1)) %}
+        {% set last = states('sensor.nordpool_test') %}
+        {% set updated = states.sensor.nordpool_test.last_updated if last not in ['unknown', 'unavailable'] else (now() - timedelta(days=1)) %}
+        {% set last = as_local(as_datetime(last)) if last not in ['unknown', 'unavailable'] else (now() - timedelta(days=1)) %}
         {{ (last.day != now().day or (last.hour < 13 and updated.hour < 14)
             or states('sensor.nordpool_tomorrow') in  ['', 'unknown', '[]']) 
             and (now().minute % 15) == 8 and now().hour >= 13 
@@ -122,5 +126,5 @@ automation:
         seconds: '{{ range(1,1140)|random|int }}'
     - service: homeassistant.update_entity
       target:
-        entity_id: sensor.nordpool_api
+        entity_id: sensor.nordpool_test
 
