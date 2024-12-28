@@ -47,6 +47,25 @@ template:
     - name: met_number2raw
       unit_of_measurement: 'id'
       state: '{{ (states.input_text.met_cache.state|from_json)[now().hour] }}'
+    - name: met_next_run
+      device_class: timestamp
+      state: '{{ as_local(as_datetime((states("sensor.met_api")|from_json)["@nextrun"])) }}'
+
+  - trigger: 
+    - platform: state
+      entity_id: sensor.met_api
+    sensor: 
+    - name: met_api_forecast
+      state: >
+        {% set r = namespace (json = [] ) %}
+        {% for time in  states.sensor.met_api.attributes.time -%}
+        {% if as_datetime(time["@from"]) + timedelta(hours=1) == as_datetime(time["@to"]) -%}
+        {% set local_from =  as_local(as_datetime(time["@from"])) -%}
+        {% set add = [ { local_from.hour + (0 if local_from.day == now().day else 24 if local_from.day == now().day + 1 else 48):  time.location.symbol["@number"] } ] -%}
+        {% set r.json = r.json + add if (r.json + add)|to_json|length < 256 else r.json -%}
+        {% endif -%}
+        {% endfor %}
+        {{ r.json|to_json }}
 
 automation:
   - id: '1653423797'
