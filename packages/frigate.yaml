@@ -2,6 +2,9 @@ timer:
   frigate_silencer:
     duration: 00:05:00
     restore: true
+  frigate_delay:
+    duration: 00:02:00
+    restore: true
 
 template:
   - trigger: 
@@ -42,21 +45,35 @@ automation:
         entity_id: binary_sensor.anyone_home
         state: "off"
     action:
-      - choose:
-        - conditions: 
+      - if:
+        - condition: state
+          entity_id: timer.frigate_delay
+          state: idle
+        then: 
+        - service: timer.start
+          target:
+            entity_id: timer.frigate_delay
+      - if:
           - condition: state
             entity_id: timer.frigate_silencer
             state: idle
-          sequence:
+        then:
           - service: timer.start
             entity_id: timer.frigate_silencer
-          - service: notify.mobile_app_titophone
-            data_template:
-              message: "A {{state_attr('sensor.template_last_frigate_event', 'label')}} was detected."
-              data:
-                image: "{{ ext_address }}/api/frigate/notifications/{{states('sensor.template_last_frigate_event')}}/thumbnail.jpg?format=android"
-                tag: "{{states('sensor.template_last_frigate_event')}}"
-                when: "{{state_attr('sensor.template_last_frigate_event', 'ts')}}"
+          - wait_template: >
+              {{ is_state('timer.frigate_delay', 'idle') or states('binary_sensor.anyone_home') }}
+          - if: 
+              - condition: state
+                entity_id: binary_sensor.anyone_home
+                state: "off"
+            then:
+              - service: notify.mobile_app_titophone
+                data_template:
+                  message: "A {{state_attr('sensor.template_last_frigate_event', 'label')}} was detected."
+                  data:
+                    image: "{{ ext_address }}/api/frigate/notifications/{{states('sensor.template_last_frigate_event')}}/thumbnail.jpg?format=android"
+                    tag: "{{states('sensor.template_last_frigate_event')}}"
+                    when: "{{state_attr('sensor.template_last_frigate_event', 'ts')}}"
 
   - id: '1660990404934'
     alias: Frigate timer
