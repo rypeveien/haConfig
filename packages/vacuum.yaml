@@ -19,8 +19,22 @@ automation:
     trigger: 
       - platform: state
         entity_id: input_select.vacuum_target
+      - platform: state
+        entity_id: vacuum.roborock_s8
+        from: "returning_to_dock"
+        to: "docked"
+        id: done
     action:
     - choose: 
+      - conditions:
+        - condition: trigger
+          id: done
+        sequence:
+          - service: input_select.select_option
+            target: 
+              entity_id: input_select.vacuum_traget
+            data:
+              option: 'Idle'
       - conditions:
         - condition: state
           entity_id: input_select.vacuum_target
@@ -36,6 +50,60 @@ automation:
                 - 16 # LivingRoom
                 - 23 # Corridor
                 - 19 # Kitchen
+      - conditions:
+        - condition: state
+          entity_id: input_select.vacuum_target
+          state: 'Stue'
+        sequence:
+        - service: vacuum.send_command
+          target:
+            entity_id: vacuum.roborock_s8
+          data:
+            command: app_segment_clean
+            params: 
+              - segments:
+                - 16 # LivingRoom
+      - conditions:
+        - condition: state
+          entity_id: input_select.vacuum_target
+          state: 'Gang'
+        sequence:
+        - service: vacuum.send_command
+          target:
+            entity_id: vacuum.roborock_s8
+          data:
+            command: app_segment_clean
+            params: 
+              - segments:
+                - 23 # Corridor
+      - conditions:
+        - condition: state
+          entity_id: input_select.vacuum_target
+          state: 'Kjøkken'
+        sequence:
+        - service: vacuum.send_command
+          target:
+            entity_id: vacuum.roborock_s8
+          data:
+            command: app_segment_clean
+            params: 
+              - segments:
+                - 19 # Kitchen
+      - conditions:
+        - condition: state
+          entity_id: input_select.vacuum_target
+          state: 'Soverom'
+        sequence:
+        - service: vacuum.send_command
+          target:
+            entity_id: vacuum.roborock_s8
+          data:
+            command: app_segment_clean
+            params: 
+              - segments:
+                - 17 # MasterBedroom
+#                - 20 # Study1
+#                - 21 # Study
         
   - id: '1644566778718'
     alias: Støvsug Mandag og Fredag når ingen er hjemme
