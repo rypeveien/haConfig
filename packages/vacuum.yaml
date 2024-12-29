@@ -189,19 +189,11 @@ automation:
           entity_id: vacuum.roborock_s8
           state: "docked"
         sequence:
-        - service: vacuum.send_command
-          target:
-            entity_id: vacuum.roborock_s8
-          data:
-            command: app_segment_clean
-            params: 
-              - segments:
-                - 16 # LivingRoom
-                - 23 # Corridor
-                - 19 # Kitchen
-#                - 17 # MasterBedroom
-#                - 20 # Study1
-#                - 21 # Study
+          - service: input_select.select_option
+            target: 
+              entity_id: input_select.vacuum_traget
+            data:
+              option: 'Ukentlig'
       - conditions:
         - condition: trigger
           id: noenkommerhjem
