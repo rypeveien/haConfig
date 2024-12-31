@@ -34,7 +34,7 @@ sensor:
 
 binary_sensor:
   - name: winter_tires_check
-    state: '{{ states.input_boolean.winter_tyres.state == states.binary_sensor.snowtire.state }}'
+    state: '{{ states.input_boolean.winter_tyres.state == states.binary_sensor.tires_for_rypeveien.state }}'
   - name: vaskemaskin_on
     state: '{{ states(''sensor.stikk_vaskemaskin_power'')|float(default=0) > 2 }}'
     delay_off: 
