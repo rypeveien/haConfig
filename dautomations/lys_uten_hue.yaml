@@ -56,7 +56,7 @@
         domain: light
         brightness_pct: 100
       - condition: template
-        value_template: "{{ states.light.kjokkentak.attributes.brightness|int <= 38 }}"
+        value_template: "{{ states.light.kjokkentak.attributes.brightness|int(default=0) <= 38 }}"
       - type: turn_on
         device_id: f45a5dd2a00dc6bf817724d7c2b40900
         entity_id: light.kjokkentak
