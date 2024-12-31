@@ -28,12 +28,12 @@ automation:
            (now() > today_at('21:30') or now() < today_at('07:00')) }}
     condition:
     - condition: device
-      device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+      device_id: 6471c8d38c27b2759350be6447dfe103
       domain: lock
       entity_id: lock.dana_oppe
       type: is_unlocked
     action:
-    - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+    - device_id: 6471c8d38c27b2759350be6447dfe103
       domain: lock
       entity_id: lock.dana_oppe
       type: lock
@@ -59,7 +59,7 @@ automation:
         entity_id: timer.rypse2_home
         state: active
       - condition: device
-        device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        device_id: 6471c8d38c27b2759350be6447dfe103
         domain: lock
         entity_id: lock.dana_oppe
         type: is_locked
@@ -72,7 +72,7 @@ automation:
         entity_id: f64a8864aa6e44b6aba6bc2517bc5f5a
         domain: binary_sensor
     action:
-      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+      - device_id: 6471c8d38c27b2759350be6447dfe103
         domain: lock
         entity_id: lock.dana_oppe
         type: unlock

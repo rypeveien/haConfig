@@ -27,14 +27,14 @@ automation:
         seconds: 0
     condition:
       - condition: device
-        device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        device_id: 6471c8d38c27b2759350be6447dfe103
         domain: lock
-        entity_id: b8a45703c54119f3a4f179933900693b
+        entity_id: d38d94a48ef74fd61f171851ad921e47
         type: is_unlocked
     action:
-      - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+      - device_id: 6471c8d38c27b2759350be6447dfe103
         domain: lock
-        entity_id: b8a45703c54119f3a4f179933900693b
+        entity_id: d38d94a48ef74fd61f171851ad921e47
         type: lock
 
   - id: '1645896719736'
@@ -61,7 +61,7 @@ automation:
       to: home
       id: Arriving_home
     - platform: device
-      device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+      device_id: 6471c8d38c27b2759350be6447dfe103
       domain: lock
       entity_id: lock.dana_oppe
       type: unlocked
@@ -84,14 +84,14 @@ automation:
     - choose:
       - conditions:
         - condition: device
-          device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+          device_id: 6471c8d38c27b2759350be6447dfe103
           domain: lock
           entity_id: lock.dana_oppe
           type: is_unlocked
         - condition: trigger
           id: Everyone left
         sequence:
-        - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        - device_id: 6471c8d38c27b2759350be6447dfe103
           domain: lock
           entity_id: lock.dana_oppe
           type: lock
@@ -109,7 +109,7 @@ automation:
           entity_id: f64a8864aa6e44b6aba6bc2517bc5f5a
           domain: binary_sensor
         - condition: device
-          device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+          device_id: 6471c8d38c27b2759350be6447dfe103
           domain: lock
           entity_id: lock.dana_oppe
           type: is_locked
@@ -117,7 +117,7 @@ automation:
           entity_id: input_boolean.fenrir_pa_besok
           state: "off"
         sequence:
-        - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        - device_id: 6471c8d38c27b2759350be6447dfe103
           domain: lock
           entity_id: lock.dana_oppe
           type: unlock
@@ -131,7 +131,7 @@ automation:
         - condition: template
           value_template: "{{ states('sensor.inngangsdor_battery_level')|float > 0 }}"
         sequence:
-        - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        - device_id: 6471c8d38c27b2759350be6447dfe103
           domain: lock
           entity_id: lock.dana_oppe
           type: lock
@@ -141,7 +141,7 @@ automation:
         - condition: time
           after: '21:30:00'
         sequence:
-        - device_id: 78dd0ee8d63c7acaec4fc2e4a224e924
+        - device_id: 6471c8d38c27b2759350be6447dfe103
           domain: lock
           entity_id: lock.dana_oppe
           type: lock
