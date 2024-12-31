@@ -9,8 +9,9 @@ template:
         data:
           type: hourly
         target:
-          entity_id: weather.forecast_barselkilen
-          entity_id: weather.forecast_hasseltangen
+          entity_id: 
+          - weather.forecast_barselkilen
+          - weather.forecast_hasseltangen
         response_variable: hourly
     sensor:
       - name: Barselkilen Hourly
