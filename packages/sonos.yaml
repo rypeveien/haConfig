@@ -1,5 +1,5 @@
-sonos:
-  media_player:
-    hosts:
-      - 10.54.39.10
-      - 10.54.39.11
+#sonos:
+#  media_player:
+#    hosts:
+#      - 10.54.39.10
+#      - 10.54.39.11
