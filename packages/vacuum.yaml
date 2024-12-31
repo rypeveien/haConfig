@@ -21,7 +21,7 @@ automation:
         entity_id: input_select.vacuum_target
       - platform: state
         entity_id: vacuum.roborock_s8
-        from: "returning_to_dock"
+        from: "returning"
         to: "docked"
         id: done
     action:
@@ -32,7 +32,7 @@ automation:
         sequence:
           - service: input_select.select_option
             target: 
-              entity_id: input_select.vacuum_traget
+              entity_id: input_select.vacuum_target
             data:
               option: 'Idle'
       - conditions:
