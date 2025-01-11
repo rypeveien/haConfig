@@ -1,23 +1,23 @@
-sensor:
-  - platform: entur_public_transport
-    stop_ids:
-      - 'NSR:Quay:41210'
-      - 'NSR:Quay:41211'
-      - 'NSR:Quay:40418'
-      - 'NSR:Quay:38083'
-      - 'NSR:Quay:42126'
-    line_whitelist:
-      - 'AKT:Line:108'
-
-
-template:
-  - sensor:
-    - name: entur_oygaardsdalen
-      state: "{{ state_attr('sensor.entur_oygardsdalen_platform_40418', 'route') 
-                 + '@' + state_attr('sensor.entur_oygardsdalen_platform_40418', 'due_at') 
-                 + '('+ state_attr('sensor.entur_oygardsdalen_platform_40418', 'delay')|string + ')' }}"
-    - name: entur_oddernesbrua
-      state: "{{ state_attr('sensor.entur_oddernesbrua_kjoita_park_platform_41211', 'route') 
-                 + '@' + state_attr('sensor.entur_oddernesbrua_kjoita_park_platform_41211', 'due_at') 
-                 + '('+ state_attr('sensor.entur_oddernesbrua_kjoita_park_platform_41211', 'delay')|string + ')' }}"
-    
+#sensor:
+#  - platform: entur_public_transport
+#    stop_ids:
+#      - 'NSR:Quay:41210'
+#      - 'NSR:Quay:41211'
+#      - 'NSR:Quay:40418'
+#      - 'NSR:Quay:38083'
+#      - 'NSR:Quay:42126'
+#    line_whitelist:
+#      - 'AKT:Line:108'
+#
+#
+#template:
+#  - sensor:
+#    - name: entur_oygaardsdalen
+#      state: "{{ state_attr('sensor.entur_oygardsdalen_platform_40418', 'route') 
+#                 + '@' + state_attr('sensor.entur_oygardsdalen_platform_40418', 'due_at') 
+#                 + '('+ state_attr('sensor.entur_oygardsdalen_platform_40418', 'delay')|string + ')' }}"
+#    - name: entur_oddernesbrua
+#      state: "{{ state_attr('sensor.entur_oddernesbrua_kjoita_park_platform_41211', 'route') 
+#                 + '@' + state_attr('sensor.entur_oddernesbrua_kjoita_park_platform_41211', 'due_at') 
+#                 + '('+ state_attr('sensor.entur_oddernesbrua_kjoita_park_platform_41211', 'delay')|string + ')' }}"
+#    
