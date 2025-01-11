@@ -27,26 +27,39 @@ template:
   - name: bathroom_temp
     unit_of_measurement: "°C"
     state: "{{ state_attr('climate.baderomsgulv', 'current_temperature') - states('sensor.analyzer_updown')|int * 0.5 }}"
+  - name: bathroom_target
+    unit_of_measurement: "°C"
+    state: "{{ state_attr('climate.bathroom_temp', 'temperature') + 0.5 * states('sensor.analyzer_updown')|int(default=0) }}"
 
 automation:
   - id: '1662913867828'
     alias: Bathroom Analyzer temp adjustment
     trigger: 
       - platform: state
-        entity_id: sensor.analyzer_updown
-      - platform: template
-        value_template: >
-          {{ state_attr('climate.bathroom_temp', 'temperature') 
-             - states('sensor.analyzer_updown')|int * 0.5 != state_attr('climate.baderomsgulv', 'temperature') }}
-    condition: 
-    - condition: template
-      value_template: >
-        {{ states('sensor.analyzer_updown') in ['-1', '0', '1'] }}
+        entity_id: sensor.bathroom_target
+    action: 
+    - service: climate.set_temperature
+      data: 
+        temperature: sensor.bathroom_target
+      target:
+        entity_id: climate.baderomsgulv
+
+  - id: '20250110105100'
+    alias: Bathroom local adjustment
+    trigger: 
+      - device_id: e0ac5b2793a023a80c152ccf6bbba94d
+        domain: zwave_js
+        type: zwave_js.value_updated.value
+        trigger: device
+        property: setpoint
+        command_class: 67
+        property_key: "1"
+        endpoint: "1"
     action: 
     - service: climate.set_temperature
       data: 
         temperature: >
-          {{ state_attr('climate.bathroom_temp', 'temperature')|float + 0.5 * states('sensor.analyzer_updown')|int }}
+            {{ state_attr('climate.baderomsgulv', 'temperature') - 0.5 * states('sensor.analyzer_updown')|int(default=0) }}
       target:
-        entity_id: climate.baderomsgulv
+        entity_id: climate.bathroom_temp
 
