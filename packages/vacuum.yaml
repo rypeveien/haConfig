@@ -35,6 +35,19 @@ automation:
               entity_id: input_select.vacuum_target
             data:
               option: 'Idle'
+          - if:
+            - condition: numeric_state
+              entity_id: sensor.roborock_s8_cleaning_area
+              above: 35
+            then: 
+            - service: timer.cancel
+              target:
+                entity_id: timer.vacuum_timer
+            - delay:
+                minutes: 1
+            - service: timer.start
+              target:
+                entity_id: timer.vacuum_timer
       - conditions:
         - condition: state
           entity_id: input_select.vacuum_target
@@ -118,13 +131,6 @@ automation:
       for: 
         minutes: 15
       id: home_alone
-    - platform: state
-      entity_id: timer.vacuum_timer
-      to: 'idle'
-    - platform: state
-      entity_id: vacuum.roborock_s8
-      from: 'cleaning'
-      id: done_cleaning
     - platform: template
       value_template: >
         {{ states('binary_sensor.anyone_home') == 'on' }}
@@ -138,30 +144,12 @@ automation:
         - condition: trigger
           id: 
           - cleaningtime
-          - done_cleaning
           - noenkommerhjem
         - condition: state
           entity_id: timer.vacuum_timer
           state: 'idle'
     action:
     - choose:
-      - conditions:
-        - condition: trigger
-          id: done_cleaning
-        sequence:
-        - if:
-          - condition: numeric_state
-            entity_id: sensor.roborock_s8_cleaning_area
-            above: 35
-          then: 
-          - service: timer.cancel
-            target:
-              entity_id: timer.vacuum_timer
-          - delay:
-              minutes: 1
-          - service: timer.start
-            target:
-              entity_id: timer.vacuum_timer
       - conditions:
         - condition: or
           conditions:
