@@ -10,10 +10,27 @@ template:
           type: hourly
         target:
           entity_id: 
+          - weather.rypeveien
           - weather.forecast_barselkilen
           - weather.forecast_hasseltangen
         response_variable: hourly
     sensor:
+      - name: Rypeveien Hourly
+        state: "{{ states('weather.rypeveien') }}"
+        attributes:
+          temperature: "{{ state_attr('weather.rypeveien', 'temperature') }}"
+          dew_point: "{{ state_attr('weather.rypeveien', 'dew_point') }}"
+          temperature_unit: "{{ state_attr('weather.rypeveien', 'temperature_unit') }}"
+          humidity: "{{ state_attr('weather.rypeveien', 'humidity') }}"
+          cloud_coverage: "{{ state_attr('weather.rypeveien', 'cloud_coverage') }}"
+          pressure: "{{ state_attr('weather.rypeveien', 'pressure') }}"
+          pressure_unit: "{{ state_attr('weather.rypeveien', 'pressure_unit') }}"
+          wind_bearing: "{{ state_attr('weather.rypeveien', 'wind_bearing') }}"
+          wind_speed: "{{ state_attr('weather.rypeveien', 'wind_speed') }}"
+          wind_speed_unit: "{{ state_attr('weather.rypeveien', 'wind_speed_unit') }}"
+          visibility_unit: "{{ state_attr('weather.rypeveien', 'visibility_unit') }}"
+          precipitation_unit: "{{ state_attr('weather.rypeveien', 'precipitation_unit') }}"
+          forecast: "{{ hourly['weather.rypeveien'].forecast }}"
       - name: Barselkilen Hourly
         state: "{{ states('weather.forecast_barselkilen') }}"
         attributes:
