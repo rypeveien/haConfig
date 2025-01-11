@@ -104,6 +104,25 @@ template:
           {{ last if current < 2500 else current }}
   - trigger: 
       - platform: state
+        entity_id: sensor.vvtank_temp_inn
+    binary_sensor:
+      - name: vvtank_inn_usage
+        state: >
+          {% set last = states('binary_sensor.vvtank_inn_usage') %}
+          {% set from = trigger.from_state.state %}
+          {% set to = trigger.to_state.state %}
+          {% if from in ['unavailable', 'unknown'] or to in ['unavailable', 'unknown'] %}
+            {% set from = 0 %}
+            {% set to = 0 %}
+          {% else %}
+            {% set from = from|float %}
+            {% set to = to|float %}
+          {% endif %}
+          {{ "off" if to > from else 
+             "on" if from > 1 + to else
+             last }}
+  - trigger: 
+      - platform: state
         entity_id: sensor.vvtank_temp_ut
     sensor: 
       - name: vvtank_ut_reference
@@ -436,7 +455,7 @@ automation:
         minutes: "/1"
     condition:
       - condition: state
-        entity_id: binary_sensor.vvtank_usage
+        entity_id: binary_sensor.vvtank_inn_usage
         state: "on"
     action:
       - service: counter.increment
