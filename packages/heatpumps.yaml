@@ -40,7 +40,7 @@ template:
     delay_on:
       minutes: 30
   - name: vpnede_onoff
-    state: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 5 }}"
+    state: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 50 }}"
   - name: vpoppe_onoff
     state: "{{ states('sensor.stikk_vp_oppe_power')|int(default=0) > 20 }}"
   - name: schedule_adjust
@@ -57,7 +57,7 @@ switch:
         turn_on:
         turn_off:
       vpnede_onoff:
-        value_template: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 5 }}"
+        value_template: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 50 }}"
         turn_on:
         turn_off:
 
