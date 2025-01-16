@@ -9,9 +9,18 @@ template:
     state: >
       {% set lumi = states('sensor.lumi_stue_temperature') %}
       {% set vdor = states('sensor.verandador_temperature') %}
+      {% set ws2900 = states('sensor.ws2900_v2_02_02_indoor_temperature') %}
+      {% set stueluft = states('sensor.stueluft_temperature') %}
+      {% set lumiluft = states('sensor.lumi_luft_temperature') %}
       {% set lumi = [] if lumi in ['unavailable', 'unknown'] else [lumi|float] %}
       {% set vdor = [] if vdor in  ['unavailible', 'unknown'] else [vdor|float] %}
-      {{ (lumi + vdor)|average|round(1) }}
+      {% set ws2900 = [] if ws2900 in ['unavailable', 'unknown'] else [ws2900|float] %}
+      {% set stueluft = [] if stueluft in ['unavailable', 'unknown'] else [stueluft|float] %}
+      {% set lumiluft = [] if lumiluft in ['unavailable', 'unknown'] else [lumiluft|float] %}
+      {{ (lumi + vdor + ws2900 + stueluft + lumiluft)|average|round(1) }}
+  - name: livingroom_temp_adjusted
+    unit_of_measurement: "°C"
+    state: "{{ states('sensor.livingroom_temp')|float(default=18) - 0.5 * states('sensor.analyzer_updown')|int(default=0) }}"
   - name: basement_temp
     unit_of_measurement: "°C"
     state: >
@@ -39,6 +48,8 @@ template:
       {{ states('sensor.livingroom_temp')|float(default=20) > 25 }}
     delay_on:
       minutes: 30
+  - name: lights_off_for_night
+    state: "{{ states('light.livingroom_lights') == 'off' and states('binary_sensor.shellygang_input') == 'off' }}"
   - name: vpnede_onoff
     state: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 50 }}"
   - name: vpoppe_onoff
@@ -53,9 +64,23 @@ switch:
   - platform: template
     switches: 
       vpoppe_onoff:
-        value_template: "{{ states('sensor.stikk_vp_oppe_power')|int(default=0) > 50 }}"
+#        value_template: "{{ states('sensor.stikk_vp_oppe_power')|int(default=0) > 50 }}"
         turn_on:
+          service: climate.set_temperature
+          target:
+            entity_id: climate.vpoppe
+          data:
+            temperature: >
+              {% set max = state_attr('climate.vpoppe', 'max_temp') %}
+              {% set analyzer = states('sensor.analyzer_updown')|int(default=0) %}
+              {% set target =  (state_attr('climate.vp_goppe','temperature') + 5 + 0.5 * analyzer)|int %}
+              {{ max if target > max else target }}
         turn_off:
+          service: climate.set_temperature
+          target:
+            entity_id: climate.vpoppe
+          data:
+            temperature: "{{ state_attr('climate.vp_goppe', 'temperature') + states('sensor.analyzer_updown')|int(default=0) }}"
       vpnede_onoff:
         value_template: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 50 }}"
         turn_on:
@@ -65,8 +90,11 @@ climate:
   - platform: generic_thermostat
     name: vp_goppe
     heater: switch.vpoppe_onoff
-    target_sensor: sensor.livingroom_temp
-    target_temp_step: 1
+    target_sensor: sensor.livingroom_temp_adjusted
+    target_temp_step: 0.5
+    min_cycle_duration: 600
+    cold_tolerance: 0.1
+    hot_tolerance: 0.1
     min_temp: 17
     max_temp: 28
   - platform: generic_thermostat
@@ -81,20 +109,20 @@ schedule:
   livingroom_schedule:
     name: "Livingroom schedule"
     monday: 
-      - from: "14:30:00"
+      - from: "07:30:00"
+        to: "10:30:00"
+      - from: "15:00:00"
         to: "21:00:00"
     tuesday:
-      - from: "07:30:00"
-        to: "09:30:00"
-      - from: "16:00:00"
+      - from: "15:00:00"
         to: "21:00:00"
     wednesday:
       - from: "07:30:00"
-        to: "09:30:00"
-      - from: "16:00:00"
+        to: "11:30:00"
+      - from: "14:30:00"
         to: "21:00:00"
     thursday: 
-      - from: "14:30:00"
+      - from: "15:00:00"
         to: "21:00:00"
     friday: 
       - from: "14:30:00"
@@ -266,8 +294,7 @@ automation:
       - platform: state
         entity_id: 
           - binary_sensor.anyone_home
-          - light.livingroom_lights
-          - binary_sensor.shellygang_input
+          - binary_sensor.lights_off_for_night
     action:
       - if: 
         - condition: or
@@ -275,14 +302,9 @@ automation:
           - condition: state
             entity_id: binary_sensor.anyone_home
             state: 'off'
-          - condition: and
-            conditions: 
-            - condition: state
-              entity_id: light.livingroom_lights
-              state: 'off'
-            - condition: state
-              entity_id: binary_sensor.shellygang_input
-              state: 'off'
+          - condition: state
+            entity_id: binary_sensor.lights_off_for_night
+            state: 'on'
         then:
           - service: climate.set_fan_mode
             target:
@@ -294,5 +316,5 @@ automation:
             target:
               entity_id: climate.vpoppe
             data:
-              fan_mode: low
+              fan_mode: auto
 
