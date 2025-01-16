@@ -119,7 +119,7 @@ template:
             {% set to = to|float %}
           {% endif %}
           {{ "off" if to > from else 
-             "on" if from > 1 + to else
+             "on" if from > 3 + to else
              last }}
   - trigger: 
       - platform: state
