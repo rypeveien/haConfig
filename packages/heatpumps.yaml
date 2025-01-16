@@ -8,16 +8,17 @@ template:
     unit_of_measurement: "°C"
     state: >
       {% set lumi = states('sensor.lumi_stue_temperature') %}
-      {% set vdor = states('sensor.verandador_temperature') %}
-      {% set ws2900 = states('sensor.ws2900_v2_02_02_indoor_temperature') %}
-      {% set stueluft = states('sensor.stueluft_temperature') %}
-      {% set lumiluft = states('sensor.lumi_luft_temperature') %}
       {% set lumi = [] if lumi in ['unavailable', 'unknown'] else [lumi|float] %}
-      {% set vdor = [] if vdor in  ['unavailible', 'unknown'] else [vdor|float] %}
+      {% set ws2900 = states('sensor.ws2900_v2_02_02_indoor_temperature') %}
       {% set ws2900 = [] if ws2900 in ['unavailable', 'unknown'] else [ws2900|float] %}
-      {% set stueluft = [] if stueluft in ['unavailable', 'unknown'] else [stueluft|float] %}
+      {% set lumiluft = states('sensor.lumi_luft_temperature') %}
       {% set lumiluft = [] if lumiluft in ['unavailable', 'unknown'] else [lumiluft|float] %}
-      {{ (lumi + vdor + ws2900 + stueluft + lumiluft)|average|round(1) }}
+      {{ (lumi + ws2900 + lumiluft)|average|round(1) }}
+#      {% set vdor = states('sensor.verandador_temperature') %}
+#      {% set vdor = [] if vdor in  ['unavailible', 'unknown'] else [vdor|float] %}
+#      {% set stueluft = states('sensor.stueluft_temperature') %}
+#      {% set stueluft = [] if stueluft in ['unavailable', 'unknown'] else [stueluft|float] %}
+#      {{ (lumi + vdor + ws2900 + stueluft + lumiluft)|average|round(1) }}
   - name: livingroom_temp_adjusted
     unit_of_measurement: "°C"
     state: "{{ states('sensor.livingroom_temp')|float(default=18) - 0.5 * states('sensor.analyzer_updown')|int(default=0) }}"
