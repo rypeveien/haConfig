@@ -14,14 +14,19 @@ template:
       {% set lumiluft = states('sensor.lumi_luft_temperature') %}
       {% set lumiluft = [] if lumiluft in ['unavailable', 'unknown'] else [lumiluft|float] %}
       {{ (lumi + ws2900 + lumiluft)|average|round(1) }}
-#      {% set vdor = states('sensor.verandador_temperature') %}
-#      {% set vdor = [] if vdor in  ['unavailible', 'unknown'] else [vdor|float] %}
-#      {% set stueluft = states('sensor.stueluft_temperature') %}
-#      {% set stueluft = [] if stueluft in ['unavailable', 'unknown'] else [stueluft|float] %}
-#      {{ (lumi + vdor + ws2900 + stueluft + lumiluft)|average|round(1) }}
   - name: livingroom_temp_adjusted
     unit_of_measurement: "°C"
     state: "{{ states('sensor.livingroom_temp')|float(default=18) - 0.5 * states('sensor.analyzer_updown')|int(default=0) }}"
+  - name: livingroom_on
+    unit_of_measurement: "°C"
+    state: >
+      {% set max = state_attr('climate.vpoppe', 'max_temp') %}
+      {% set analyzer = states('sensor.analyzer_updown')|int(default=0) %}
+      {% set target =  (state_attr('climate.vp_goppe','temperature') + 5 + 0.5 * analyzer)|int %}
+      {{ max if target > max else target }}
+  - name: livingroom_off
+    unit_of_measurement: "°C"
+    state: "{{ (state_attr('climate.vp_goppe', 'temperature') + states('sensor.analyzer_updown')|int(default=0))|int }}"
   - name: basement_temp
     unit_of_measurement: "°C"
     state: >
