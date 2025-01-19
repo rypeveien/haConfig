@@ -179,7 +179,7 @@ automation:
         sequence:
           - service: input_select.select_option
             target: 
-              entity_id: input_select.vacuum_traget
+              entity_id: input_select.vacuum_target
             data:
               option: 'Ukentlig'
       - conditions:
