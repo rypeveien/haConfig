@@ -62,6 +62,14 @@ template:
       state: "{{ states('sensor.vv_tank_power')|float(default=0) > 0 }}"
     - name: vvkjeller_on
       state: "{{ states('sensor.stikk_vv_kjeller_power')|float(default=0) > 0 }}"
+    - name: vvtank_usage_delay
+      state: "{{ states('binary_sensor.vvtank_inn_usage') }}"
+      delay_on: 
+        minutes: 1
+    - name: vvaux_usage_delay
+      state: "{{ states('binary_sensor.vvaux_usage') }}"
+      delay_on: 
+        minutes: 1
     - name: under_limit_if_vvtank_on
       state: >
         {% set last = states('binary_sensor.under_limit_if_vvtank_on') %}
@@ -451,7 +459,7 @@ automation:
         minutes: "/1"
     condition:
       - condition: state
-        entity_id: binary_sensor.vvtank_inn_usage
+        entity_id: binary_sensor.vvtank_usage_delay
         state: "on"
     action:
       - service: counter.increment
@@ -465,7 +473,7 @@ automation:
         minutes: "/1"
     condition:
       - condition: state
-        entity_id: binary_sensor.vvaux_usage
+        entity_id: binary_sensor.vvaux_usage_delay
         state: "on"
     action:
       - service: counter.increment
