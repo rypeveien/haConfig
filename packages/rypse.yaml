@@ -17,7 +17,8 @@ template:
         state: >
           {% set last = states('sensor.rypse2_soc')|int(default=50) %}
           {% if trigger.entity_id == 'sensor.easee_home_63089_session_energy' and
-                states('input_select.which_car') == 'Polestar' %}
+                states('input_select.which_car') == 'Polestar' and 
+                states.sensor.easee_home_63089_status.last_changed > states.sensor.polestar_8958_battery_charge_level.last_changed %}
             {% set last_charger = state_attr('sensor.rypse2_soc', 'charger_energy')|float(default=0) %}
             {% set last = state_attr('sensor.rypse2_soc', 'battery_energy')|int(default=50) %}
             {% set battery_max = 69 %}
