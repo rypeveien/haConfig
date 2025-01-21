@@ -22,7 +22,7 @@ template:
     state: >
       {% set max = state_attr('climate.vpoppe', 'max_temp') %}
       {% set analyzer = states('sensor.analyzer_updown')|int(default=0) %}
-      {% set target =  (state_attr('climate.vp_goppe','temperature') + 5 + 0.5 * analyzer)|int %}
+      {% set target =  (state_attr('climate.vp_goppe','temperature') + 4 + 0.5 * analyzer)|int %}
       {{ max if target > max else target }}
   - name: livingroom_off
     unit_of_measurement: "°C"
@@ -76,17 +76,13 @@ switch:
           target:
             entity_id: climate.vpoppe
           data:
-            temperature: >
-              {% set max = state_attr('climate.vpoppe', 'max_temp') %}
-              {% set analyzer = states('sensor.analyzer_updown')|int(default=0) %}
-              {% set target =  (state_attr('climate.vp_goppe','temperature') + 5 + 0.5 * analyzer)|int %}
-              {{ max if target > max else target }}
+            temperature: "{{ states('sensor.livingroom_on') }}"
         turn_off:
           service: climate.set_temperature
           target:
             entity_id: climate.vpoppe
           data:
-            temperature: "{{ state_attr('climate.vp_goppe', 'temperature') + states('sensor.analyzer_updown')|int(default=0) }}"
+            temperature: "{{ states('sensor.livingroom_off') }}"
       vpnede_onoff:
         value_template: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 50 }}"
         turn_on:
