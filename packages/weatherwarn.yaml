@@ -121,11 +121,9 @@ automation:
       - binary_sensor.weather_warn
       to: 'on'
     - platform: template
-      value_template: '{% set ts = (states(''sensor.weather_warn'') | from_json).warn.ts
-        %}
-
-        {{ ts > 0 and ts < now().timestamp() + 84600  }}'
-    condition: []
+      value_template: >
+        {% set ts = (states('sensor.weather_warn') | from_json).warn.ts %}
+        {{ ts > 0 and ts < now().timestamp() + 84600 and states('binary_sensor.weather_warn') == 'on' }}
     action:
     - service: notify.mobile_app_titophone
       data:
