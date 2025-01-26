@@ -1,0 +1,164 @@
+template:
+  - binary_sensor:
+    - name: trainer_over_3_watt
+      state: "{{ states('sensor.shellyrulle_power')|float(default=0) > 3 }}"
+      delay_on:
+        minutes: 1
+      delay_off:
+        minutes: 15
+    - name: nightly_zwift_update
+      state: >
+        {% set zwiftlap_home = states('device_tracker.zwiftlap') == 'home' %}
+        {% set trainer_off = states('switch.shellyrulle') == 'off' %}
+        {% set hour = now().hour < 6 %}
+        {{ (zwiftlap_home and trainer_off and hour) }}
+      delay_on:
+        minutes: 15
+      delay_off:
+        hours: 3
+        minutes: 15
+  - trigger: 
+      - platform: state
+        entity_id: 
+          - sensor.qp_kjellerstue_humidity
+          - binary_sensor.trainer_over_3_watt
+    sensor:
+      - name: zwift saved humidity 
+        unit_of_measurement: '%'
+        device_class: humidity
+        state_class: measurement
+        state: >
+          {% set qp_hum = states('sensor.qp_kjellerstue_humidity')|float(default=50) %}
+          {% set last = states('sensor.zwift_saved_humidity')|float(default=qp_hum) %}
+          {% set active = states('binary_sensor.zwift_active') %}
+          {% set zwiftlap = states('device_tracker.zwiftlap') %}
+          {{ qp_hum if (zwiftlap != 'home' and active == 'off') else
+             qp_hum if (zwiftlap == 'home' and active == 'on' and qp_hum > last) else
+             qp_hum if (zwiftlap == 'home' and active == 'off' and qp_hum < last) else 
+             last }}
+        attributes:
+          before: >
+            {% set qp_hum = states('sensor.qp_kjellerstue_humidity')|float(default=50) %}
+            {% set last = state_attr('sensor.zwift_saved_humidity', 'before')|float(default=qp_hum) %}
+            {% set active = states('binary_sensor.zwift_active') %}
+            {{ qp_hum if (qp_hum < last or active != 'on') else 
+               last }}
+    binary_sensor:
+      - name: zwift_active
+        state: >
+          {% set active = states('binary_sensor.zwift_active') %}
+          {% set trainer = states('binary_sensor.trainer_over_3_watt') %}
+          {% set zwift_hum = states('sensor.zwift_saved_humidity')|float(default=50) %}
+          {% set zwiftlap = states('device_tracker.zwiftlap') %}
+          {% set trainer = states('switch.shellyrulle') %}
+          {% set qp_hum = states('sensor.qp_kjellerstue_humidity')|float(default=50) %}
+          {{ 'on' if (zwiftlap == 'home' and active == 'on' and trainer == 'on' and (zwift_hum - qp_hum > 10.0)) else 
+             'off' if (zwiftlap != 'home' or (2 <= now().hour < 5) or (zwift_hum - qp_hum) > 5.0) or (trainer != 'on') else 
+             'on' if (zwiftlap == 'home' and (qp_hum - zwift_hum) > 1.0) and (trainer == 'on') else
+             active }}
+
+automation:
+  - id: '1671655275820'
+    alias: 'Set fanmode when zwifting'
+    mode: single
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.trainer_over_3_watt
+      - platform: state
+        entity_id:
+          - light.kjellerstuetak
+          - switch.shellyrulle
+        to: "off"
+        id: "off"
+      - platform: state
+        entity_id:
+          - device_tracker.zwiftlap
+        id: not_home
+        to: not_home
+    condition: []
+    action:
+      - choose:
+          - conditions:
+              - condition: or
+                conditions:
+                  - condition: trigger
+                    id:
+                      - "off"
+                      - not_home
+                  - condition: state
+                    entity_id: binary_sensor.trainer_over_3_watt
+                    state: "off"
+            sequence:
+              - service: switch.turn_off
+                target:
+                  entity_id:
+                    - switch.shellyrulle
+              - service: switch.turn_off
+                target:
+                  entity_id:
+                    - switch.shellybikefan
+              - service: light.turn_off
+                target:
+                  entity_id: light.kjellerstuetak
+              - if:
+                  - condition: not
+                    conditions:
+                    - condition: state
+                      entity_id: climate.vpnede
+                      state: heat
+                then:
+                  - service: climate.set_hvac_mode
+                    data:
+                      hvac_mode: heat
+                    target:
+                      entity_id: climate.vpnede
+          - conditions:
+              - condition: state
+                entity_id: binary_sensor.trainer_over_3_watt
+                state: 'on'
+            sequence:
+#            - service: climate.set_hvac_mode
+#              target:
+#                entity_id: climate.vpnede
+#              data:
+#                hvac_mode: cool
+            - delay:
+                minutes: 5
+            - condition: or
+              conditions: 
+              - condition: state
+                entity_id: binary_sensor.zwift_active
+                state: "on"
+              - condition: state
+                entity_id: binary_sensor.trainer_over_3_watt
+                state: 'on'
+            - service: switch.turn_on
+              target:
+                entity_id: switch.shellybikefan
+              data: {}
+
+  - id: '1704490413597'
+    alias: 'Turn trainer on or off '
+    trigger:
+      - platform: state
+        entity_id: device_tracker.zwiftlap
+    condition:
+      - condition: time
+        after: "2:45:00"
+      - condition: state
+        entity_id: binary_sensor.nightly_zwift_update
+        state: 'off'
+    action:
+      - if: 
+          - condition: state
+            entity_id: device_tracker.zwiftlap
+            state: 'home'
+        then:
+          - service: switch.turn_on
+            target:
+              entity_id: switch.shellyrulle
+        else:
+          - service: switch.turn_off
+            target:
+              entity_id: switch.shellyrulle
