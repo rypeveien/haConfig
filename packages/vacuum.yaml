@@ -21,14 +21,13 @@ automation:
         entity_id: input_select.vacuum_target
       - platform: state
         entity_id: vacuum.roborock_s8
-        from: "returning"
         to: "docked"
-        id: done
+        id: docked
     action:
     - choose: 
       - conditions:
         - condition: trigger
-          id: done
+          id: docked
         sequence:
           - service: input_select.select_option
             target: 
