@@ -27,6 +27,17 @@ template:
   - name: livingroom_off
     unit_of_measurement: "°C"
     state: "{{ (state_attr('climate.vp_goppe', 'temperature') + states('sensor.analyzer_updown')|int(default=0))|int }}"
+  - name: livingroom_autoadjust
+    unit_of_measurement: "°C"
+    state: >
+      {% set max = state_attr('climate.vpoppe', 'max_temp') %}
+      {% set target = state_attr('climate.vp_goppe', 'temperature')|float(default=18.5)|round(1) %}
+      {% set min = (target + 0.5 * states('sensor.analyzer_updown')|int(default=0))|int %}
+      {% set adjusted = states('sensor.livingroom_temp_adjusted')|float(default=target) %}
+      {% set setpoint = (target + 10 * (target - adjusted))|round(0) %}
+      {% set setpoint = max if setpoint > max else setpoint %}
+      {% set setpoint = min if setpoint < min else setpoint %}
+      {{ setpoint }}
   - name: basement_temp
     unit_of_measurement: "°C"
     state: >
@@ -72,17 +83,17 @@ switch:
       vpoppe_onoff:
 #        value_template: "{{ states('sensor.stikk_vp_oppe_power')|int(default=0) > 50 }}"
         turn_on:
-          service: climate.set_temperature
-          target:
-            entity_id: climate.vpoppe
-          data:
-            temperature: "{{ states('sensor.livingroom_on') }}"
+#          service: climate.set_temperature
+#          target:
+#            entity_id: climate.vpoppe
+#          data:
+#            temperature: "{{ states('sensor.livingroom_on') }}"
         turn_off:
-          service: climate.set_temperature
-          target:
-            entity_id: climate.vpoppe
-          data:
-            temperature: "{{ states('sensor.livingroom_off') }}"
+#          service: climate.set_temperature
+#          target:
+#            entity_id: climate.vpoppe
+#          data:
+#            temperature: "{{ states('sensor.livingroom_off') }}"
       vpnede_onoff:
         value_template: "{{ states('sensor.stikk_vp_nede_power')|int(default=0) > 50 }}"
         turn_on:
@@ -337,34 +348,40 @@ automation:
     trigger:
       - platform: state
         entity_id: 
-          - sensor.livingroom_on
-          - sensor.livingroom_off
+          - sensor.livingroom_autoadjust
+#          - sensor.livingroom_on
+#          - sensor.livingroom_off
     action:
-      - choose:
-        - conditions:
-          - condition: state
-            entity_id: switch.vpoppe_onoff
-            state: 'on'
-          - condition: template
-            value_template: >
-              {{ state_attr('climate.vpoppe','temperature') != states('sensor.livingroom_on')|int }}
-          sequence: 
-            - service: climate.set_temperature
-              data: 
-                temperature: "{{ states('sensor.livingroom_on') }}"
-              target:
-                entity_id: climate.vpoppe
-        - conditions:
-          - condition: state
-            entity_id: switch.vpoppe_onoff
-            state: 'off'
-          - condition: template
-            value_template: >
-              {{ state_attr('climate.vpoppe','temperature') != states('sensor.livingroom_off')|int }}
-          sequence: 
-            - service: climate.set_temperature
-              data: 
-                temperature: "{{ states('sensor.livingroom_off') }}"
-              target:
-                entity_id: climate.vpoppe
+      - service: climate.set_temperature
+        data: 
+          temperature: "{{ states('sensor.livingroom_autoadjust') }}"
+        target:
+          entity_id: climate.vpoppe
+#      - choose:
+#        - conditions:
+#          - condition: state
+#            entity_id: switch.vpoppe_onoff
+#            state: 'on'
+#          - condition: template
+#            value_template: >
+#              {{ state_attr('climate.vpoppe','temperature') != states('sensor.livingroom_on')|int }}
+#          sequence: 
+#            - service: climate.set_temperature
+#              data: 
+#                temperature: "{{ states('sensor.livingroom_on') }}"
+#              target:
+#                entity_id: climate.vpoppe
+#        - conditions:
+#          - condition: state
+#            entity_id: switch.vpoppe_onoff
+#            state: 'off'
+#          - condition: template
+#            value_template: >
+#              {{ state_attr('climate.vpoppe','temperature') != states('sensor.livingroom_off')|int }}
+#          sequence: 
+#            - service: climate.set_temperature
+#              data: 
+#                temperature: "{{ states('sensor.livingroom_off') }}"
+#              target:
+#                entity_id: climate.vpoppe
 
