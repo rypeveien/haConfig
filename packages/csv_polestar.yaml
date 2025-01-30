@@ -4,10 +4,6 @@ template:
       entity_id: 'sensor.rypse2_csv'
 
     sensor:
-#      - name: 'Rypse2 currentPower'
-#        state: "{{ state_attr('sensor.rypse2_battery', 'power') }}"
-#        unit_of_measurement: 'kW'
-#        icon : mdi:speedometer
       - name: 'Rypse2 currentSpeed'
         state : >
           {% set speed = state_attr('sensor.rypse2_battery', 'speed')|float(default=0) %}
@@ -32,16 +28,7 @@ template:
         icon: mdi:coolant-temperature
 
     binary_sensor:
-#      - name: 'Rypse2 isParked'
-#        state: "{{ state_attr('sensor.rypse2_battery','isParked') }}"
-#        icon: mdi:car-brake-parking
       - name: 'Rypse2 chargePortConnected'
         state: "{{ state_attr('sensor.rypse2_battery','chargePortConnected') }}"
         icon: mdi:ev-station
-#      - name: 'Rypse2 isCharging'
-#        state: "{{ state_attr('sensor.rypse2_battery','isCharging') }}"
-#        icon: mdi:ev-plug-type2
-#      - name: 'Rypse2 isFastCharging'
-#        state: "{{ state_attr('sensor.rypse2_battery','isFastCharging') }}"
-#        icon: mdi:ev-plug-ccs2
 

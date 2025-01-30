@@ -44,10 +44,6 @@ automation:
     trigger:
       - platform: state
         entity_id: sensor.rain_counter
-#    condition:
-#      - condition: state
-#        entity_id: timer.rain_counter
-#        state: idle
     action:
       - service: timer.start
         target:
