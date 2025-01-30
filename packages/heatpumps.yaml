@@ -11,9 +11,12 @@ template:
         {% set lumi = [] if lumi in ['unavailable', 'unknown'] else [lumi|float] %}
         {% set ws2900 = states('sensor.ws2900_v2_02_02_indoor_temperature') %}
         {% set ws2900 = [] if ws2900 in ['unavailable', 'unknown'] else [ws2900|float] %}
-        {% set lumiluft = states('sensor.lumi_luft_temperature') %}
-        {% set lumiluft = [] if lumiluft in ['unavailable', 'unknown'] else [lumiluft|float] %}
-        {{ (lumi + ws2900 + lumiluft)|average|round(1) }}
+        {% set vindu = states('sensor.lumi_stuevindu_temperature') %}
+        {% set vindu = [] if vindu in ['unavailable', 'unknown'] else [vindu|float] %}
+        {{ (lumi + ws2900 + vindu)|average|round(2) }}
+    - name: livingroom_dynamic_from
+      unit_of_measurement: "°C"
+      state: "{{ state_attr('sensor.livingroom_dynamic', 'from') }}"
     - name: livingroom_temp_adjusted
       unit_of_measurement: "°C"
       state: "{{ states('sensor.livingroom_temp')|float(default=18) - 0.5 * states('sensor.analyzer_updown')|int(default=0) }}"
@@ -98,10 +101,11 @@ template:
         {% set from = state_attr('sensor.livingroom_dynamic', 'from') %}
         {% set from = adjusted if from in ('unknown', 'unavailable', None ) else from %}
         {% set last = last|float(default=current) %}
-        {% set new = (target + 0.5 * states('sensor.analyzer_updown')|int(default=0))|int if adjusted >= target else
-                       last + 1 if from >= adjusted else last %}
+        {% set new = last - 1 if (adjusted > target or adjusted > (from + 0.05)) 
+                else last + 1 if (from >= adjusted and (adjusted + 0.1) <= target) 
+                else last %}
         {% set new = min if new < min else max if new > max else new %}
-        {{ new }}
+        {{ new|int(default=18) }}
       attributes:
         unit_of_measurement: "°C"
         from: >
@@ -384,6 +388,11 @@ automation:
 #          - sensor.livingroom_autoadjust
 #          - sensor.livingroom_on
 #          - sensor.livingroom_off
+    condition: 
+      - condition: template
+        value_template: >
+          {% set current = state_attr('climate.vpoppe', 'temperature') %}
+          {{ states('sensor.livingroom_dynamic')|int(default=current) != current }}
     action:
       - service: climate.set_temperature
         data: 
